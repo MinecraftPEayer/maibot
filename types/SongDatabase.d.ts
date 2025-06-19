@@ -1,3 +1,5 @@
+import { ComboType, SyncType } from "src/lib/maimaiDXNetEnums";
+
 interface SongDatabase {
     songs: Song[];
     categories: { category: string }[];
@@ -208,25 +210,27 @@ type B50Data = {
     title: string;
     achievement: number;
     ranking:
-        | 'SSS+'
-        | 'SSS'
-        | 'SS+'
-        | 'SS'
-        | 'S+'
-        | 'S'
-        | 'AAA'
-        | 'AA'
-        | 'A'
-        | 'BBB'
-        | 'BB'
-        | 'B'
-        | 'C'
-        | 'D';
+    | 'SSS+'
+    | 'SSS'
+    | 'SS+'
+    | 'SS'
+    | 'S+'
+    | 'S'
+    | 'AAA'
+    | 'AA'
+    | 'A'
+    | 'BBB'
+    | 'BB'
+    | 'B'
+    | 'C'
+    | 'D';
     backgroundImg: string;
     rating: number;
     constant: number;
     level: string;
     difficulty: 0 | 1 | 2 | 3 | 4 | 10;
+    comboType: ComboType;
+    syncType: SyncType
 };
 
 export {

@@ -308,6 +308,7 @@ class MaimaiDXNetFetcher {
             title: string;
             type: ChartType;
             difficulty: Difficulty;
+            utageKind?: string;
             achievement: number;
             comboType: ComboType;
             syncType: SyncType;
@@ -357,10 +358,16 @@ class MaimaiDXNetFetcher {
             console.error(`Error while fetching scores, response was saved to tmp/dxnet_error_${time}.html`)
         }
 
+
+
         let allScore = dom.window.document.querySelectorAll(
             `.music_${diffText[difficulty]}_score_back`,
         );
         for (let score of allScore) {
+            let kind
+            if (difficulty === Difficulty.UTAGE)
+                kind = score.querySelector('.music_kind_icon_utage_text')?.textContent ?? undefined;
+
             let achievement = score.querySelectorAll(
                 `.p_r.${diffText[difficulty]}_score_label.w_120.f_b`,
             )[1];
@@ -385,7 +392,7 @@ class MaimaiDXNetFetcher {
                     status.push(-1);
                     break;
             }
-            switch (icons[2]?.getAttribute('src')) {
+            switch (icons[0]?.getAttribute('src')) {
                 case 'https://maimaidx-eng.com/maimai-mobile/img/music_icon_fs.png?ver=1.50':
                     status.push(SyncType.FS);
                     break;
@@ -414,8 +421,9 @@ class MaimaiDXNetFetcher {
                     type_block ===
                         'https://maimaidx-eng.com/maimai-mobile/img/music_dx.png'
                         ? ChartType.DX
-                        : ChartType.STD,
+                        : type_block === 'https://maimaidx-eng.com/maimai-mobile/img/music_standard.png' ? ChartType.STD : ChartType.UTAGE,
                 difficulty: difficulty,
+                utageKind: kind,
                 achievement: parseFloat(achievement.textContent ?? '0%'),
                 comboType: status[0],
                 syncType: status[1],

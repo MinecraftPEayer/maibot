@@ -8,10 +8,7 @@ import {
     SlashCommandBuilder,
 } from 'discord.js';
 import JSONdb from 'simple-json-db';
-import fs from 'fs';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
-import exception from 'config/exception.json';
-import { SongDatabase } from 'types/SongDatabase';
 import { calculateB50 } from 'src/lib/Utils';
 import { Difficulty } from 'src/lib/maimaiDXNetEnums';
 import { Emojis } from 'src/lib/constant/emojis';
@@ -34,7 +31,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
     if (!db.has(interaction.user.id))
         return await interaction.reply('你還沒綁定帳號');
 
-    let message = 'Fetching player info...'
+    let message = 'Fetching player info...';
 
     await interaction.reply(message);
 
@@ -42,38 +39,35 @@ async function execute(interaction: ChatInputCommandInteraction) {
     let playerInfo =
         await MaimaiDXNetFetcher.getInstance().getPlayer(friendCode);
 
-    message += [' COMPLETED',
+    message += [
+        ' COMPLETED',
         'Fetching scores...',
-        '> Fetching BASIC scores...'
+        '> Fetching BASIC scores...',
     ].join('\n');
     await interaction.editReply(message);
     let basicScoreData = await MaimaiDXNetFetcher.getInstance().getScores(
         friendCode,
         Difficulty.Basic,
     );
-    message += [' COMPLETED',
-        '> Fetching ADVANCED scores...'].join('\n');
+    message += [' COMPLETED', '> Fetching ADVANCED scores...'].join('\n');
     await interaction.editReply(message);
     let advancedScoreData = await MaimaiDXNetFetcher.getInstance().getScores(
         friendCode,
         Difficulty.Advanced,
     );
-    message += [' COMPLETED',
-        '> Fetching EXPERT scores...'].join('\n');
+    message += [' COMPLETED', '> Fetching EXPERT scores...'].join('\n');
     await interaction.editReply(message);
     let expertScoreData = await MaimaiDXNetFetcher.getInstance().getScores(
         friendCode,
         Difficulty.Expert,
     );
-    message += [' COMPLETED',
-        '> Fetching MASTER scores...'].join('\n');
+    message += [' COMPLETED', '> Fetching MASTER scores...'].join('\n');
     await interaction.editReply(message);
     let masterScoreData = await MaimaiDXNetFetcher.getInstance().getScores(
         friendCode,
         Difficulty.Master,
     );
-    message += [' COMPLETED',
-        '> Fetching Re:MASTER scores...'].join('\n');
+    message += [' COMPLETED', '> Fetching Re:MASTER scores...'].join('\n');
     await interaction.editReply(message);
     let remasterScoreData = await MaimaiDXNetFetcher.getInstance().getScores(
         friendCode,
@@ -83,7 +77,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
         [
             'Fetching player info... COMPLETED',
             'Fetching scores... COMPLETED',
-            'Calculating...'
+            'Calculating...',
         ].join('\n'),
     );
 
@@ -117,7 +111,8 @@ async function execute(interaction: ChatInputCommandInteraction) {
         new ButtonBuilder()
             .setCustomId('next_page')
             .setLabel('▶️')
-            .setStyle(ButtonStyle.Secondary),
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(B15Data.length <= 10),
     );
 
     let page = 0;

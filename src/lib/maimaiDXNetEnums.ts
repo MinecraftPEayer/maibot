@@ -29,6 +29,7 @@ enum ChartType {
 }
 
 enum SyncType {
+    None = -1,
     FS = 0,
     FSp = 1,
     FDX = 2,
@@ -36,6 +37,7 @@ enum SyncType {
 }
 
 enum ComboType {
+    None = -1,
     FC = 0,
     FCp = 1,
     AP = 2,

@@ -43,14 +43,25 @@ function convertAchievementToRank(achievement: number) {
     return 'D';
 }
 
-function calculateB50(scoreData: {
-    title: string;
-    type: ChartType;
-    difficulty: Difficulty;
-    achievement: number;
-    comboType: ComboType;
-    syncType: SyncType;
-}[]): {
+function calculateRating(achievement: number, constant: number) {
+    return Math.floor(
+        ((achievement > 100.5 ? 100.5 : achievement) / 100) *
+            RankFactor[convertAchievementToRank(achievement)] *
+            constant *
+            100,
+    );
+}
+
+function calculateB50(
+    scoreData: {
+        title: string;
+        type: ChartType;
+        difficulty: Difficulty;
+        achievement: number;
+        comboType: ComboType;
+        syncType: SyncType;
+    }[],
+): {
     B15Data: B50Data[];
     B35Data: B50Data[];
 } {
@@ -72,18 +83,9 @@ function calculateB50(scoreData: {
                     sht.type.toUpperCase() === chartType[item.type] &&
                     sht.difficulty === diffLabel[item.difficulty],
             );
-            ``;
             if (sheet) {
                 const constant = sheet.internalLevelValue,
-                    rating = Math.floor(
-                        ((item.achievement > 100.5 ? 100.5 : item.achievement) /
-                            100) *
-                        RankFactor[
-                        convertAchievementToRank(item.achievement)
-                        ] *
-                        constant *
-                        100,
-                    ),
+                    rating = calculateRating(item.achievement, constant),
                     imageURL = song.imageName;
                 ((sheet.regionOverrides.intl.version ??
                     sheet.version ??
@@ -100,6 +102,8 @@ function calculateB50(scoreData: {
                     constant: constant,
                     level: sheet.level,
                     difficulty: item.difficulty,
+                    comboType: item.comboType,
+                    syncType: item.syncType,
                 });
             }
         }
@@ -122,4 +126,60 @@ function calculateB50(scoreData: {
     };
 }
 
-export { calculateB50 };
+function calculateScore(
+    scoreData: {
+        title: string;
+        type: ChartType;
+        difficulty: Difficulty;
+        achievement: number;
+        comboType: ComboType;
+        syncType: SyncType;
+    }[],
+): {
+    data: B50Data[];
+} {
+    let database = JSON.parse(
+        fs.readFileSync('tmp/data.json').toString(),
+    ) as SongDatabase;
+    const diffLabel = database.difficulties.map((diff) => diff.difficulty);
+
+    let data: B50Data[] = [];
+    for (const item of scoreData) {
+        const song = database.songs.find(
+            (song: any) =>
+                song.songId === ((exception as any)[item.title] ?? item.title),
+        );
+        if (song) {
+            let sheet = song.sheets.find(
+                (sht) =>
+                    sht.type.toUpperCase() === chartType[item.type] &&
+                    (sht.type === 'utage' ||
+                        sht.difficulty === diffLabel[item.difficulty]),
+            );
+            if (sheet) {
+                const constant = sheet.internalLevelValue,
+                    rating = calculateRating(item.achievement, constant),
+                    imageURL = song.imageName;
+                data.push({
+                    type: chartType[item.type],
+                    title: (exception as any)[item.title] ?? item.title,
+                    achievement: item.achievement,
+                    ranking: convertAchievementToRank(item.achievement),
+                    backgroundImg: imageURL,
+                    rating: rating,
+                    constant: constant,
+                    level: sheet.level,
+                    difficulty: item.difficulty,
+                    comboType: item.comboType,
+                    syncType: item.syncType,
+                });
+            }
+        }
+    }
+
+    return {
+        data,
+    };
+}
+
+export { calculateB50, chartType, calculateScore, calculateRating };
