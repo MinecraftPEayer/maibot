@@ -5,7 +5,7 @@ import {
     ButtonInteraction,
     ButtonStyle,
     ChatInputCommandInteraction,
-    Emoji,
+    Colors,
     SlashCommandBuilder,
     StringSelectMenuBuilder,
     StringSelectMenuInteraction,
@@ -15,7 +15,7 @@ import exception from 'config/exception.json';
 import { Emojis } from 'src/lib/constant/emojis';
 import JSONdb from 'simple-json-db';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
-import { ChartType, ComboType, Difficulty } from 'src/lib/maimaiDXNetEnums';
+import { Difficulty } from 'src/lib/maimaiDXNetEnums';
 import { calculateRating, calculateScore } from 'src/lib/Utils';
 
 const chart_type = {
@@ -63,6 +63,18 @@ async function execute(interaction: ChatInputCommandInteraction) {
     );
 
     let song = SongDataFetcher.getInstance().getSong(parseInt(songId || '0'));
+
+    if (!song) {
+        return await interaction.reply({
+            embeds: [
+                {
+                    title: '❌ Song Not Found',
+                    description: 'The song you requested could not be found.',
+                    color: Colors.Red,
+                },
+            ],
+        });
+    }
 
     let components = [];
     if (
@@ -279,7 +291,6 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         remasterScore,
                         utageScore,
                     ].filter((s) => s !== undefined);
-                    console.log(scores);
 
                     let scoreData = calculateScore(scores).data;
 
