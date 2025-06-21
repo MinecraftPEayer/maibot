@@ -32,7 +32,7 @@ class MaimaiDXNetFetcher {
         return MaimaiDXNetFetcher.instance;
     }
 
-    private constructor() { }
+    private constructor() {}
 
     private async update() {
         let resp = await axios.get(
@@ -267,7 +267,7 @@ class MaimaiDXNetFetcher {
             if (dom.window.document.title === 'maimai DX NET－Error－') {
                 await this.login();
                 resp = await axios.get(
-                    'https://maimaidx-eng.com/maimai-mobile/friend',
+                    `https://maimaidx-eng.com/maimai-mobile/friend/friendDetail/?idx=${friendCode}`,
                     {
                         headers: {
                             'User-Agent':
@@ -287,7 +287,10 @@ class MaimaiDXNetFetcher {
             let rating =
                 dom.window.document.querySelector('.rating_block')
                     ?.textContent ?? '';
-            let avatar = dom.window.document.querySelector('.basic_block > img')?.getAttribute('src') ?? '';
+            let avatar =
+                dom.window.document
+                    .querySelector('.basic_block > img')
+                    ?.getAttribute('src') ?? '';
 
             console.log(
                 `Fetched player info (code: ${friendCode}) successfully`,
@@ -295,7 +298,7 @@ class MaimaiDXNetFetcher {
             return {
                 name,
                 rating,
-                avatar
+                avatar,
             };
         } catch (error) {
             console.error('Error adding friend:', error);
@@ -303,7 +306,10 @@ class MaimaiDXNetFetcher {
         }
     }
 
-    async getScores(friendCode: string, difficulty: Difficulty): Promise<{
+    async getScores(
+        friendCode: string,
+        difficulty: Difficulty,
+    ): Promise<{
         data: {
             title: string;
             type: ChartType;
@@ -314,7 +320,10 @@ class MaimaiDXNetFetcher {
             syncType: SyncType;
         }[];
     }> {
-        console.log(`Fetching ${diffText[difficulty].toUpperCase()} scores for player:`, friendCode);
+        console.log(
+            `Fetching ${diffText[difficulty].toUpperCase()} scores for player:`,
+            friendCode,
+        );
 
         let resp = await axios.get(
             `https://maimaidx-eng.com/maimai-mobile/friend/friendGenreVs/battleStart/?scoreType=${ScoreType.Achievement}&genre=${Genres.ALL}&diff=${difficulty}&idx=${friendCode}`,
@@ -350,23 +359,22 @@ class MaimaiDXNetFetcher {
             dom = new JSDOM(resp.data);
         }
         if (dom.window.document.title === 'maimai DX NET－Error－') {
-            let time = Date.now()
-            fs.writeFileSync(
-                `tmp/dxnet_error_${time}.html`,
-                data,
+            let time = Date.now();
+            fs.writeFileSync(`tmp/dxnet_error_${time}.html`, data);
+            console.error(
+                `Error while fetching scores, response was saved to tmp/dxnet_error_${time}.html`,
             );
-            console.error(`Error while fetching scores, response was saved to tmp/dxnet_error_${time}.html`)
         }
-
-
 
         let allScore = dom.window.document.querySelectorAll(
             `.music_${diffText[difficulty]}_score_back`,
         );
         for (let score of allScore) {
-            let kind
+            let kind;
             if (difficulty === Difficulty.UTAGE)
-                kind = score.querySelector('.music_kind_icon_utage_text')?.textContent ?? undefined;
+                kind =
+                    score.querySelector('.music_kind_icon_utage_text')
+                        ?.textContent ?? undefined;
 
             let achievement = score.querySelectorAll(
                 `.p_r.${diffText[difficulty]}_score_label.w_120.f_b`,
@@ -415,13 +423,15 @@ class MaimaiDXNetFetcher {
                 ?.getAttribute('src');
             output.push({
                 title:
-                    score.querySelector('.music_name_block')?.textContent ??
-                    '',
+                    score.querySelector('.music_name_block')?.textContent ?? '',
                 type:
                     type_block ===
-                        'https://maimaidx-eng.com/maimai-mobile/img/music_dx.png'
+                    'https://maimaidx-eng.com/maimai-mobile/img/music_dx.png'
                         ? ChartType.DX
-                        : type_block === 'https://maimaidx-eng.com/maimai-mobile/img/music_standard.png' ? ChartType.STD : ChartType.UTAGE,
+                        : type_block ===
+                            'https://maimaidx-eng.com/maimai-mobile/img/music_standard.png'
+                          ? ChartType.STD
+                          : ChartType.UTAGE,
                 difficulty: difficulty,
                 utageKind: kind,
                 achievement: parseFloat(achievement.textContent ?? '0%'),
