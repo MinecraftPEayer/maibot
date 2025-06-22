@@ -182,4 +182,11 @@ function calculateScore(
     };
 }
 
-export { calculateB50, chartType, calculateScore, calculateRating };
+export {
+    calculateB50,
+    chartType,
+    calculateScore,
+    calculateRating,
+    RankFactor,
+    convertAchievementToRank,
+};
