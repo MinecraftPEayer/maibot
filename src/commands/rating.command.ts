@@ -49,7 +49,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
         });
     }
 
-    let resultString = `Rating: ${ratingNeeded}\`\`\`\nconstant - Achievement    (Rank)\n`;
+    let resultString = `Rating: ${ratingNeeded}\`\`\`\nConstant - Achievement    (Rank)\n`;
     for (let item of result) {
         let index = result.indexOf(item);
         let toAddString = `${parseFloat(item.constant) < 10 ? `${item.constant} ` : item.constant}     - ${parseFloat(item.achievement) < 100 ? ` ${item.achievement}` : item.achievement}%      (${item.rank})`;
