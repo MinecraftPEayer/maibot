@@ -52,12 +52,4 @@ enum ConstantDBLevelName {
     ReMaster = 'remas',
 }
 
-export {
-    Difficulty,
-    ScoreType,
-    Genres,
-    ChartType,
-    SyncType,
-    ComboType,
-    ConstantDBLevelName,
-};
+export { Difficulty, ScoreType, Genres, ChartType, SyncType, ComboType, ConstantDBLevelName };

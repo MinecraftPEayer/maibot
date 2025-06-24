@@ -1,8 +1,4 @@
-import {
-    Difficulty as DifficultyEnum,
-    ComboType,
-    SyncType,
-} from 'src/lib/maimaiDXNetEnums';
+import { Difficulty as DifficultyEnum, ComboType, SyncType } from 'src/lib/maimaiDXNetEnums';
 
 interface SongDatabase {
     songs: Song[];
@@ -155,13 +151,7 @@ type Sheet = {
 
 type SheetType = 'dx' | 'std' | 'utage';
 
-type Difficulty =
-    | 'basic'
-    | 'advanced'
-    | 'expert'
-    | 'master'
-    | 'remaster'
-    | string;
+type Difficulty = 'basic' | 'advanced' | 'expert' | 'master' | 'remaster' | string;
 
 type NoteCount = {
     tap: number | null;
@@ -213,21 +203,7 @@ type B50Data = {
     type: 'STD' | 'DX' | 'UTAGE';
     title: string;
     achievement: number;
-    ranking:
-        | 'SSS+'
-        | 'SSS'
-        | 'SS+'
-        | 'SS'
-        | 'S+'
-        | 'S'
-        | 'AAA'
-        | 'AA'
-        | 'A'
-        | 'BBB'
-        | 'BB'
-        | 'B'
-        | 'C'
-        | 'D';
+    ranking: 'SSS+' | 'SSS' | 'SS+' | 'SS' | 'S+' | 'S' | 'AAA' | 'AA' | 'A' | 'BBB' | 'BB' | 'B' | 'C' | 'D';
     backgroundImg: string;
     rating: number;
     constant: number;
@@ -245,6 +221,8 @@ type ScoreData = {
     achievement: number;
     comboType: ComboType;
     syncType: SyncType;
+    dxStar?: number;
+    dxScore?: number;
 };
 
 export {

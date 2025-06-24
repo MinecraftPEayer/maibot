@@ -5,9 +5,7 @@ import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
 const data = new SlashCommandBuilder()
     .setName('link')
     .setDescription('連結好友代碼')
-    .addStringOption((option) =>
-        option.setName('code').setDescription('好友代碼').setRequired(true),
-    );
+    .addStringOption((option) => option.setName('code').setDescription('好友代碼').setRequired(true));
 
 async function execute(interaction: ChatInputCommandInteraction) {
     let fetcher = MaimaiDXNetFetcher.getInstance();
@@ -27,9 +25,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
             return;
         }
         db.set(interaction.user.id, code);
-        await interaction.editReply(
-            `已綁定到玩家 ${friendList.find((friend: any) => friend.idx === code)?.name}`,
-        );
+        await interaction.editReply(`已綁定到玩家 ${friendList.find((friend: any) => friend.idx === code)?.name}`);
     } else {
         await fetcher.addFriend(code ?? '');
         await interaction.editReply(

@@ -34,13 +34,7 @@ const diffText = {
     [Difficulty.UTAGE]: 'UTAGE',
 };
 
-const diffs = [
-    Difficulty.Basic,
-    Difficulty.Advanced,
-    Difficulty.Expert,
-    Difficulty.Master,
-    Difficulty.ReMaster,
-];
+const diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
 
 const DXNetFetcher = MaimaiDXNetFetcher.getInstance();
 
@@ -50,11 +44,7 @@ const data = new SlashCommandBuilder()
     .setName('song')
     .setDescription('song')
     .addStringOption((option) =>
-        option
-            .setName('name')
-            .setDescription('The name of the song')
-            .setAutocomplete(true)
-            .setRequired(true),
+        option.setName('name').setDescription('The name of the song').setAutocomplete(true).setRequired(true),
     );
 
 async function execute(interaction: ChatInputCommandInteraction) {
@@ -68,18 +58,12 @@ async function execute(interaction: ChatInputCommandInteraction) {
             .setEmoji('🔄'),
     );
 
-    const detailSelector =
-        new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-            new StringSelectMenuBuilder()
-                .setCustomId('detail_selector')
-                .setPlaceholder('Select difficulty'),
-        );
+    const detailSelector = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+        new StringSelectMenuBuilder().setCustomId('detail_selector').setPlaceholder('Select difficulty'),
+    );
 
     const myRecord = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder()
-            .setCustomId('my_record')
-            .setLabel('My Record')
-            .setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId('my_record').setLabel('My Record').setStyle(ButtonStyle.Success),
     );
 
     let song = SongDataFetcher.getInstance().getSong(parseInt(songId || '0'));
@@ -107,11 +91,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
     const isUTAGE = song.sheets.some((sheet: any) => sheet.type === 'utage');
 
-    let type: 'dx' | 'std' | 'utage' = isUTAGE
-        ? 'utage'
-        : !song.sheets.some((s) => s.type === 'std')
-          ? 'dx'
-          : 'std';
+    let type: 'dx' | 'std' | 'utage' = isUTAGE ? 'utage' : !song.sheets.some((s) => s.type === 'std') ? 'dx' : 'std';
 
     detailSelector.components[0].addOptions(
         song.sheets
@@ -135,11 +115,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     .map((sheet) => {
                         return {
                             name: `${
-                                isUTAGE
-                                    ? ''
-                                    : sheet.type === 'dx'
-                                      ? Emojis.DX + ' '
-                                      : Emojis.STD + ' '
+                                isUTAGE ? '' : sheet.type === 'dx' ? Emojis.DX + ' ' : Emojis.STD + ' '
                             }${sheet.difficulty.toUpperCase()}`,
                             value: `Lv: ${sheet.level}(${sheet.internalLevel ?? sheet.internalLevelValue ?? sheet.level + '.?'})\nNote Designer: ${sheet.noteDesigner}`,
                         };
@@ -157,229 +133,179 @@ async function execute(interaction: ChatInputCommandInteraction) {
     };
     const collector = owo.createMessageComponentCollector({ max: Infinity });
     let timeout = setTimeout(timeoutFunction, 60000);
-    collector.on(
-        'collect',
-        async (
-            buttonInteraction: ButtonInteraction | StringSelectMenuInteraction,
-        ) => {
-            switch (buttonInteraction.customId) {
-                case 'toggle_dx_std':
-                    if (buttonInteraction.user.id !== interaction.user.id)
-                        return;
-                    if (isUTAGE)
-                        return await buttonInteraction.reply(
-                            'Utage sheet is not available for DX/STD switch',
-                        );
-                    type = type === 'std' ? 'dx' : 'std';
-                    await buttonInteraction.update({
-                        embeds: [
-                            {
-                                title: song.title,
-                                description: `Artist: ${song.artist}\nCategory: ${song.category}\nBPM: ${song.bpm}\nVersion: ${song.version}`,
-                                fields: song.sheets
-                                    .filter((sheet: any) => sheet.type === type)
-                                    .map((sheet: any) => {
-                                        return {
-                                            name: `${
-                                                isUTAGE
-                                                    ? ''
-                                                    : sheet.type === 'dx'
-                                                      ? Emojis.DX + ' '
-                                                      : Emojis.STD + ' '
-                                            }${sheet.difficulty.toUpperCase()}`,
-                                            value: `Lv: ${sheet.level}(${sheet.internalLevel ?? sheet.internalLevelValue ?? sheet.level + '.?'})\nNote Designer: ${sheet.noteDesigner}`,
-                                        };
-                                    }),
-                                thumbnail: {
-                                    url: `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`,
-                                },
-                            },
-                        ],
-                        components,
-                    });
-                    break;
-
-                case 'my_record':
-                    let db = new JSONdb('data/linking.json');
-                    let friendCode = db.get(buttonInteraction.user.id);
-                    if (!friendCode)
-                        return await buttonInteraction.reply('你還沒綁定帳號');
-
-                    let message = 'Fetching player info...';
-
-                    await buttonInteraction.reply(message);
-                    let playerInfo = await DXNetFetcher.getPlayer(friendCode);
-
-                    let playerScores: { [key: string]: ScoreData[] } = {};
-
-                    const scoreFilter = (s: any) =>
-                        s.type === chart_type[type] &&
-                        ((exception as any)[s.title] ?? s.title) === song.title;
-                    if (!isUTAGE) {
-                        message += [' OK', 'Fetching scores...'].join('\n');
-
-                        await buttonInteraction.editReply(message);
-
-                        for (const [difficulty, diffName] of Object.entries(
-                            diffText,
-                        )) {
-                            if (!diffs.includes(parseInt(difficulty))) continue;
-
-                            message += `\n> Fetching ${diffName} scores...`;
-                            await buttonInteraction.editReply(message);
-                            let scoreData =
-                                await MaimaiDXNetFetcher.getInstance().getScores(
-                                    scoreType,
-                                    friendCode,
-                                    parseInt(difficulty),
-                                );
-                            playerScores[diffName] = scoreData.data;
-                            message += ' OK';
-                        }
-                    } else {
-                        message += [
-                            ' COMPLETED',
-                            'Fetching scores...',
-                            '> Fetching UTAGE scores...',
-                        ].join('\n');
-                        playerScores['UTAGE'] = (
-                            await DXNetFetcher.getScores(
-                                scoreType,
-                                friendCode,
-                                Difficulty.UTAGE,
-                            )
-                        ).data;
-                    }
-                    await buttonInteraction.editReply(
-                        [
-                            'Fetching player info... COMPLETED',
-                            'Fetching scores... COMPLETED',
-                            'Calculating...',
-                        ].join('\n'),
-                    );
-
-                    let scores = Object.values(playerScores)
-                        .map((item) => item.filter(scoreFilter))
-                        .flat();
-
-                    let scoreData = calculateScore(scores).data;
-
-                    let syncType = [
-                        Emojis.FS_Short,
-                        Emojis.FSp_Short,
-                        Emojis.FDX_Short,
-                        Emojis.FDXp_Short,
-                    ];
-                    let comboType = [
-                        Emojis.FC_Short,
-                        Emojis.FCp_Short,
-                        Emojis.AP_Short,
-                        Emojis.APp_Short,
-                    ];
-
-                    buttonInteraction.editReply({
-                        content: '',
-                        embeds: [
-                            {
-                                title: song.title,
-                                description: `${playerInfo?.name}`,
-                                thumbnail: {
-                                    url: `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`,
-                                },
-                                fields: scoreData.map((score) => {
+    collector.on('collect', async (buttonInteraction: ButtonInteraction | StringSelectMenuInteraction) => {
+        switch (buttonInteraction.customId) {
+            case 'toggle_dx_std':
+                if (buttonInteraction.user.id !== interaction.user.id) return;
+                if (isUTAGE) return await buttonInteraction.reply('Utage sheet is not available for DX/STD switch');
+                type = type === 'std' ? 'dx' : 'std';
+                await buttonInteraction.update({
+                    embeds: [
+                        {
+                            title: song.title,
+                            description: `Artist: ${song.artist}\nCategory: ${song.category}\nBPM: ${song.bpm}\nVersion: ${song.version}`,
+                            fields: song.sheets
+                                .filter((sheet: any) => sheet.type === type)
+                                .map((sheet: any) => {
                                     return {
-                                        name: `${score.difficulty === Difficulty.UTAGE ? '' : score.type === 'DX' ? Emojis.DX + ' ' : Emojis.STD + ' '}${isUTAGE ? playerScores['UTAGE'][0].utageKind : Difficulty[score.difficulty].toUpperCase()}`,
-                                        value: `${Emojis[score.ranking]} ${score.achievement}%\n${score.comboType !== -1 ? comboType[score.comboType] + ' ' : ' '}${score.syncType !== -1 ? syncType[score.syncType] + ' ' : ' '}`,
+                                        name: `${
+                                            isUTAGE ? '' : sheet.type === 'dx' ? Emojis.DX + ' ' : Emojis.STD + ' '
+                                        }${sheet.difficulty.toUpperCase()}`,
+                                        value: `Lv: ${sheet.level}(${sheet.internalLevel ?? sheet.internalLevelValue ?? sheet.level + '.?'})\nNote Designer: ${sheet.noteDesigner}`,
                                     };
                                 }),
+                            thumbnail: {
+                                url: `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`,
                             },
-                        ],
+                        },
+                    ],
+                    components,
+                });
+                break;
+
+            case 'my_record':
+                let db = new JSONdb('data/linking.json');
+                let friendCode = db.get(buttonInteraction.user.id);
+                if (!friendCode) return await buttonInteraction.reply('你還沒綁定帳號');
+
+                let message = 'Fetching player info...';
+
+                await buttonInteraction.reply(message);
+                let playerInfo = await DXNetFetcher.getPlayer(friendCode);
+
+                let playerScores: { [key: string]: ScoreData[] } = {};
+
+                const scoreFilter = (s: any) =>
+                    s.type === chart_type[type] && ((exception as any)[s.title] ?? s.title) === song.title;
+                if (!isUTAGE) {
+                    message += [' OK', 'Fetching scores...'].join('\n');
+
+                    await buttonInteraction.editReply(message);
+
+                    for (const [difficulty, diffName] of Object.entries(diffText)) {
+                        if (!diffs.includes(parseInt(difficulty))) continue;
+
+                        message += `\n> Fetching ${diffName} scores...`;
+                        await buttonInteraction.editReply(message);
+                        let scoreData = await MaimaiDXNetFetcher.getInstance().getScores(
+                            scoreType,
+                            friendCode,
+                            parseInt(difficulty),
+                        );
+                        playerScores[diffName] = scoreData.data;
+                        message += ' OK';
+                    }
+                } else {
+                    message += [' COMPLETED', 'Fetching scores...', '> Fetching UTAGE scores...'].join('\n');
+                    playerScores['UTAGE'] = (
+                        await DXNetFetcher.getScores(scoreType, friendCode, Difficulty.UTAGE)
+                    ).data;
+                }
+                await buttonInteraction.editReply(
+                    ['Fetching player info... COMPLETED', 'Fetching scores... COMPLETED', 'Calculating...'].join('\n'),
+                );
+
+                let scores = Object.values(playerScores)
+                    .map((item) => item.filter(scoreFilter))
+                    .flat();
+
+                let scoreData = calculateScore(scores).data;
+
+                let syncType = [Emojis.FS_Short, Emojis.FSp_Short, Emojis.FDX_Short, Emojis.FDXp_Short];
+                let comboType = [Emojis.FC_Short, Emojis.FCp_Short, Emojis.AP_Short, Emojis.APp_Short];
+
+                buttonInteraction.editReply({
+                    content: '',
+                    embeds: [
+                        {
+                            title: song.title,
+                            description: `${playerInfo?.name}`,
+                            thumbnail: {
+                                url: `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`,
+                            },
+                            fields: scoreData.map((score) => {
+                                return {
+                                    name: `${score.difficulty === Difficulty.UTAGE ? '' : score.type === 'DX' ? Emojis.DX + ' ' : Emojis.STD + ' '}${isUTAGE ? playerScores['UTAGE'][0].utageKind : Difficulty[score.difficulty].toUpperCase()}`,
+                                    value: `${Emojis[score.ranking]} ${score.achievement}%\n${score.comboType !== -1 ? comboType[score.comboType] + ' ' : ' '}${score.syncType !== -1 ? syncType[score.syncType] + ' ' : ' '}`,
+                                };
+                            }),
+                        },
+                    ],
+                });
+                break;
+
+            case 'detail_selector':
+                if (buttonInteraction.user.id !== interaction.user.id) return;
+                buttonInteraction.deferUpdate();
+                let selectedDifficulty = (buttonInteraction as StringSelectMenuInteraction).values[0];
+                let selectedSheet = song.sheets.find(
+                    (sheet) => sheet.type === type && sheet.difficulty === selectedDifficulty,
+                );
+
+                if (!selectedSheet)
+                    return await buttonInteraction.reply({
+                        content: 'Invalid difficulty selected',
+                        ephemeral: true,
                     });
-                    break;
 
-                case 'detail_selector':
-                    if (buttonInteraction.user.id !== interaction.user.id)
-                        return;
-                    buttonInteraction.deferUpdate();
-                    let selectedDifficulty = (
-                        buttonInteraction as StringSelectMenuInteraction
-                    ).values[0];
-                    let selectedSheet = song.sheets.find(
-                        (sheet) =>
-                            sheet.type === type &&
-                            sheet.difficulty === selectedDifficulty,
-                    );
-
-                    if (!selectedSheet)
-                        return await buttonInteraction.reply({
-                            content: 'Invalid difficulty selected',
-                            ephemeral: true,
-                        });
-
-                    interaction.editReply({
-                        embeds: [
-                            {
-                                title: `${song.title} - ${!isUTAGE ? Emojis[selectedSheet.type.toUpperCase() as 'DX' | 'STD'] + ' ' : ''}${selectedSheet.difficulty.toUpperCase()}`,
-                                description: [
-                                    `Artist: ${song.artist}`,
-                                    `Category: ${song.category}`,
-                                    `BPM: ${song.bpm}`,
-                                    `Version: ${song.version}`,
-                                    `Level: ${selectedSheet.level} (${selectedSheet.internalLevelValue})`,
-                                    `Note Designer: ${selectedSheet.noteDesigner}`,
-                                ].join('\n'),
-                                fields: [
-                                    {
-                                        name: `Note Counts`,
-                                        value: [
-                                            `${Emojis.Tap} Tap: ${selectedSheet.noteCounts.tap ?? '-'}`,
-                                            `${Emojis.Hold} Hold: ${selectedSheet.noteCounts.hold ?? '-'}`,
-                                            `${Emojis.Slide} Slide: ${selectedSheet.noteCounts.slide ?? '-'}`,
-                                            `${Emojis.Touch} Touch: ${selectedSheet.noteCounts.touch ?? '-'}`,
-                                            `${Emojis.Break} Break: ${selectedSheet.noteCounts.break ?? '-'}`,
-                                            `Total: ${selectedSheet.noteCounts.total ?? '-'}`,
-                                        ].join('\n'),
-                                        inline: true,
-                                    },
-                                    {
-                                        name: 'Rating',
-                                        value: !isUTAGE
-                                            ? [
-                                                  `${Emojis['SSS+']} (100.5): ${calculateRating(100.5, selectedSheet.internalLevelValue)}`,
-                                                  `${Emojis['SSS']} (100.0): ${calculateRating(100.0, selectedSheet.internalLevelValue)}`,
-                                                  `${Emojis['SS+']} (99.5): ${calculateRating(99.5, selectedSheet.internalLevelValue)}`,
-                                                  `${Emojis['SS']} (99.0): ${calculateRating(99.0, selectedSheet.internalLevelValue)}`,
-                                                  `${Emojis['S+']} (98.0): ${calculateRating(98.0, selectedSheet.internalLevelValue)}`,
-                                                  `${Emojis['S']} (97.0): ${calculateRating(97.0, selectedSheet.internalLevelValue)}`,
-                                              ].join('\n')
-                                            : 'N/A',
-                                        inline: true,
-                                    },
-                                    {
-                                        name: 'Regions',
-                                        value: Object.entries(
-                                            selectedSheet.regions,
-                                        )
-                                            .map(
-                                                (region) =>
-                                                    `${region[0].toUpperCase()}: ${region[1] ? '✅' : '❌'}`,
-                                            )
-                                            .join(', '),
-                                    },
-                                ],
-                                thumbnail: {
-                                    url: `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`,
+                interaction.editReply({
+                    embeds: [
+                        {
+                            title: `${song.title} - ${!isUTAGE ? Emojis[selectedSheet.type.toUpperCase() as 'DX' | 'STD'] + ' ' : ''}${selectedSheet.difficulty.toUpperCase()}`,
+                            description: [
+                                `Artist: ${song.artist}`,
+                                `Category: ${song.category}`,
+                                `BPM: ${song.bpm}`,
+                                `Version: ${song.version}`,
+                                `Level: ${selectedSheet.level} (${selectedSheet.internalLevelValue})`,
+                                `Note Designer: ${selectedSheet.noteDesigner}`,
+                            ].join('\n'),
+                            fields: [
+                                {
+                                    name: `Note Counts`,
+                                    value: [
+                                        `${Emojis.Tap} Tap: ${selectedSheet.noteCounts.tap ?? '-'}`,
+                                        `${Emojis.Hold} Hold: ${selectedSheet.noteCounts.hold ?? '-'}`,
+                                        `${Emojis.Slide} Slide: ${selectedSheet.noteCounts.slide ?? '-'}`,
+                                        `${Emojis.Touch} Touch: ${selectedSheet.noteCounts.touch ?? '-'}`,
+                                        `${Emojis.Break} Break: ${selectedSheet.noteCounts.break ?? '-'}`,
+                                        `Total: ${selectedSheet.noteCounts.total ?? '-'}`,
+                                    ].join('\n'),
+                                    inline: true,
                                 },
+                                {
+                                    name: 'Rating',
+                                    value: !isUTAGE
+                                        ? [
+                                              `${Emojis['SSS+']} (100.5): ${calculateRating(100.5, selectedSheet.internalLevelValue)}`,
+                                              `${Emojis['SSS']} (100.0): ${calculateRating(100.0, selectedSheet.internalLevelValue)}`,
+                                              `${Emojis['SS+']} (99.5): ${calculateRating(99.5, selectedSheet.internalLevelValue)}`,
+                                              `${Emojis['SS']} (99.0): ${calculateRating(99.0, selectedSheet.internalLevelValue)}`,
+                                              `${Emojis['S+']} (98.0): ${calculateRating(98.0, selectedSheet.internalLevelValue)}`,
+                                              `${Emojis['S']} (97.0): ${calculateRating(97.0, selectedSheet.internalLevelValue)}`,
+                                          ].join('\n')
+                                        : 'N/A',
+                                    inline: true,
+                                },
+                                {
+                                    name: 'Regions',
+                                    value: Object.entries(selectedSheet.regions)
+                                        .map((region) => `${region[0].toUpperCase()}: ${region[1] ? '✅' : '❌'}`)
+                                        .join(', '),
+                                },
+                            ],
+                            thumbnail: {
+                                url: `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`,
                             },
-                        ],
-                        components: [detailSelector],
-                    });
-            }
+                        },
+                    ],
+                    components: [detailSelector],
+                });
+        }
 
-            clearTimeout(timeout);
-            timeout = setTimeout(timeoutFunction, 60000);
-        },
-    );
+        clearTimeout(timeout);
+        timeout = setTimeout(timeoutFunction, 60000);
+    });
 
     collector.on('end', async () => {
         await interaction.editReply({ components: [] });

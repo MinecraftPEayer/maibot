@@ -5,12 +5,7 @@ import { Emojis } from 'src/lib/constant/emojis';
 const data = new SlashCommandBuilder()
     .setName('rating')
     .setDescription('計算要達成指定Rating所需的定數及達成率')
-    .addIntegerOption((input) =>
-        input
-            .setName('rating')
-            .setDescription('指定的Rating')
-            .setRequired(true),
-    );
+    .addIntegerOption((input) => input.setName('rating').setDescription('指定的Rating').setRequired(true));
 
 async function execute(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply();
@@ -21,11 +16,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
         while (parseFloat(achievement.toFixed(4)) <= 100.5) {
             const rating = Math.floor(
                 (parseFloat(achievement.toFixed(4)) / 100) *
-                    RankFactor[
-                        convertAchievementToRank(
-                            parseFloat(achievement.toFixed(4)),
-                        )
-                    ] *
+                    RankFactor[convertAchievementToRank(parseFloat(achievement.toFixed(4)))] *
                     parseFloat(constant.toFixed(1)) *
                     100,
             );
@@ -33,9 +24,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                 result.push({
                     constant: constant.toFixed(1),
                     achievement: achievement.toFixed(4),
-                    rank: convertAchievementToRank(
-                        parseFloat(achievement.toFixed(4)),
-                    ),
+                    rank: convertAchievementToRank(parseFloat(achievement.toFixed(4))),
                 });
                 break;
             }

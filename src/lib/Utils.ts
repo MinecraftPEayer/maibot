@@ -65,31 +65,23 @@ function calculateB50(
     B15Data: B50Data[];
     B35Data: B50Data[];
 } {
-    let database = JSON.parse(
-        fs.readFileSync('tmp/data.json').toString(),
-    ) as SongDatabase;
+    let database = JSON.parse(fs.readFileSync('tmp/data.json').toString()) as SongDatabase;
     const diffLabel = database.difficulties.map((diff) => diff.difficulty);
 
     let B15Data: B50Data[] = [],
         B35Data: B50Data[] = [];
     for (const item of scoreData) {
-        const song = database.songs.find(
-            (song: any) =>
-                song.songId === ((exception as any)[item.title] ?? item.title),
-        );
+        const song = database.songs.find((song: any) => song.songId === ((exception as any)[item.title] ?? item.title));
         if (song) {
             let sheet = song.sheets.find(
                 (sht) =>
-                    sht.type.toUpperCase() === chartType[item.type] &&
-                    sht.difficulty === diffLabel[item.difficulty],
+                    sht.type.toUpperCase() === chartType[item.type] && sht.difficulty === diffLabel[item.difficulty],
             );
             if (sheet) {
                 const constant = sheet.internalLevelValue,
                     rating = calculateRating(item.achievement, constant),
                     imageURL = song.imageName;
-                ((sheet.regionOverrides.intl.version ??
-                    sheet.version ??
-                    song.version) === 'PRiSM'
+                ((sheet.regionOverrides.intl.version ?? sheet.version ?? song.version) === 'PRiSM'
                     ? B15Data
                     : B35Data
                 ).push({
@@ -110,14 +102,10 @@ function calculateB50(
     }
 
     B15Data = B15Data.sort((a, b) =>
-        b.rating === a.rating
-            ? a.title.localeCompare(b.title)
-            : b.rating - a.rating,
+        b.rating === a.rating ? a.title.localeCompare(b.title) : b.rating - a.rating,
     ).slice(0, 15);
     B35Data = B35Data.sort((a, b) =>
-        b.rating === a.rating
-            ? a.title.localeCompare(b.title)
-            : b.rating - a.rating,
+        b.rating === a.rating ? a.title.localeCompare(b.title) : b.rating - a.rating,
     ).slice(0, 35);
 
     return {
@@ -138,23 +126,17 @@ function calculateScore(
 ): {
     data: B50Data[];
 } {
-    let database = JSON.parse(
-        fs.readFileSync('tmp/data.json').toString(),
-    ) as SongDatabase;
+    let database = JSON.parse(fs.readFileSync('tmp/data.json').toString()) as SongDatabase;
     const diffLabel = database.difficulties.map((diff) => diff.difficulty);
 
     let data: B50Data[] = [];
     for (const item of scoreData) {
-        const song = database.songs.find(
-            (song: any) =>
-                song.songId === ((exception as any)[item.title] ?? item.title),
-        );
+        const song = database.songs.find((song: any) => song.songId === ((exception as any)[item.title] ?? item.title));
         if (song) {
             let sheet = song.sheets.find(
                 (sht) =>
                     sht.type.toUpperCase() === chartType[item.type] &&
-                    (sht.type === 'utage' ||
-                        sht.difficulty === diffLabel[item.difficulty]),
+                    (sht.type === 'utage' || sht.difficulty === diffLabel[item.difficulty]),
             );
             if (sheet) {
                 const constant = sheet.internalLevelValue,
@@ -182,11 +164,4 @@ function calculateScore(
     };
 }
 
-export {
-    calculateB50,
-    chartType,
-    calculateScore,
-    calculateRating,
-    RankFactor,
-    convertAchievementToRank,
-};
+export { calculateB50, chartType, calculateScore, calculateRating, RankFactor, convertAchievementToRank };

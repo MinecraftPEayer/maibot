@@ -23,13 +23,7 @@ let diffText = {
     [Difficulty.UTAGE]: 'UTAGE',
 };
 
-let diffs = [
-    Difficulty.Basic,
-    Difficulty.Advanced,
-    Difficulty.Expert,
-    Difficulty.Master,
-    Difficulty.ReMaster,
-];
+let diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
 
 const TypeText = ['B15', 'B35'];
 
@@ -39,16 +33,14 @@ const data = new SlashCommandBuilder().setName('b50').setDescription('獲取B50'
 
 async function execute(interaction: ChatInputCommandInteraction) {
     let db = new JSONdb('data/linking.json');
-    if (!db.has(interaction.user.id))
-        return await interaction.reply('你還沒綁定帳號');
+    if (!db.has(interaction.user.id)) return await interaction.reply('你還沒綁定帳號');
 
     let message = 'Fetching player info...';
 
     await interaction.reply(message);
 
     let friendCode = db.get(interaction.user.id);
-    let playerInfo =
-        await MaimaiDXNetFetcher.getInstance().getPlayer(friendCode);
+    let playerInfo = await MaimaiDXNetFetcher.getInstance().getPlayer(friendCode);
 
     message += [' OK', 'Fetching scores...'].join('\n');
     await interaction.editReply(message);
@@ -61,21 +53,11 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
         message += `\n> Fetching ${diffName} scores...`;
         await interaction.editReply(message);
-        let scoreData = await MaimaiDXNetFetcher.getInstance().getScores(
-            scoreType,
-            friendCode,
-            parseInt(difficulty),
-        );
+        let scoreData = await MaimaiDXNetFetcher.getInstance().getScores(scoreType, friendCode, parseInt(difficulty));
         scores[diffName] = scoreData.data;
         message += ' OK';
     }
-    await interaction.editReply(
-        [
-            'Fetching player info... OK',
-            'Fetching scores... OK',
-            'Calculating...',
-        ].join('\n'),
-    );
+    await interaction.editReply(['Fetching player info... OK', 'Fetching scores... OK', 'Calculating...'].join('\n'));
 
     const { B15Data, B35Data } = calculateB50(Object.values(scores).flat());
     let B50Data = [B15Data, B35Data];
@@ -127,9 +109,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     url: `https://chart.minecraftpeayer.me/api/proxy/img?url=${playerInfo?.avatar}`,
                 },
                 footer: {
-                    text: `${TypeText[currentType]} Page ${page + 1} / ${Math.ceil(
-                        B50Data[currentType].length / 10,
-                    )}`,
+                    text: `${TypeText[currentType]} Page ${page + 1} / ${Math.ceil(B50Data[currentType].length / 10)}`,
                 },
             },
         ],
@@ -177,8 +157,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
         if (page == 0) pageActionRow.components[0].setDisabled(true);
         else pageActionRow.components[0].setDisabled(false);
 
-        if (page == Math.floor(B50Data[currentType].length / 10))
-            pageActionRow.components[1].setDisabled(true);
+        if (page == Math.floor(B50Data[currentType].length / 10)) pageActionRow.components[1].setDisabled(true);
         else pageActionRow.components[1].setDisabled(false);
 
         await actionInteraction.update({

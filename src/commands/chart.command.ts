@@ -16,13 +16,7 @@ let diffText = {
     [Difficulty.UTAGE]: 'UTAGE',
 };
 
-let diffs = [
-    Difficulty.Basic,
-    Difficulty.Advanced,
-    Difficulty.Expert,
-    Difficulty.Master,
-    Difficulty.ReMaster,
-];
+let diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
 
 const diffTip = {
     10: '',
@@ -92,20 +86,12 @@ import sharp from 'sharp';
 import { Difficulty, ScoreType } from 'src/lib/maimaiDXNetEnums';
 import { ScoreData } from 'types/SongDatabase';
 
-async function getImageBuffer(
-    imageURL: string,
-    cache?: boolean,
-): Promise<Buffer> {
+async function getImageBuffer(imageURL: string, cache?: boolean): Promise<Buffer> {
     if (cache === undefined) cache = false;
     try {
         let url = new URL(imageURL);
-        if (
-            fs.existsSync(`tmp/cache/image/${url.pathname.split('/').pop()}`) &&
-            cache
-        ) {
-            const Buffer = fs.readFileSync(
-                `tmp/cache/image/${url.pathname.split('/').pop()}`,
-            );
+        if (fs.existsSync(`tmp/cache/image/${url.pathname.split('/').pop()}`) && cache) {
+            const Buffer = fs.readFileSync(`tmp/cache/image/${url.pathname.split('/').pop()}`);
             return sharp(Buffer).png().toBuffer();
         } else {
             const response = await axios.get(imageURL, {
@@ -118,10 +104,7 @@ async function getImageBuffer(
             });
             const buffer = Buffer.from(response.data);
             if (cache) {
-                fs.writeFileSync(
-                    `tmp/cache/image/${url.pathname.split('/').pop()}`,
-                    buffer,
-                );
+                fs.writeFileSync(`tmp/cache/image/${url.pathname.split('/').pop()}`, buffer);
             }
             return await sharp(buffer).png().toBuffer();
         }
@@ -131,22 +114,18 @@ async function getImageBuffer(
     }
 }
 
-const data = new SlashCommandBuilder()
-    .setName('chart')
-    .setDescription('生成Rating Chart');
+const data = new SlashCommandBuilder().setName('chart').setDescription('生成Rating Chart');
 
 async function execute(interaction: ChatInputCommandInteraction) {
     let db = new JSONdb('data/linking.json');
-    if (!db.has(interaction.user.id))
-        return await interaction.reply('你還沒綁定帳號');
+    if (!db.has(interaction.user.id)) return await interaction.reply('你還沒綁定帳號');
 
     let message = 'Fetching player info...';
 
     await interaction.reply(message);
 
     let friendCode = db.get(interaction.user.id);
-    let playerInfo =
-        await MaimaiDXNetFetcher.getInstance().getPlayer(friendCode);
+    let playerInfo = await MaimaiDXNetFetcher.getInstance().getPlayer(friendCode);
 
     message += [' OK', 'Fetching scores...'].join('\n');
     await interaction.editReply(message);
@@ -159,21 +138,11 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
         message += `\n> Fetching ${diffName} scores...`;
         await interaction.editReply(message);
-        let scoreData = await MaimaiDXNetFetcher.getInstance().getScores(
-            scoreType,
-            friendCode,
-            parseInt(difficulty),
-        );
+        let scoreData = await MaimaiDXNetFetcher.getInstance().getScores(scoreType, friendCode, parseInt(difficulty));
         scores[diffName] = scoreData.data;
         message += ' OK';
     }
-    await interaction.editReply(
-        [
-            'Fetching player info... OK',
-            'Fetching scores... OK',
-            'Drawing...',
-        ].join('\n'),
-    );
+    await interaction.editReply(['Fetching player info... OK', 'Fetching scores... OK', 'Drawing...'].join('\n'));
 
     const { B15Data, B35Data } = calculateB50(Object.values(scores).flat());
 
@@ -197,9 +166,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
     if (playerInfo?.avatar) {
         const avatarImg = await loadImage(
-            await getImageBuffer(
-                `https://chart.minecraftpeayer.me/api/proxy/img?url=${playerInfo?.avatar}`,
-            ),
+            await getImageBuffer(`https://chart.minecraftpeayer.me/api/proxy/img?url=${playerInfo?.avatar}`),
         );
 
         ctx.drawImage(avatarImg, 24, 24, 96, 96);
@@ -228,10 +195,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
     ctx.drawImage(ratingImg, 0, 0, 296, 86, 128, 24 + 48 + 4, 165, 48);
 
-    const parsedRating =
-        `${' '.repeat('00000'.length - rating.toString().length)}${rating}`.split(
-            '',
-        );
+    const parsedRating = `${' '.repeat('00000'.length - rating.toString().length)}${rating}`.split('');
 
     ctx.fillStyle = 'white';
     ctx.font = `bold 24px ${FontStack}`;
@@ -296,10 +260,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                 let title = chartInfo.title;
                 const currentFont = ctx.font;
                 if (ctx.measureText(title).width > maxWidth) {
-                    while (
-                        ctx.measureText(title + '...').width > maxWidth &&
-                        title.length > 0
-                    ) {
+                    while (ctx.measureText(title + '...').width > maxWidth && title.length > 0) {
                         title = title.slice(0, -1);
                     }
                     title += '...';
@@ -310,9 +271,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                 ctx.font = `12px ${FontStack}`;
                 ctx.fillText(chartInfo.type, baseX + 8, baseY + 56);
 
-                const difficultyImg = await loadImage(
-                    diffTip[chartInfo.difficulty],
-                );
+                const difficultyImg = await loadImage(diffTip[chartInfo.difficulty]);
                 ctx.save();
 
                 ctx.beginPath();
@@ -327,27 +286,15 @@ async function execute(interaction: ChatInputCommandInteraction) {
                 ctx.restore();
 
                 ctx.font = `12px ${FontStack}`;
-                ctx.fillText(
-                    chartInfo.achievement.toFixed(4),
-                    baseX + 8,
-                    baseY + 92,
-                );
+                ctx.fillText(chartInfo.achievement.toFixed(4), baseX + 8, baseY + 92);
                 ctx.font = `bold 24px ${FontStack}`;
                 ctx.fillText(chartInfo.ranking, baseX + 8, baseY + 110);
 
                 ctx.textAlign = 'right';
                 ctx.font = `12px ${FontStack}`;
-                ctx.fillText(
-                    chartInfo.constant.toFixed(1),
-                    baseX + 184,
-                    baseY + 88,
-                );
+                ctx.fillText(chartInfo.constant.toFixed(1), baseX + 184, baseY + 88);
                 ctx.font = `bold 32px ${FontStack}`;
-                ctx.fillText(
-                    chartInfo.rating.toString(),
-                    baseX + 184,
-                    baseY + 108,
-                );
+                ctx.fillText(chartInfo.rating.toString(), baseX + 184, baseY + 108);
             }
         }
 
@@ -389,17 +336,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     ctx.beginPath();
                     ctx.roundRect(baseX, baseY, 192, 128, 8);
                     ctx.clip();
-                    ctx.drawImage(
-                        songImg,
-                        0,
-                        31,
-                        190,
-                        128,
-                        baseX,
-                        baseY,
-                        192,
-                        128,
-                    );
+                    ctx.drawImage(songImg, 0, 31, 190, 128, baseX, baseY, 192, 128);
                     ctx.restore();
 
                     ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
@@ -417,10 +354,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     let title = chartInfo.title;
                     const currentFont = ctx.font;
                     if (ctx.measureText(title).width > maxWidth) {
-                        while (
-                            ctx.measureText(title + '...').width > maxWidth &&
-                            title.length > 0
-                        ) {
+                        while (ctx.measureText(title + '...').width > maxWidth && title.length > 0) {
                             title = title.slice(0, -1);
                         }
                         title += '...';
@@ -431,9 +365,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     ctx.font = `12px ${FontStack}`;
                     ctx.fillText(chartInfo.type, baseX + 8, baseY + 56);
 
-                    const difficultyImg = await loadImage(
-                        diffTip[chartInfo.difficulty],
-                    );
+                    const difficultyImg = await loadImage(diffTip[chartInfo.difficulty]);
                     ctx.save();
                     ctx.beginPath();
                     ctx.moveTo(baseX + 168, baseY);
@@ -447,28 +379,16 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     ctx.restore();
 
                     ctx.font = `12px ${FontStack}`;
-                    ctx.fillText(
-                        chartInfo.achievement.toFixed(4),
-                        baseX + 8,
-                        baseY + 92,
-                    );
+                    ctx.fillText(chartInfo.achievement.toFixed(4), baseX + 8, baseY + 92);
                     ctx.font = `bold 24px ${FontStack}`;
                     ctx.fillText(chartInfo.ranking, baseX + 8, baseY + 110);
 
                     ctx.textAlign = 'right';
                     ctx.font = `12px ${FontStack}`;
                     if (chartInfo.constant === null) console.log(chartInfo);
-                    ctx.fillText(
-                        chartInfo.constant.toFixed(1),
-                        baseX + 184,
-                        baseY + 88,
-                    );
+                    ctx.fillText(chartInfo.constant.toFixed(1), baseX + 184, baseY + 88);
                     ctx.font = `bold 32px ${FontStack}`;
-                    ctx.fillText(
-                        chartInfo.rating.toString(),
-                        baseX + 184,
-                        baseY + 108,
-                    );
+                    ctx.fillText(chartInfo.rating.toString(), baseX + 184, baseY + 108);
                 }
             }
         }

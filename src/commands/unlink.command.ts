@@ -2,9 +2,7 @@ import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 import JSONdb from 'simple-json-db';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
 
-const data = new SlashCommandBuilder()
-    .setName('unlink')
-    .setDescription('取消連結好友代碼');
+const data = new SlashCommandBuilder().setName('unlink').setDescription('取消連結好友代碼');
 
 async function execute(interaction: ChatInputCommandInteraction) {
     let fetcher = MaimaiDXNetFetcher.getInstance();

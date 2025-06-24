@@ -31,24 +31,19 @@ class SongDataFetcher {
 
     private async fetchData(): Promise<void> {
         try {
-            const response = await axios.get(
-                'https://dp4p6x0xfi5o9.cloudfront.net/maimai/data.json',
-            );
+            const response = await axios.get('https://dp4p6x0xfi5o9.cloudfront.net/maimai/data.json');
             if (response.status === 200) {
                 const data = response.data;
                 const constantDBResponse = await axios.get(
                     'https://raw.githubusercontent.com/zvuc/otoge-db/refs/heads/master/maimai/data/music-ex-intl.json',
                 );
                 if (constantDBResponse.status === 200) {
-                    const constantData =
-                        constantDBResponse.data as SongDatabase['constant'];
+                    const constantData = constantDBResponse.data as SongDatabase['constant'];
 
                     data.songs.forEach((song: Song) => {
                         song.sheets.forEach((sheet: Sheet) => {
                             let constantSong = constantData.find(
-                                (item) =>
-                                    ((exception as any)[item.title] ??
-                                        item.title) === song.title,
+                                (item) => ((exception as any)[item.title] ?? item.title) === song.title,
                             );
 
                             let internalLevelValue = sheet.internalLevelValue;
@@ -56,88 +51,68 @@ class SongDataFetcher {
                             if (sheet.type === 'dx') {
                                 switch (sheet.difficulty) {
                                     case diffText[Difficulty.Basic]:
-                                        sheet.level =
-                                            constantSong?.dx_lev_bas ??
-                                            sheet.level;
-                                        sheet.internalLevelValue = constantSong?.dx_lev_bas_i ?
-                                            parseFloat(constantSong.dx_lev_bas_i) :
-                                            internalLevelValue;
+                                        sheet.level = constantSong?.dx_lev_bas ?? sheet.level;
+                                        sheet.internalLevelValue = constantSong?.dx_lev_bas_i
+                                            ? parseFloat(constantSong.dx_lev_bas_i)
+                                            : internalLevelValue;
                                         break;
 
                                     case diffText[Difficulty.Advanced]:
-                                        sheet.level =
-                                            constantSong?.dx_lev_adv ??
-                                            sheet.level;
-                                        sheet.internalLevelValue = constantSong?.dx_lev_adv_i ?
-                                            parseFloat(constantSong.dx_lev_adv_i) :
-                                            internalLevelValue;
+                                        sheet.level = constantSong?.dx_lev_adv ?? sheet.level;
+                                        sheet.internalLevelValue = constantSong?.dx_lev_adv_i
+                                            ? parseFloat(constantSong.dx_lev_adv_i)
+                                            : internalLevelValue;
                                         break;
                                     case diffText[Difficulty.Expert]:
-                                        sheet.level =
-                                            constantSong?.dx_lev_exp ??
-                                            sheet.level;
-                                        sheet.internalLevelValue = constantSong?.dx_lev_exp_i ?
-                                            parseFloat(constantSong.dx_lev_exp_i) :
-                                            internalLevelValue;
+                                        sheet.level = constantSong?.dx_lev_exp ?? sheet.level;
+                                        sheet.internalLevelValue = constantSong?.dx_lev_exp_i
+                                            ? parseFloat(constantSong.dx_lev_exp_i)
+                                            : internalLevelValue;
                                         break;
                                     case diffText[Difficulty.Master]:
-                                        sheet.level =
-                                            constantSong?.dx_lev_mas ??
-                                            sheet.level;
-                                        sheet.internalLevelValue = constantSong?.dx_lev_mas_i ?
-                                            parseFloat(constantSong.dx_lev_mas_i) :
-                                            internalLevelValue;
+                                        sheet.level = constantSong?.dx_lev_mas ?? sheet.level;
+                                        sheet.internalLevelValue = constantSong?.dx_lev_mas_i
+                                            ? parseFloat(constantSong.dx_lev_mas_i)
+                                            : internalLevelValue;
                                         break;
                                     case diffText[Difficulty.ReMaster]:
-                                        sheet.level =
-                                            constantSong?.dx_lev_remas ??
-                                            sheet.level;
-                                        sheet.internalLevelValue = constantSong?.dx_lev_remas_i ?
-                                            parseFloat(constantSong.dx_lev_remas_i) :
-                                            internalLevelValue;
+                                        sheet.level = constantSong?.dx_lev_remas ?? sheet.level;
+                                        sheet.internalLevelValue = constantSong?.dx_lev_remas_i
+                                            ? parseFloat(constantSong.dx_lev_remas_i)
+                                            : internalLevelValue;
                                         break;
                                 }
                             } else if (sheet.type === 'std') {
                                 switch (sheet.difficulty) {
                                     case diffText[Difficulty.Basic]:
-                                        sheet.level =
-                                            constantSong?.lev_bas ??
-                                            sheet.level;
-                                        sheet.internalLevelValue = constantSong?.lev_bas_i ?
-                                            parseFloat(constantSong.lev_bas_i) :
-                                            internalLevelValue;
+                                        sheet.level = constantSong?.lev_bas ?? sheet.level;
+                                        sheet.internalLevelValue = constantSong?.lev_bas_i
+                                            ? parseFloat(constantSong.lev_bas_i)
+                                            : internalLevelValue;
                                         break;
                                     case diffText[Difficulty.Advanced]:
-                                        sheet.level =
-                                            constantSong?.lev_adv ??
-                                            sheet.level;
-                                        sheet.internalLevelValue = constantSong?.lev_adv_i ?
-                                            parseFloat(constantSong.lev_adv_i) :
-                                            internalLevelValue;
+                                        sheet.level = constantSong?.lev_adv ?? sheet.level;
+                                        sheet.internalLevelValue = constantSong?.lev_adv_i
+                                            ? parseFloat(constantSong.lev_adv_i)
+                                            : internalLevelValue;
                                         break;
                                     case diffText[Difficulty.Expert]:
-                                        sheet.level =
-                                            constantSong?.lev_exp ??
-                                            sheet.level;
-                                        sheet.internalLevelValue = constantSong?.lev_exp_i ?
-                                            parseFloat(constantSong.lev_exp_i) :
-                                            internalLevelValue;
+                                        sheet.level = constantSong?.lev_exp ?? sheet.level;
+                                        sheet.internalLevelValue = constantSong?.lev_exp_i
+                                            ? parseFloat(constantSong.lev_exp_i)
+                                            : internalLevelValue;
                                         break;
                                     case diffText[Difficulty.Master]:
-                                        sheet.level =
-                                            constantSong?.lev_mas ??
-                                            sheet.level;
-                                        sheet.internalLevelValue = constantSong?.lev_mas_i ?
-                                            parseFloat(constantSong.lev_mas_i) :
-                                            internalLevelValue;
+                                        sheet.level = constantSong?.lev_mas ?? sheet.level;
+                                        sheet.internalLevelValue = constantSong?.lev_mas_i
+                                            ? parseFloat(constantSong.lev_mas_i)
+                                            : internalLevelValue;
                                         break;
                                     case diffText[Difficulty.ReMaster]:
-                                        sheet.level =
-                                            constantSong?.lev_remas ??
-                                            sheet.level;
-                                        sheet.internalLevelValue = constantSong?.lev_remas_i ?
-                                            parseFloat(constantSong.lev_remas_i) :
-                                            internalLevelValue;
+                                        sheet.level = constantSong?.lev_remas ?? sheet.level;
+                                        sheet.internalLevelValue = constantSong?.lev_remas_i
+                                            ? parseFloat(constantSong.lev_remas_i)
+                                            : internalLevelValue;
                                         break;
                                 }
                             }
@@ -159,9 +134,7 @@ class SongDataFetcher {
     search(query: string) {
         let data = this.getData();
         return data.songs
-            .filter((item: any) =>
-                item.title.toLowerCase().includes(query.toLowerCase()),
-            )
+            .filter((item: any) => item.title.toLowerCase().includes(query.toLowerCase()))
             .map((item: any) => {
                 return {
                     name: item.songId,

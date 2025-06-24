@@ -26,9 +26,7 @@ fetcher.login();
 client.on('ready', async () => {
     console.log(`Logged in as ${client.user?.tag}`);
 
-    const files = fs
-        .readdirSync('./src/commands')
-        .filter((file) => file.endsWith('.command.ts'));
+    const files = fs.readdirSync('./src/commands').filter((file) => file.endsWith('.command.ts'));
 
     for (const file of files) {
         const command = await import(`./commands/${file}`);
@@ -36,9 +34,7 @@ client.on('ready', async () => {
             client.commands.set(command.data.name, command);
             commands.push(command.data.toJSON());
         } else {
-            console.error(
-                `Command file ${file} is missing data or execute properties.`,
-            );
+            console.error(`Command file ${file} is missing data or execute properties.`);
         }
     }
 
@@ -46,12 +42,9 @@ client.on('ready', async () => {
 
     const rest = new REST({ version: '9' }).setToken(process.env.TOKEN!);
 
-    rest.put(
-        Routes.applicationGuildCommands(client.user!.id, '1120284154957930588'),
-        {
-            body: commands,
-        },
-    )
+    rest.put(Routes.applicationGuildCommands(client.user!.id, '1120284154957930588'), {
+        body: commands,
+    })
         .then(() => {
             console.log('Successfully registered application commands.');
         })
@@ -69,10 +62,7 @@ client.on('interactionCreate', async (interaction) => {
             const choices = await command.autocomplete(interaction);
             await interaction.respond(choices);
         } catch (error) {
-            console.error(
-                `Error handling autocomplete for command ${interaction.commandName}:`,
-                error,
-            );
+            console.error(`Error handling autocomplete for command ${interaction.commandName}:`, error);
             await interaction.respond([]);
         }
     }
@@ -90,10 +80,7 @@ client.on('interactionCreate', async (interaction) => {
         try {
             await command.execute(interaction);
         } catch (error) {
-            console.error(
-                `Error executing command ${interaction.commandName}:`,
-                error,
-            );
+            console.error(`Error executing command ${interaction.commandName}:`, error);
             if (interaction.replied) {
                 await interaction.editReply({
                     content: `There was an error while executing this command.\`\`\`js\n${error}\`\`\``,
