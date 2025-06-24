@@ -1,9 +1,11 @@
 import { Client, REST, Routes } from 'discord.js';
 import fs from 'fs';
 import 'dotenv/config';
-import { createCanvas } from 'canvas';
+import init from './lib/init';
 import MaimaiDXNetFetcher from './lib/maimaiDXNetFetcher';
 import SongDataFetcher from './lib/SongDataFetcher';
+
+init();
 
 declare module 'discord.js' {
     export interface Client {

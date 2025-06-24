@@ -10,19 +10,30 @@ import {
 import JSONdb from 'simple-json-db';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
 import { calculateB50 } from 'src/lib/Utils';
-import { Difficulty } from 'src/lib/maimaiDXNetEnums';
+import { Difficulty, ScoreType } from 'src/lib/maimaiDXNetEnums';
 import { Emojis } from 'src/lib/constant/emojis';
+import { ScoreData } from 'types/SongDatabase';
 
-const diffText = {
-    [Difficulty.Basic]: 'basic',
-    [Difficulty.Advanced]: 'advanced',
-    [Difficulty.Expert]: 'expert',
-    [Difficulty.Master]: 'master',
-    [Difficulty.ReMaster]: 'remaster',
-    [Difficulty.UTAGE]: 'utage',
+let diffText = {
+    [Difficulty.Basic]: 'BASIC',
+    [Difficulty.Advanced]: 'ADVANCED',
+    [Difficulty.Expert]: 'EXPERT',
+    [Difficulty.Master]: 'MASTER',
+    [Difficulty.ReMaster]: 'Re:MASTER',
+    [Difficulty.UTAGE]: 'UTAGE',
 };
 
+let diffs = [
+    Difficulty.Basic,
+    Difficulty.Advanced,
+    Difficulty.Expert,
+    Difficulty.Master,
+    Difficulty.ReMaster,
+];
+
 const TypeText = ['B15', 'B35'];
+
+const scoreType = ScoreType.Achievement;
 
 const data = new SlashCommandBuilder().setName('b50').setDescription('獲取B50');
 
@@ -39,55 +50,34 @@ async function execute(interaction: ChatInputCommandInteraction) {
     let playerInfo =
         await MaimaiDXNetFetcher.getInstance().getPlayer(friendCode);
 
-    message += [
-        ' COMPLETED',
-        'Fetching scores...',
-        '> Fetching BASIC scores...',
-    ].join('\n');
+    message += [' OK', 'Fetching scores...'].join('\n');
     await interaction.editReply(message);
-    let basicScoreData = await MaimaiDXNetFetcher.getInstance().getScores(
-        friendCode,
-        Difficulty.Basic,
-    );
-    message += [' COMPLETED', '> Fetching ADVANCED scores...'].join('\n');
-    await interaction.editReply(message);
-    let advancedScoreData = await MaimaiDXNetFetcher.getInstance().getScores(
-        friendCode,
-        Difficulty.Advanced,
-    );
-    message += [' COMPLETED', '> Fetching EXPERT scores...'].join('\n');
-    await interaction.editReply(message);
-    let expertScoreData = await MaimaiDXNetFetcher.getInstance().getScores(
-        friendCode,
-        Difficulty.Expert,
-    );
-    message += [' COMPLETED', '> Fetching MASTER scores...'].join('\n');
-    await interaction.editReply(message);
-    let masterScoreData = await MaimaiDXNetFetcher.getInstance().getScores(
-        friendCode,
-        Difficulty.Master,
-    );
-    message += [' COMPLETED', '> Fetching Re:MASTER scores...'].join('\n');
-    await interaction.editReply(message);
-    let remasterScoreData = await MaimaiDXNetFetcher.getInstance().getScores(
-        friendCode,
-        Difficulty.ReMaster,
-    );
+
+    let scores = {} as {
+        [key: string]: ScoreData[];
+    };
+    for (const [difficulty, diffName] of Object.entries(diffText)) {
+        if (!diffs.includes(parseInt(difficulty))) continue;
+
+        message += `\n> Fetching ${diffName} scores...`;
+        await interaction.editReply(message);
+        let scoreData = await MaimaiDXNetFetcher.getInstance().getScores(
+            scoreType,
+            friendCode,
+            parseInt(difficulty),
+        );
+        scores[diffName] = scoreData.data;
+        message += ' OK';
+    }
     await interaction.editReply(
         [
-            'Fetching player info... COMPLETED',
-            'Fetching scores... COMPLETED',
+            'Fetching player info... OK',
+            'Fetching scores... OK',
             'Calculating...',
         ].join('\n'),
     );
 
-    const { B15Data, B35Data } = calculateB50([
-        ...basicScoreData.data,
-        ...advancedScoreData.data,
-        ...expertScoreData.data,
-        ...masterScoreData.data,
-        ...remasterScoreData.data,
-    ]);
+    const { B15Data, B35Data } = calculateB50(Object.values(scores).flat());
     let B50Data = [B15Data, B35Data];
 
     const rating =
@@ -128,7 +118,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     .map((data) => {
                         return [
                             `**#${B50Data[currentType].indexOf(data) + 1} ${data.title}**`,
-                            `> ${data.type === 'STD' ? Emojis.STD : Emojis.DX} ${diffText[data.difficulty].toUpperCase()} ${data.level} (${data.constant.toFixed(1)})`,
+                            `> ${data.type === 'STD' ? Emojis.STD : Emojis.DX} ${diffText[data.difficulty]} ${data.level} (${data.constant.toFixed(1)})`,
                             `> ${Emojis[data.ranking]}- **${data.rating}**`,
                         ].join('\n');
                     })
@@ -200,7 +190,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         .map((data) => {
                             return [
                                 `**#${B50Data[currentType].indexOf(data) + 1} ${data.title}**`,
-                                `> ${data.type === 'STD' ? Emojis.STD : Emojis.DX} ${diffText[data.difficulty].toUpperCase()} ${data.level} (${data.constant})`,
+                                `> ${data.type === 'STD' ? Emojis.STD : Emojis.DX} ${diffText[data.difficulty]} ${data.level} (${data.constant})`,
                                 `> ${Emojis[data.ranking]}- **${data.rating}**`,
                             ].join('\n');
                         })

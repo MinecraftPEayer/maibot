@@ -20,6 +20,9 @@ const diffText = {
     [Difficulty.UTAGE]: 'utage',
 };
 
+const UserAgent =
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36';
+
 class MaimaiDXNetFetcher {
     static instance: MaimaiDXNetFetcher | null = null;
     cookies: Cookie[] = [];
@@ -42,8 +45,7 @@ class MaimaiDXNetFetcher {
                     Cookie: this.cookies
                         .map((c) => `${c.name}=${c.value}`)
                         .join('; '),
-                    'User-Agent':
-                        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0 Safari/537.36',
+                    'User-Agent': UserAgent,
                 },
             },
         );
@@ -88,8 +90,7 @@ class MaimaiDXNetFetcher {
                     headers: {
                         ...(cookies ? { Cookie: cookies.join('; ') } : {}),
                         'Content-Type': 'application/x-www-form-urlencoded',
-                        'User-Agent':
-                            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0 Safari/537.36',
+                        'User-Agent': UserAgent,
                     },
                     maxRedirects: 0,
                     validateStatus: (status) => status === 302,
@@ -101,8 +102,7 @@ class MaimaiDXNetFetcher {
                 {
                     headers: {
                         ...(cookies ? { Cookie: cookies.join('; ') } : {}),
-                        'User-Agent':
-                            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0 Safari/537.36',
+                        'User-Agent': UserAgent,
                     },
                     maxRedirects: 0,
                     validateStatus: (status) => status === 302,
@@ -126,8 +126,7 @@ class MaimaiDXNetFetcher {
                         Cookie: this.cookies
                             .map((c) => `${c.name}=${c.value}`)
                             .join('; '),
-                        'User-Agent':
-                            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+                        'User-Agent': UserAgent,
                     },
                 },
             );
@@ -151,8 +150,7 @@ class MaimaiDXNetFetcher {
                 'https://maimaidx-eng.com/maimai-mobile/friend',
                 {
                     headers: {
-                        'User-Agent':
-                            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+                        'User-Agent': UserAgent,
                         Cookie: this.cookies
                             .map((c) => `${c.name}=${c.value}`)
                             .join('; '),
@@ -168,8 +166,7 @@ class MaimaiDXNetFetcher {
                     'https://maimaidx-eng.com/maimai-mobile/friend',
                     {
                         headers: {
-                            'User-Agent':
-                                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+                            'User-Agent': UserAgent,
                             Cookie: this.cookies
                                 .map((c) => `${c.name}=${c.value}`)
                                 .join('; '),
@@ -219,8 +216,7 @@ class MaimaiDXNetFetcher {
                         Cookie: this.cookies
                             .map((c) => `${c.name}=${c.value}`)
                             .join('; '),
-                        'User-Agent':
-                            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+                        'User-Agent': UserAgent,
                         Referer: `https://maimaidx-eng.com/maimai-mobile/friend/search/searchUser/?friendCode=${friendCode}`,
                     },
                     maxRedirects: 0,
@@ -252,8 +248,7 @@ class MaimaiDXNetFetcher {
                         Cookie: this.cookies
                             .map((c) => `${c.name}=${c.value}`)
                             .join('; '),
-                        'User-Agent':
-                            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+                        'User-Agent': UserAgent,
                         Referer: `https://maimaidx-eng.com/maimai-mobile/friend`,
                     },
                     maxRedirects: 0,
@@ -270,8 +265,7 @@ class MaimaiDXNetFetcher {
                     `https://maimaidx-eng.com/maimai-mobile/friend/friendDetail/?idx=${friendCode}`,
                     {
                         headers: {
-                            'User-Agent':
-                                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+                            'User-Agent': UserAgent,
                             Cookie: this.cookies
                                 .map((c) => `${c.name}=${c.value}`)
                                 .join('; '),
@@ -307,6 +301,7 @@ class MaimaiDXNetFetcher {
     }
 
     async getScores(
+        scoreType: ScoreType,
         friendCode: string,
         difficulty: Difficulty,
     ): Promise<{
@@ -326,14 +321,13 @@ class MaimaiDXNetFetcher {
         );
 
         let resp = await axios.get(
-            `https://maimaidx-eng.com/maimai-mobile/friend/friendGenreVs/battleStart/?scoreType=${ScoreType.Achievement}&genre=${Genres.ALL}&diff=${difficulty}&idx=${friendCode}`,
+            `https://maimaidx-eng.com/maimai-mobile/friend/friendGenreVs/battleStart/?scoreType=${scoreType}&genre=${Genres.ALL}&diff=${difficulty}&idx=${friendCode}`,
             {
                 headers: {
                     Cookie: this.cookies
                         .map((c) => `${c.name}=${c.value}`)
                         .join('; '),
-                    'User-Agent':
-                        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+                    'User-Agent': UserAgent,
                 },
             },
         );
@@ -347,8 +341,7 @@ class MaimaiDXNetFetcher {
                 'https://maimaidx-eng.com/maimai-mobile/friend',
                 {
                     headers: {
-                        'User-Agent':
-                            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+                        'User-Agent': UserAgent,
                         Cookie: this.cookies
                             .map((c) => `${c.name}=${c.value}`)
                             .join('; '),

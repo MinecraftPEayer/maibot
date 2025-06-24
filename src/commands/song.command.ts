@@ -15,8 +15,9 @@ import exception from 'config/exception.json';
 import { Emojis } from 'src/lib/constant/emojis';
 import JSONdb from 'simple-json-db';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
-import { Difficulty } from 'src/lib/maimaiDXNetEnums';
+import { Difficulty, ScoreType } from 'src/lib/maimaiDXNetEnums';
 import { calculateRating, calculateScore } from 'src/lib/Utils';
+import { ScoreData } from 'types/SongDatabase';
 
 const chart_type = {
     std: 0,
@@ -24,7 +25,26 @@ const chart_type = {
     utage: 2,
 };
 
+const diffText = {
+    [Difficulty.Basic]: 'BASIC',
+    [Difficulty.Advanced]: 'ADVANCED',
+    [Difficulty.Expert]: 'EXPERT',
+    [Difficulty.Master]: 'MASTER',
+    [Difficulty.ReMaster]: 'Re:MASTER',
+    [Difficulty.UTAGE]: 'UTAGE',
+};
+
+const diffs = [
+    Difficulty.Basic,
+    Difficulty.Advanced,
+    Difficulty.Expert,
+    Difficulty.Master,
+    Difficulty.ReMaster,
+];
+
 const DXNetFetcher = MaimaiDXNetFetcher.getInstance();
+
+const scoreType = ScoreType.Achievement;
 
 const data = new SlashCommandBuilder()
     .setName('song')
@@ -190,90 +210,45 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     await buttonInteraction.reply(message);
                     let playerInfo = await DXNetFetcher.getPlayer(friendCode);
 
-                    let basicScore,
-                        advancedScore,
-                        expertScore,
-                        masterScore,
-                        remasterScore,
-                        utageScore;
+                    let playerScores: { [key: string]: ScoreData[] } = {};
 
                     const scoreFilter = (s: any) =>
                         s.type === chart_type[type] &&
                         ((exception as any)[s.title] ?? s.title) === song.title;
                     if (!isUTAGE) {
-                        message += [
-                            ' COMPLETED',
-                            'Fetching scores...',
-                            '> Fetching BASIC scores...',
-                        ].join('\n');
+                        message += [' OK', 'Fetching scores...'].join('\n');
 
                         await buttonInteraction.editReply(message);
-                        basicScore = (
-                            await DXNetFetcher.getScores(
-                                friendCode,
-                                Difficulty.Basic,
-                            )
-                        ).data.find(scoreFilter);
-                        message += [
-                            ' COMPLETED',
-                            '> Fetching ADVANCED scores...',
-                        ].join('\n');
 
-                        await buttonInteraction.editReply(message);
-                        advancedScore = (
-                            await DXNetFetcher.getScores(
-                                friendCode,
-                                Difficulty.Advanced,
-                            )
-                        ).data.find(scoreFilter);
-                        message += [
-                            ' COMPLETED',
-                            '> Fetching EXPERT scores...',
-                        ].join('\n');
+                        for (const [difficulty, diffName] of Object.entries(
+                            diffText,
+                        )) {
+                            if (!diffs.includes(parseInt(difficulty))) continue;
 
-                        await buttonInteraction.editReply(message);
-                        expertScore = (
-                            await DXNetFetcher.getScores(
-                                friendCode,
-                                Difficulty.Expert,
-                            )
-                        ).data.find(scoreFilter);
-                        message += [
-                            ' COMPLETED',
-                            '> Fetching MASTER scores...',
-                        ].join('\n');
-
-                        await buttonInteraction.editReply(message);
-                        masterScore = (
-                            await DXNetFetcher.getScores(
-                                friendCode,
-                                Difficulty.Master,
-                            )
-                        ).data.find(scoreFilter);
-                        message += [
-                            ' COMPLETED',
-                            '> Fetching Re:MASTER scores...',
-                        ].join('\n');
-
-                        await buttonInteraction.editReply(message);
-                        remasterScore = (
-                            await DXNetFetcher.getScores(
-                                friendCode,
-                                Difficulty.ReMaster,
-                            )
-                        ).data.find(scoreFilter);
+                            message += `\n> Fetching ${diffName} scores...`;
+                            await buttonInteraction.editReply(message);
+                            let scoreData =
+                                await MaimaiDXNetFetcher.getInstance().getScores(
+                                    scoreType,
+                                    friendCode,
+                                    parseInt(difficulty),
+                                );
+                            playerScores[diffName] = scoreData.data;
+                            message += ' OK';
+                        }
                     } else {
                         message += [
                             ' COMPLETED',
                             'Fetching scores...',
                             '> Fetching UTAGE scores...',
                         ].join('\n');
-                        utageScore = (
+                        playerScores['UTAGE'] = (
                             await DXNetFetcher.getScores(
+                                scoreType,
                                 friendCode,
                                 Difficulty.UTAGE,
                             )
-                        ).data.find(scoreFilter);
+                        ).data;
                     }
                     await buttonInteraction.editReply(
                         [
@@ -283,14 +258,9 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         ].join('\n'),
                     );
 
-                    let scores = [
-                        basicScore,
-                        advancedScore,
-                        expertScore,
-                        masterScore,
-                        remasterScore,
-                        utageScore,
-                    ].filter((s) => s !== undefined);
+                    let scores = Object.values(playerScores)
+                        .map((item) => item.filter(scoreFilter))
+                        .flat();
 
                     let scoreData = calculateScore(scores).data;
 
@@ -318,7 +288,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                                 },
                                 fields: scoreData.map((score) => {
                                     return {
-                                        name: `${score.difficulty === Difficulty.UTAGE ? '' : score.type === 'DX' ? Emojis.DX + ' ' : Emojis.STD + ' '}${isUTAGE ? utageScore!.utageKind : Difficulty[score.difficulty].toUpperCase()}`,
+                                        name: `${score.difficulty === Difficulty.UTAGE ? '' : score.type === 'DX' ? Emojis.DX + ' ' : Emojis.STD + ' '}${isUTAGE ? playerScores['UTAGE'][0].utageKind : Difficulty[score.difficulty].toUpperCase()}`,
                                         value: `${Emojis[score.ranking]} ${score.achievement}%\n${score.comboType !== -1 ? comboType[score.comboType] + ' ' : ' '}${score.syncType !== -1 ? syncType[score.syncType] + ' ' : ' '}`,
                                     };
                                 }),

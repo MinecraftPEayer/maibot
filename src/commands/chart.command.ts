@@ -5,6 +5,25 @@ import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
 import { calculateB50 } from 'src/lib/Utils';
 import axios from 'axios';
 
+const scoreType = ScoreType.Achievement;
+
+let diffText = {
+    [Difficulty.Basic]: 'BASIC',
+    [Difficulty.Advanced]: 'ADVANCED',
+    [Difficulty.Expert]: 'EXPERT',
+    [Difficulty.Master]: 'MASTER',
+    [Difficulty.ReMaster]: 'Re:MASTER',
+    [Difficulty.UTAGE]: 'UTAGE',
+};
+
+let diffs = [
+    Difficulty.Basic,
+    Difficulty.Advanced,
+    Difficulty.Expert,
+    Difficulty.Master,
+    Difficulty.ReMaster,
+];
+
 const diffTip = {
     10: '',
     4: 'assets/diff_rem.png',
@@ -68,21 +87,44 @@ function getRatingBaseImage(rating: number) {
     return ratingBaseImage.normal;
 }
 
+import fs from 'fs';
 import sharp from 'sharp';
-import { Difficulty } from 'src/lib/maimaiDXNetEnums';
+import { Difficulty, ScoreType } from 'src/lib/maimaiDXNetEnums';
+import { ScoreData } from 'types/SongDatabase';
 
-async function getImageBuffer(imageURL: string): Promise<Buffer> {
+async function getImageBuffer(
+    imageURL: string,
+    cache?: boolean,
+): Promise<Buffer> {
+    if (cache === undefined) cache = false;
     try {
-        const response = await axios.get(imageURL, {
-            responseType: 'arraybuffer',
-            headers: {
-                'User-Agent':
-                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
-            },
-            validateStatus: (status) => status < 500,
-        });
-        const buffer = Buffer.from(response.data);
-        return await sharp(buffer).png().toBuffer();
+        let url = new URL(imageURL);
+        if (
+            fs.existsSync(`tmp/cache/image/${url.pathname.split('/').pop()}`) &&
+            cache
+        ) {
+            const Buffer = fs.readFileSync(
+                `tmp/cache/image/${url.pathname.split('/').pop()}`,
+            );
+            return sharp(Buffer).png().toBuffer();
+        } else {
+            const response = await axios.get(imageURL, {
+                responseType: 'arraybuffer',
+                headers: {
+                    'User-Agent':
+                        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
+                },
+                validateStatus: (status) => status < 500,
+            });
+            const buffer = Buffer.from(response.data);
+            if (cache) {
+                fs.writeFileSync(
+                    `tmp/cache/image/${url.pathname.split('/').pop()}`,
+                    buffer,
+                );
+            }
+            return await sharp(buffer).png().toBuffer();
+        }
     } catch (error) {
         console.error(`Error fetching image from ${imageURL}:`, error);
         return Buffer.alloc(0);
@@ -106,55 +148,34 @@ async function execute(interaction: ChatInputCommandInteraction) {
     let playerInfo =
         await MaimaiDXNetFetcher.getInstance().getPlayer(friendCode);
 
-    message += [
-        ' COMPLETED',
-        'Fetching scores...',
-        '> Fetching BASIC scores...',
-    ].join('\n');
+    message += [' OK', 'Fetching scores...'].join('\n');
     await interaction.editReply(message);
-    let basicScoreData = await MaimaiDXNetFetcher.getInstance().getScores(
-        friendCode,
-        Difficulty.Basic,
-    );
-    message += [' COMPLETED', '> Fetching ADVANCED scores...'].join('\n');
-    await interaction.editReply(message);
-    let advancedScoreData = await MaimaiDXNetFetcher.getInstance().getScores(
-        friendCode,
-        Difficulty.Advanced,
-    );
-    message += [' COMPLETED', '> Fetching EXPERT scores...'].join('\n');
-    await interaction.editReply(message);
-    let expertScoreData = await MaimaiDXNetFetcher.getInstance().getScores(
-        friendCode,
-        Difficulty.Expert,
-    );
-    message += [' COMPLETED', '> Fetching MASTER scores...'].join('\n');
-    await interaction.editReply(message);
-    let masterScoreData = await MaimaiDXNetFetcher.getInstance().getScores(
-        friendCode,
-        Difficulty.Master,
-    );
-    message += [' COMPLETED', '> Fetching Re:MASTER scores...'].join('\n');
-    await interaction.editReply(message);
-    let remasterScoreData = await MaimaiDXNetFetcher.getInstance().getScores(
-        friendCode,
-        Difficulty.ReMaster,
-    );
+
+    let scores = {} as {
+        [key: string]: ScoreData[];
+    };
+    for (const [difficulty, diffName] of Object.entries(diffText)) {
+        if (!diffs.includes(parseInt(difficulty))) continue;
+
+        message += `\n> Fetching ${diffName} scores...`;
+        await interaction.editReply(message);
+        let scoreData = await MaimaiDXNetFetcher.getInstance().getScores(
+            scoreType,
+            friendCode,
+            parseInt(difficulty),
+        );
+        scores[diffName] = scoreData.data;
+        message += ' OK';
+    }
     await interaction.editReply(
         [
-            'Fetching player info... COMPLETED',
-            'Fetching scores... COMPLETED',
+            'Fetching player info... OK',
+            'Fetching scores... OK',
             'Drawing...',
         ].join('\n'),
     );
 
-    const { B15Data, B35Data } = calculateB50([
-        ...basicScoreData.data,
-        ...advancedScoreData.data,
-        ...expertScoreData.data,
-        ...masterScoreData.data,
-        ...remasterScoreData.data,
-    ]);
+    const { B15Data, B35Data } = calculateB50(Object.values(scores).flat());
 
     initializeFonts();
     console.log('Drawing chart for player:', playerInfo?.name);
@@ -174,13 +195,15 @@ async function execute(interaction: ChatInputCommandInteraction) {
     ctx.roundRect(16, 16, 314, 112, 16);
     ctx.fill();
 
-    const avatarImg = await loadImage(
-        await getImageBuffer(
-            `https://chart.minecraftpeayer.me/api/proxy/img?url=${playerInfo?.avatar}`,
-        ),
-    );
+    if (playerInfo?.avatar) {
+        const avatarImg = await loadImage(
+            await getImageBuffer(
+                `https://chart.minecraftpeayer.me/api/proxy/img?url=${playerInfo?.avatar}`,
+            ),
+        );
 
-    ctx.drawImage(avatarImg, 24, 24, 96, 96);
+        ctx.drawImage(avatarImg, 24, 24, 96, 96);
+    }
 
     ctx.fillStyle = '#f7f7ff';
     ctx.beginPath();
@@ -248,6 +271,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                 const songImg = await loadImage(
                     await getImageBuffer(
                         `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${chartInfo.backgroundImg}`,
+                        true,
                     ),
                 );
                 ctx.save();
@@ -357,6 +381,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     const songImg = await loadImage(
                         await getImageBuffer(
                             `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${chartInfo.backgroundImg}`,
+                            true,
                         ),
                     );
 
@@ -451,6 +476,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
     let attachment = canvas.toBuffer('image/png');
     await interaction.editReply({
+        content: '',
         files: [attachment],
     });
 }

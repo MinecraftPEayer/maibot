@@ -1,4 +1,8 @@
-import { ComboType, SyncType } from "src/lib/maimaiDXNetEnums";
+import {
+    Difficulty as DifficultyEnum,
+    ComboType,
+    SyncType,
+} from 'src/lib/maimaiDXNetEnums';
 
 interface SongDatabase {
     songs: Song[];
@@ -210,27 +214,37 @@ type B50Data = {
     title: string;
     achievement: number;
     ranking:
-    | 'SSS+'
-    | 'SSS'
-    | 'SS+'
-    | 'SS'
-    | 'S+'
-    | 'S'
-    | 'AAA'
-    | 'AA'
-    | 'A'
-    | 'BBB'
-    | 'BB'
-    | 'B'
-    | 'C'
-    | 'D';
+        | 'SSS+'
+        | 'SSS'
+        | 'SS+'
+        | 'SS'
+        | 'S+'
+        | 'S'
+        | 'AAA'
+        | 'AA'
+        | 'A'
+        | 'BBB'
+        | 'BB'
+        | 'B'
+        | 'C'
+        | 'D';
     backgroundImg: string;
     rating: number;
     constant: number;
     level: string;
     difficulty: 0 | 1 | 2 | 3 | 4 | 10;
     comboType: ComboType;
-    syncType: SyncType
+    syncType: SyncType;
+};
+
+type ScoreData = {
+    title: string;
+    type: ChartType;
+    difficulty: DifficultyEnum;
+    utageKind?: string;
+    achievement: number;
+    comboType: ComboType;
+    syncType: SyncType;
 };
 
 export {
@@ -244,4 +258,5 @@ export {
     RegionOverrides,
     Version,
     B50Data,
+    ScoreData,
 };
