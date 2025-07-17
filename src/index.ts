@@ -42,11 +42,19 @@ client.on('ready', async () => {
 
     const rest = new REST({ version: '9' }).setToken(process.env.TOKEN!);
 
-    rest.put(Routes.applicationGuildCommands(client.user!.id, '1120284154957930588'), {
+    rest.put(Routes.applicationCommands(client.user!.id), {
         body: commands,
     })
         .then(() => {
             console.log('Successfully registered application commands.');
+        })
+        .catch(console.error);
+
+    rest.put(Routes.applicationGuildCommands(client.user!.id, '1120284154957930588'), {
+        body: commands,
+    })
+        .then(() => {
+            console.log('Successfully registered guild application commands.');
         })
         .catch(console.error);
 });

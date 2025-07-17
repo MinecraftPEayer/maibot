@@ -16,17 +16,27 @@ let diffText = {
 
 let diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
 
-const data = new SlashCommandBuilder().setName('info').setDescription('獲取玩家資訊');
+const data = new SlashCommandBuilder()
+    .setName('info')
+    .setDescription('獲取玩家資訊')
+    .addUserOption((option) => option.setName('user').setDescription('要查詢的玩家').setRequired(false));
 
 async function execute(interaction: ChatInputCommandInteraction) {
     let db = new JSONdb('data/linking.json');
+    let optionUser = interaction.options.getUser('user');
+
+    if (optionUser && !db.has(optionUser.id)) {
+        return await interaction.reply(`${optionUser.username} 還沒綁定帳號`);
+    }
     if (!db.has(interaction.user.id)) return await interaction.reply('你還沒綁定帳號');
+
+    let id = optionUser ? optionUser.id : interaction.user.id;
 
     let message = 'Fetching player info...';
 
     await interaction.reply(message);
 
-    let friendCode = db.get(interaction.user.id);
+    let friendCode = db.get(id);
     let playerInfo = await MaimaiDXNetFetcher.getInstance().getPlayer(friendCode);
 
     if (!playerInfo) {

@@ -114,17 +114,27 @@ async function getImageBuffer(imageURL: string, cache?: boolean): Promise<Buffer
     }
 }
 
-const data = new SlashCommandBuilder().setName('chart').setDescription('生成Rating Chart');
+const data = new SlashCommandBuilder()
+    .setName('chart')
+    .setDescription('生成Rating Chart')
+    .addUserOption((option) => option.setName('user').setDescription('要查詢的玩家').setRequired(false));
 
 async function execute(interaction: ChatInputCommandInteraction) {
     let db = new JSONdb('data/linking.json');
+    let optionUser = interaction.options.getUser('user');
+
+    if (optionUser && !db.has(optionUser.id)) {
+        return await interaction.reply(`${optionUser.username} 還沒綁定帳號`);
+    }
     if (!db.has(interaction.user.id)) return await interaction.reply('你還沒綁定帳號');
+
+    let id = optionUser ? optionUser.id : interaction.user.id;
 
     let message = 'Fetching player info...';
 
     await interaction.reply(message);
 
-    let friendCode = db.get(interaction.user.id);
+    let friendCode = db.get(id);
     let playerInfo = await MaimaiDXNetFetcher.getInstance().getPlayer(friendCode);
 
     message += [' OK', 'Fetching scores...'].join('\n');
