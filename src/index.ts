@@ -57,6 +57,8 @@ client.on('ready', async () => {
             console.log('Successfully registered guild application commands.');
         })
         .catch(console.error);
+
+    (await import('src/utils/api/index')).default();
 });
 
 client.on('interactionCreate', async (interaction) => {

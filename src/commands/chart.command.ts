@@ -2,7 +2,7 @@ import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 import { createCanvas, loadImage, registerFont } from 'canvas';
 import JSONdb from 'simple-json-db';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
-import { calculateB50 } from 'src/lib/Utils';
+import { calculateB50, chartType, convertDXScoreToStar, diff } from 'src/lib/Utils';
 import axios from 'axios';
 
 const scoreType = ScoreType.Achievement;
@@ -17,6 +17,12 @@ let diffText = {
 };
 
 let diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
+
+const chartTypeNum = {
+    std: 0,
+    dx: 1,
+    utage: 2,
+};
 
 const diffTip = {
     10: '',
@@ -83,7 +89,7 @@ function getRatingBaseImage(rating: number) {
 
 import fs from 'fs';
 import sharp from 'sharp';
-import { Difficulty, ScoreType } from 'src/lib/maimaiDXNetEnums';
+import { ComboType, Difficulty, ScoreType, SyncType } from 'src/lib/maimaiDXNetEnums';
 import { ScoreData } from 'types/SongDatabase';
 
 async function getImageBuffer(imageURL: string, cache?: boolean): Promise<Buffer> {
@@ -123,37 +129,91 @@ async function execute(interaction: ChatInputCommandInteraction) {
     let db = new JSONdb('data/linking.json');
     let optionUser = interaction.options.getUser('user');
 
-    if (optionUser && !db.has(optionUser.id)) {
-        return await interaction.reply(`${optionUser.username} 還沒綁定帳號`);
-    }
-    if (!db.has(interaction.user.id)) return await interaction.reply('你還沒綁定帳號');
-
-    let id = optionUser ? optionUser.id : interaction.user.id;
-
-    let message = 'Fetching player info...';
-
-    await interaction.reply(message);
-
-    let friendCode = db.get(id);
-    let playerInfo = await MaimaiDXNetFetcher.getInstance().getPlayer(friendCode);
-
-    message += [' OK', 'Fetching scores...'].join('\n');
-    await interaction.editReply(message);
-
     let scores = {} as {
         [key: string]: ScoreData[];
     };
-    for (const [difficulty, diffName] of Object.entries(diffText)) {
-        if (!diffs.includes(parseInt(difficulty))) continue;
 
-        message += `\n> Fetching ${diffName} scores...`;
+    let playerInfo: {
+        name: string;
+        avatar: string;
+        rating: string;
+    } = {
+        name: '',
+        avatar: '',
+        rating: '',
+    };
+
+    if (fs.existsSync(`data/user/${optionUser?.id ? optionUser.id : interaction.user.id}/latest.json`)) {
+        let latestData = JSON.parse(
+            fs.readFileSync(`data/user/${optionUser?.id ? optionUser.id : interaction.user.id}/latest.json`, 'utf8'),
+        );
+
+        for (let key in latestData.allScores) {
+            scores[key] = latestData.allScores[key].map((score: any) => {
+                return {
+                    title: score.name,
+                    type: chartTypeNum[score.chartType as 'std' | 'dx' | 'utage'],
+                    difficulty:
+                        diff[score.difficulty as 'basic' | 'advanced' | 'expert' | 'master' | 'remaster' | 'utage'] ||
+                        Difficulty.Basic,
+                    achievement: parseFloat(score.achievement),
+                    comboType: ComboType[score.comboType.replace(/[+]/g, 'p')] || ComboType.None,
+                    syncType: SyncType[score.syncType.replace(/[+]/g, 'p')] || SyncType.None,
+                    dxScore: parseInt(score.dxScore.split('/')[0].replace(/,/g, '')),
+                    dxStar: convertDXScoreToStar(
+                        parseInt(score.dxScore.split('/')[0].replace(/,/g, '')),
+                        parseInt(score.dxScore.split('/')[1].replace(/,/g, '')),
+                    ),
+                };
+            });
+        }
+
+        playerInfo = {
+            name: latestData.playerData.playerName,
+            rating: latestData.playerData.rating,
+            avatar: latestData.playerData.avatar,
+        };
+
+        await interaction.reply({
+            content: 'Processing...',
+        });
+    } else {
+        if (optionUser && !db.has(optionUser.id)) {
+            return await interaction.reply(`${optionUser.username} 還沒綁定帳號`);
+        }
+        if (!db.has(interaction.user.id)) return await interaction.reply('你還沒綁定帳號');
+
+        let id = optionUser ? optionUser.id : interaction.user.id;
+
+        let message = 'Fetching player info...';
+
+        await interaction.reply(message);
+
+        let friendCode = db.get(id);
+        playerInfo = (await MaimaiDXNetFetcher.getInstance().getPlayer(friendCode)) ?? {
+            name: '',
+            avatar: '',
+            rating: '',
+        };
+
+        message += [' OK', 'Fetching scores...'].join('\n');
         await interaction.editReply(message);
-        let scoreData = await MaimaiDXNetFetcher.getInstance().getScores(scoreType, friendCode, parseInt(difficulty));
-        scores[diffName] = scoreData.data;
-        message += ' OK';
-    }
-    await interaction.editReply(['Fetching player info... OK', 'Fetching scores... OK', 'Drawing...'].join('\n'));
+        for (const [difficulty, diffName] of Object.entries(diffText)) {
+            if (!diffs.includes(parseInt(difficulty))) continue;
 
+            message += `\n> Fetching ${diffName} scores...`;
+            await interaction.editReply(message);
+            let scoreData = await MaimaiDXNetFetcher.getInstance().getScores(
+                scoreType,
+                friendCode,
+                parseInt(difficulty),
+            );
+            scores[diffName] = scoreData.data;
+            message += ' OK';
+        }
+    }
+
+    await interaction.editReply(['Fetching player info... OK', 'Fetching scores... OK', 'Drawing...'].join('\n'));
     const { B15Data, B35Data } = calculateB50(Object.values(scores).flat());
 
     initializeFonts();

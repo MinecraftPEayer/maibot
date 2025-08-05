@@ -6,6 +6,7 @@
     "discord-api-types": "^0.38.11",
     "discord.js": "^14.19.3",
     "dotenv": "^16.5.0",
+    "express": "^5.1.0",
     "jsdom": "^26.1.0",
     "nan": "^2.22.2",
     "set-cookie-parser": "^2.7.1",
@@ -17,6 +18,7 @@
   },
   "main": "src/index.ts",
   "devDependencies": {
+    "@types/express": "^5.0.3",
     "@types/jsdom": "^21.1.7",
     "@types/set-cookie-parser": "^2.4.10",
     "prettier": "^3.5.3"

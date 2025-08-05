@@ -26,6 +26,15 @@ const RankFactor = {
     D: 0.05,
 };
 
+const diff = {
+    basic: Difficulty.Basic,
+    advanced: Difficulty.Advanced,
+    expert: Difficulty.Expert,
+    master: Difficulty.Master,
+    remaster: Difficulty.ReMaster,
+    utage: Difficulty.UTAGE,
+};
+
 function convertAchievementToRank(achievement: number) {
     if (achievement >= 100.5) return 'SSS+';
     if (achievement >= 100.0) return 'SSS';
@@ -50,6 +59,16 @@ function calculateRating(achievement: number, constant: number) {
             constant *
             100,
     );
+}
+
+function convertDXScoreToStar(dxScore: number, fullDXScore: number): number {
+    let ratio = dxScore / fullDXScore;
+    if (ratio >= 0.97) return 5;
+    if (ratio >= 0.95) return 4;
+    if (ratio >= 0.93) return 3;
+    if (ratio >= 0.9) return 2;
+    if (ratio >= 0.85) return 1;
+    return 0;
 }
 
 function calculateB50(
@@ -81,7 +100,7 @@ function calculateB50(
                 const constant = sheet.internalLevelValue,
                     rating = calculateRating(item.achievement, constant),
                     imageURL = song.imageName;
-                ((sheet.regionOverrides.intl.version ?? sheet.version ?? song.version) === 'PRiSM'
+                ((sheet.regionOverrides.intl.version ?? sheet.version ?? song.version) === 'PRiSM PLUS'
                     ? B15Data
                     : B35Data
                 ).push({
@@ -164,4 +183,13 @@ function calculateScore(
     };
 }
 
-export { calculateB50, chartType, calculateScore, calculateRating, RankFactor, convertAchievementToRank };
+export {
+    calculateB50,
+    chartType,
+    calculateScore,
+    calculateRating,
+    RankFactor,
+    convertAchievementToRank,
+    convertDXScoreToStar,
+    diff,
+};

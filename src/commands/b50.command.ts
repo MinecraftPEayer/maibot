@@ -9,10 +9,11 @@ import {
 } from 'discord.js';
 import JSONdb from 'simple-json-db';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
-import { calculateB50 } from 'src/lib/Utils';
-import { Difficulty, ScoreType } from 'src/lib/maimaiDXNetEnums';
+import { calculateB50, convertDXScoreToStar, diff } from 'src/lib/Utils';
+import { ComboType, Difficulty, ScoreType, SyncType } from 'src/lib/maimaiDXNetEnums';
 import { Emojis } from 'src/lib/constant/emojis';
 import { ScoreData } from 'types/SongDatabase';
+import fs from 'fs';
 
 let diffText = {
     [Difficulty.Basic]: 'BASIC',
@@ -21,6 +22,12 @@ let diffText = {
     [Difficulty.Master]: 'MASTER',
     [Difficulty.ReMaster]: 'Re:MASTER',
     [Difficulty.UTAGE]: 'UTAGE',
+};
+
+const chartType = {
+    std: 0,
+    dx: 1,
+    utage: 2,
 };
 
 let diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
@@ -38,35 +45,91 @@ async function execute(interaction: ChatInputCommandInteraction) {
     let db = new JSONdb('data/linking.json');
     let optionUser = interaction.options.getUser('user');
 
-    if (optionUser && !db.has(optionUser.id)) {
-        return await interaction.reply(`${optionUser.username} 還沒綁定帳號`);
-    }
-
-    if (!db.has(interaction.user.id)) return await interaction.reply('你還沒綁定帳號');
-
-    let id = optionUser ? optionUser.id : interaction.user.id;
-
-    let message = 'Fetching player info...';
-
-    await interaction.reply(message);
-
-    let friendCode = db.get(id);
-    let playerInfo = await MaimaiDXNetFetcher.getInstance().getPlayer(friendCode);
-
-    message += [' OK', 'Fetching scores...'].join('\n');
-    await interaction.editReply(message);
-
-    let scores = {} as {
+    let scores: {
         [key: string]: ScoreData[];
-    };
-    for (const [difficulty, diffName] of Object.entries(diffText)) {
-        if (!diffs.includes(parseInt(difficulty))) continue;
+    } = {};
 
-        message += `\n> Fetching ${diffName} scores...`;
+    let playerInfo: {
+        name: string;
+        avatar: string;
+        rating: string;
+    } = {
+        name: '',
+        avatar: '',
+        rating: '',
+    };
+
+    if (fs.existsSync(`data/user/${optionUser?.id ? optionUser.id : interaction.user.id}/latest.json`)) {
+        let latestData = JSON.parse(
+            fs.readFileSync(`data/user/${optionUser?.id ? optionUser.id : interaction.user.id}/latest.json`, 'utf8'),
+        );
+
+        for (let key in latestData.allScores) {
+            scores[key] = latestData.allScores[key].map((score: any) => {
+                return {
+                    title: score.name,
+                    type: chartType[score.chartType as 'std' | 'dx' | 'utage'],
+                    difficulty:
+                        diff[score.difficulty as 'basic' | 'advanced' | 'expert' | 'master' | 'remaster' | 'utage'] ||
+                        Difficulty.Basic,
+                    achievement: parseFloat(score.achievement),
+                    comboType: ComboType[score.comboType.replace(/[+]/g, 'p')] || ComboType.None,
+                    syncType: SyncType[score.syncType.replace(/[+]/g, 'p')] || SyncType.None,
+                    dxScore: parseInt(score.dxScore.split('/')[0].replace(/,/g, '')),
+                    dxStar: convertDXScoreToStar(
+                        parseInt(score.dxScore.split('/')[0].replace(/,/g, '')),
+                        parseInt(score.dxScore.split('/')[1].replace(/,/g, '')),
+                    ),
+                };
+            });
+        }
+
+        playerInfo = {
+            name: latestData.playerData.playerName,
+            rating: latestData.playerData.rating,
+            avatar: latestData.playerData.avatar,
+        };
+
+        await interaction.reply({
+            content: 'Processing...',
+        });
+    } else {
+        if (optionUser && !db.has(optionUser.id)) {
+            return await interaction.reply(`${optionUser.username} 還沒綁定帳號`);
+        }
+
+        if (!db.has(interaction.user.id)) return await interaction.reply('你還沒綁定帳號');
+
+        let id = optionUser ? optionUser.id : interaction.user.id;
+
+        let message = 'Fetching player info...';
+
+        await interaction.reply(message);
+
+        let friendCode = db.get(id);
+        playerInfo = (await MaimaiDXNetFetcher.getInstance().getPlayer(friendCode)) ?? {
+            name: '',
+            avatar: '',
+            rating: '',
+        };
+
+        message += [' OK', 'Fetching scores...'].join('\n');
         await interaction.editReply(message);
-        let scoreData = await MaimaiDXNetFetcher.getInstance().getScores(scoreType, friendCode, parseInt(difficulty));
-        scores[diffName] = scoreData.data;
-        message += ' OK';
+
+        scores = {};
+        for (const [difficulty, diffName] of Object.entries(diffText)) {
+            if (!diffs.includes(parseInt(difficulty))) continue;
+
+            message += `\n> Fetching ${diffName} scores...`;
+            await interaction.editReply(message);
+            let scoreData = await MaimaiDXNetFetcher.getInstance().getScores(
+                scoreType,
+                friendCode,
+                parseInt(difficulty),
+            );
+            scores[diffName] = scoreData.data;
+            message += ' OK';
+        }
     }
     await interaction.editReply(['Fetching player info... OK', 'Fetching scores... OK', 'Calculating...'].join('\n'));
 

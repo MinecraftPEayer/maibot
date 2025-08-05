@@ -228,7 +228,7 @@ class MaimaiDXNetFetcher {
             let rating = dom.window.document.querySelector('.rating_block')?.textContent ?? '';
             let avatar = dom.window.document.querySelector('.basic_block > img')?.getAttribute('src') ?? '';
 
-            console.log(`Fetched player info (code: ${friendCode}) successfully`);
+            console.log(`Fetched player info (code: ${friendCode}) successfully: ${name}`);
             return {
                 name,
                 rating,

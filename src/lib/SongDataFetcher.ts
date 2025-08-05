@@ -34,17 +34,27 @@ class SongDataFetcher {
             const response = await axios.get('https://dp4p6x0xfi5o9.cloudfront.net/maimai/data.json');
             if (response.status === 200) {
                 const data = response.data;
-                const constantDBResponse = await axios.get(
+                const intlConstantDBResponse = await axios.get(
                     'https://raw.githubusercontent.com/zvuc/otoge-db/refs/heads/master/maimai/data/music-ex-intl.json',
                 );
-                if (constantDBResponse.status === 200) {
-                    const constantData = constantDBResponse.data as SongDatabase['constant'];
+                const jpConstantDBResponse = await axios.get(
+                    'https://raw.githubusercontent.com/zvuc/otoge-db/refs/heads/master/maimai/data/music-ex.json',
+                );
+                if (intlConstantDBResponse.status === 200) {
+                    const intlConstantData = intlConstantDBResponse.data as SongDatabase['constant'];
+                    const jpConstantData = jpConstantDBResponse.data as SongDatabase['constant'];
 
                     data.songs.forEach((song: Song) => {
                         song.sheets.forEach((sheet: Sheet) => {
-                            let constantSong = constantData.find(
+                            let constantSong = intlConstantData.find(
                                 (item) => ((exception as any)[item.title] ?? item.title) === song.title,
                             );
+
+                            if (!constantSong) {
+                                constantSong = jpConstantData.find(
+                                    (item) => ((exception as any)[item.title] ?? item.title) === song.title,
+                                );
+                            }
 
                             let internalLevelValue = sheet.internalLevelValue;
 

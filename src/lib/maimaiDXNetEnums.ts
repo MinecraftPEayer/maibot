@@ -34,6 +34,7 @@ enum SyncType {
     FSp = 1,
     FDX = 2,
     FDXp = 3,
+    SYNC = 4,
 }
 
 enum ComboType {
