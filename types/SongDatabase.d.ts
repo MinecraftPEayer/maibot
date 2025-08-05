@@ -208,7 +208,7 @@ type B50Data = {
     rating: number;
     constant: number;
     level: string;
-    difficulty: 0 | 1 | 2 | 3 | 4 | 10;
+    difficulty: DifficultyEnum;
     comboType: ComboType;
     syncType: SyncType;
 };

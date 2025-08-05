@@ -3,15 +3,7 @@ import { JSDOM } from 'jsdom';
 import fs, { stat } from 'fs';
 import axios from 'axios';
 import { ChartType, ComboType, Difficulty, Genres, ScoreType, SyncType } from './CommonEnums';
-
-const diffText = {
-    [Difficulty.Basic]: 'basic',
-    [Difficulty.Advanced]: 'advanced',
-    [Difficulty.Expert]: 'expert',
-    [Difficulty.Master]: 'master',
-    [Difficulty.ReMaster]: 'remaster',
-    [Difficulty.UTAGE]: 'utage',
-};
+import { DifficultyDisplayName, DifficultyName } from './constant/CommonConstant';
 
 const UserAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36';
@@ -257,7 +249,7 @@ class MaimaiDXNetFetcher {
             dxStar?: number;
         }[];
     }> {
-        console.log(`Fetching ${diffText[difficulty].toUpperCase()} scores for player:`, friendCode);
+        console.log(`Fetching ${DifficultyDisplayName[difficulty]} scores for player:`, friendCode);
 
         let resp = await axios.get(
             `https://maimaidx-eng.com/maimai-mobile/friend/friendGenreVs/battleStart/?scoreType=${scoreType}&genre=${Genres.ALL}&diff=${difficulty}&idx=${friendCode}`,
@@ -289,7 +281,7 @@ class MaimaiDXNetFetcher {
             console.error(`Error while fetching scores, response was saved to tmp/dxnet_error_${time}.html`);
         }
 
-        let allScore = dom.window.document.querySelectorAll(`.music_${diffText[difficulty]}_score_back`);
+        let allScore = dom.window.document.querySelectorAll(`.music_${DifficultyName[difficulty]}_score_back`);
         for (let score of allScore) {
             let kind;
             if (difficulty === Difficulty.UTAGE)
@@ -297,28 +289,31 @@ class MaimaiDXNetFetcher {
 
             let achievement, dxStar, dxScore;
             if (scoreType === ScoreType.Achievement) {
-                achievement = score.querySelectorAll(`.p_r.${diffText[difficulty]}_score_label.w_120.f_b`)[1];
+                achievement = score.querySelectorAll(`.p_r.${DifficultyName[difficulty]}_score_label.w_120.f_b`)[1];
             } else {
-                dxScore = score.querySelectorAll(`.p_r.${diffText[difficulty]}_score_label.w_120.f_b`)[1];
+                dxScore = score.querySelectorAll(`.p_r.${DifficultyName[difficulty]}_score_label.w_120.f_b`)[1];
                 switch (
                     score
-                        .querySelectorAll(`.p_r.${diffText[difficulty]}_score_label.w_120.f_b`)[1]
+                        .querySelectorAll(`.p_r.${DifficultyName[difficulty]}_score_label.w_120.f_b`)[1]
                         .querySelector('img')
                         ?.getAttribute('src')
+                        ?.split('/')
+                        .pop()
+                        ?.replace('.png', '')
                 ) {
-                    case 'https://maimaidx-eng.com/maimai-mobile/img/music_icon_dxstar_1.png':
+                    case 'music_icon_dxstar_1':
                         dxStar = 1;
                         break;
-                    case 'https://maimaidx-eng.com/maimai-mobile/img/music_icon_dxstar_2.png':
+                    case 'music_icon_dxstar_2':
                         dxStar = 2;
                         break;
-                    case 'https://maimaidx-eng.com/maimai-mobile/img/music_icon_dxstar_3.png':
+                    case 'music_icon_dxstar_3':
                         dxStar = 3;
                         break;
-                    case 'https://maimaidx-eng.com/maimai-mobile/img/music_icon_dxstar_4.png':
+                    case 'music_icon_dxstar_4':
                         dxStar = 4;
                         break;
-                    case 'https://maimaidx-eng.com/maimai-mobile/img/music_icon_dxstar_5.png':
+                    case 'music_icon_dxstar_5':
                         dxStar = 5;
                         break;
                     default:
@@ -328,34 +323,34 @@ class MaimaiDXNetFetcher {
             }
             let status = [];
             let icons = score.querySelectorAll('.t_r.f_0')[0].querySelectorAll('img');
-            switch (icons[1]?.getAttribute('src')) {
-                case 'https://maimaidx-eng.com/maimai-mobile/img/music_icon_fc.png?ver=1.50':
+            switch (icons[1]?.getAttribute('src')?.split('?')[0].split('/').pop()?.replace('.png', '')) {
+                case 'music_icon_fc':
                     status.push(ComboType.FC);
                     break;
-                case 'https://maimaidx-eng.com/maimai-mobile/img/music_icon_fcp.png?ver=1.50':
+                case 'music_icon_fcp':
                     status.push(ComboType.FCp);
                     break;
-                case 'https://maimaidx-eng.com/maimai-mobile/img/music_icon_ap.png?ver=1.50':
+                case 'music_icon_ap':
                     status.push(ComboType.AP);
                     break;
-                case 'https://maimaidx-eng.com/maimai-mobile/img/music_icon_app.png?ver=1.50':
+                case 'music_icon_app':
                     status.push(ComboType.APp);
                     break;
                 default:
                     status.push(-1);
                     break;
             }
-            switch (icons[0]?.getAttribute('src')) {
-                case 'https://maimaidx-eng.com/maimai-mobile/img/music_icon_fs.png?ver=1.50':
+            switch (icons[0]?.getAttribute('src')?.split('?')[0].split('/').pop()?.replace('.png', '')) {
+                case 'music_icon_fs':
                     status.push(SyncType.FS);
                     break;
-                case 'https://maimaidx-eng.com/maimai-mobile/img/music_icon_fsp.png?ver=1.50':
+                case 'music_icon_fsp':
                     status.push(SyncType.FSp);
                     break;
-                case 'https://maimaidx-eng.com/maimai-mobile/img/music_icon_fdx.png?ver=1.50':
+                case 'music_icon_fdx':
                     status.push(SyncType.FDX);
                     break;
-                case 'https://maimaidx-eng.com/maimai-mobile/img/music_icon_fdxp.png?ver=1.50':
+                case 'music_icon_fdxp':
                     status.push(SyncType.FDXp);
                     break;
                 default:
@@ -365,13 +360,19 @@ class MaimaiDXNetFetcher {
             if (scoreType === ScoreType.Achievement && achievement?.textContent?.includes('―')) continue;
             if (scoreType === ScoreType.DXScore && dxScore?.textContent?.includes('―')) continue;
 
-            let type_block = score.querySelector('.music_kind_icon')?.getAttribute('src');
+            let type_block = score
+                .querySelector('.music_kind_icon')
+                ?.getAttribute('src')
+                ?.split('?')[0]
+                .split('/')
+                .pop()
+                ?.replace('.png', '');
             output.push({
                 title: score.querySelector('.music_name_block')?.textContent ?? '',
                 type:
-                    type_block === 'https://maimaidx-eng.com/maimai-mobile/img/music_dx.png'
+                    type_block === 'music_dx'
                         ? ChartType.DX
-                        : type_block === 'https://maimaidx-eng.com/maimai-mobile/img/music_standard.png'
+                        : type_block === 'music_standard'
                           ? ChartType.STD
                           : ChartType.UTAGE,
                 difficulty: difficulty,

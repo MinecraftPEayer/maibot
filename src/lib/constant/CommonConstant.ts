@@ -37,6 +37,7 @@ export const DifficultyName = {
     [Difficulty.Expert]: 'expert',
     [Difficulty.Master]: 'master',
     [Difficulty.ReMaster]: 'remaster',
+    [Difficulty.UTAGE]: 'utage',
 };
 
 export const RankFactor = {

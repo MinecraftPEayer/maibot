@@ -3,6 +3,7 @@ import { B50Data, SongDatabase } from 'types/SongDatabase';
 import exception from 'config/exception.json';
 import { ChartType, ComboType, Difficulty, SyncType } from './CommonEnums';
 import { RatingBaseImageName, RankFactor, ChartTypeName } from './constant/CommonConstant';
+import { Emojis } from './constant/emojis';
 
 function convertAchievementToRank(achievement: number) {
     if (achievement >= 100.5) return 'SSS+';
@@ -167,7 +168,7 @@ function getRatingBaseImage(rating: number) {
     return RatingBaseImageName.normal;
 }
 
-function getDifficultyIdFromName(name: string): Difficulty {
+function getDifficultyIdFromName(name: string): Difficulty | string {
     switch (name.toLowerCase()) {
         case 'basic':
             return Difficulty.Basic;
@@ -182,7 +183,7 @@ function getDifficultyIdFromName(name: string): Difficulty {
         case 'utage':
             return Difficulty.UTAGE;
         default:
-            throw new Error(`Unknown difficulty name: ${name}`);
+            return name;
     }
 }
 
@@ -199,10 +200,30 @@ function getChartTypeFromName(name: string): ChartType {
     }
 }
 
+function getDifficultyEmoji(difficulty: Difficulty | string): string {
+    switch (difficulty) {
+        case Difficulty.Basic:
+            return Emojis.Basic;
+        case Difficulty.Advanced:
+            return Emojis.Advanced;
+        case Difficulty.Expert:
+            return Emojis.Expert;
+        case Difficulty.Master:
+            return Emojis.Master;
+        case Difficulty.ReMaster:
+            return Emojis.ReMaster;
+        case Difficulty.UTAGE:
+            return Emojis.Utage;
+        default:
+            return difficulty;
+    }
+}
+
 export {
     calculateB50,
     calculateScore,
     calculateRating,
+    getDifficultyEmoji,
     convertAchievementToRank,
     convertDXScoreToStar,
     getRatingBaseImage,

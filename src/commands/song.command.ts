@@ -6,6 +6,7 @@ import {
     ButtonStyle,
     ChatInputCommandInteraction,
     Colors,
+    Emoji,
     SlashCommandBuilder,
     StringSelectMenuBuilder,
     StringSelectMenuInteraction,
@@ -16,8 +17,14 @@ import { Emojis } from 'src/lib/constant/emojis';
 import JSONdb from 'simple-json-db';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
 import { Difficulty, ScoreType } from 'src/lib/CommonEnums';
-import { calculateRating, calculateScore, getChartTypeFromName } from 'src/lib/Utils';
-import { ScoreData } from 'types/SongDatabase';
+import {
+    calculateRating,
+    calculateScore,
+    getChartTypeFromName,
+    getDifficultyEmoji,
+    getDifficultyIdFromName,
+} from 'src/lib/Utils';
+import { ScoreData, Sheet } from 'types/SongDatabase';
 import { DifficultyDisplayName } from 'src/lib/constant/CommonConstant';
 
 const diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
@@ -101,8 +108,8 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     .map((sheet) => {
                         return {
                             name: `${
-                                isUTAGE ? '' : sheet.type === 'dx' ? Emojis.DX + ' ' : Emojis.STD + ' '
-                            }${sheet.difficulty.toUpperCase()}`,
+                                isUTAGE ? Emojis.Utage + '' : sheet.type === 'dx' ? Emojis.DX + ' ' : Emojis.STD + ' '
+                            }${getDifficultyEmoji(getDifficultyIdFromName(sheet.difficulty))}`,
                             value: `Lv: ${sheet.level}(${sheet.internalLevel ?? sheet.internalLevelValue ?? sheet.level + '.?'})\nNote Designer: ${sheet.noteDesigner}`,
                         };
                     }),
@@ -132,11 +139,15 @@ async function execute(interaction: ChatInputCommandInteraction) {
                             description: `Artist: ${song.artist}\nCategory: ${song.category}\nBPM: ${song.bpm}\nVersion: ${song.version}`,
                             fields: song.sheets
                                 .filter((sheet: any) => sheet.type === type)
-                                .map((sheet: any) => {
+                                .map((sheet: Sheet) => {
                                     return {
                                         name: `${
-                                            isUTAGE ? '' : sheet.type === 'dx' ? Emojis.DX + ' ' : Emojis.STD + ' '
-                                        }${sheet.difficulty.toUpperCase()}`,
+                                            isUTAGE
+                                                ? Emojis.Utage + ''
+                                                : sheet.type === 'dx'
+                                                  ? Emojis.DX + ' '
+                                                  : Emojis.STD + ' '
+                                        }${getDifficultyEmoji(getDifficultyIdFromName(sheet.difficulty))}`,
                                         value: `Lv: ${sheet.level}(${sheet.internalLevel ?? sheet.internalLevelValue ?? sheet.level + '.?'})\nNote Designer: ${sheet.noteDesigner}`,
                                     };
                                 }),
@@ -211,8 +222,8 @@ async function execute(interaction: ChatInputCommandInteraction) {
                             },
                             fields: scoreData.map((score) => {
                                 return {
-                                    name: `${score.difficulty === Difficulty.UTAGE ? '' : score.type === 'DX' ? Emojis.DX + ' ' : Emojis.STD + ' '}${isUTAGE ? playerScores['UTAGE'][0].utageKind : Difficulty[score.difficulty].toUpperCase()}`,
-                                    value: `${Emojis[score.ranking]} ${score.achievement}%\n${score.comboType !== -1 ? comboType[score.comboType] + ' ' : ' '}${score.syncType !== -1 ? syncType[score.syncType] + ' ' : ' '}`,
+                                    name: `${score.difficulty === Difficulty.UTAGE ? Emojis.Utage + '' : score.type === 'DX' ? Emojis.DX + ' ' : Emojis.STD + ' '}${isUTAGE ? playerScores['UTAGE'][0].utageKind : getDifficultyEmoji(score.difficulty)}`,
+                                    value: `${Emojis[score.ranking]} ${score.achievement.toFixed(4)}%\n${score.comboType !== -1 ? comboType[score.comboType] + ' ' : ' '}${score.syncType !== -1 ? syncType[score.syncType] + ' ' : ' '}`,
                                 };
                             }),
                         },
@@ -237,7 +248,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                 interaction.editReply({
                     embeds: [
                         {
-                            title: `${song.title} - ${!isUTAGE ? Emojis[selectedSheet.type.toUpperCase() as 'DX' | 'STD'] + ' ' : ''}${selectedSheet.difficulty.toUpperCase()}`,
+                            title: `${song.title} - ${!isUTAGE ? Emojis[selectedSheet.type.toUpperCase() as 'DX' | 'STD'] + ' ' : ''}${getDifficultyEmoji(getDifficultyIdFromName(selectedSheet.difficulty))}`,
                             description: [
                                 `Artist: ${song.artist}`,
                                 `Category: ${song.category}`,

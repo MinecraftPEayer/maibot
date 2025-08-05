@@ -9,7 +9,13 @@ import {
 } from 'discord.js';
 import JSONdb from 'simple-json-db';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
-import { calculateB50, convertDXScoreToStar, getChartTypeFromName, getDifficultyIdFromName } from 'src/lib/Utils';
+import {
+    calculateB50,
+    convertDXScoreToStar,
+    getChartTypeFromName,
+    getDifficultyEmoji,
+    getDifficultyIdFromName,
+} from 'src/lib/Utils';
 import { ComboType, Difficulty, ScoreType, SyncType } from 'src/lib/CommonEnums';
 import { Emojis } from 'src/lib/constant/emojis';
 import { ScoreData } from 'types/SongDatabase';
@@ -158,7 +164,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     .map((data) => {
                         return [
                             `**#${B50Data[currentType].indexOf(data) + 1} ${data.title}**`,
-                            `> ${data.type === 'STD' ? Emojis.STD : Emojis.DX} ${DifficultyDisplayName[data.difficulty]} ${data.level} (${data.constant.toFixed(1)})`,
+                            `> ${data.type === 'STD' ? Emojis.STD : Emojis.DX} ${getDifficultyEmoji(data.difficulty)} ${data.level} (${data.constant.toFixed(1)})`,
                             `> ${Emojis[data.ranking]}- **${data.rating}**`,
                         ].join('\n');
                     })
@@ -227,7 +233,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         .map((data) => {
                             return [
                                 `**#${B50Data[currentType].indexOf(data) + 1} ${data.title}**`,
-                                `> ${data.type === 'STD' ? Emojis.STD : Emojis.DX} ${DifficultyDisplayName[data.difficulty]} ${data.level} (${data.constant})`,
+                                `> ${data.type === 'STD' ? Emojis.STD : Emojis.DX} ${getDifficultyEmoji(data.difficulty)} ${data.level} (${data.constant})`,
                                 `> ${Emojis[data.ranking]}- **${data.rating}**`,
                             ].join('\n');
                         })
