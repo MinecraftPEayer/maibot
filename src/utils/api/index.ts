@@ -121,7 +121,7 @@ export default () => {
         }
     });
 
-    app.listen(3000, () => {
-        console.log('API server is running on port 3000');
+    app.listen(parseInt(process.env.API_PORT || '3000'), () => {
+        console.log(`API server is running on port ${process.env.API_PORT || '3000'}`);
     });
 };
