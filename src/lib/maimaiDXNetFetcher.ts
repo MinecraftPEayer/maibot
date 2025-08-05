@@ -2,7 +2,7 @@ import cookieParser, { Cookie } from 'set-cookie-parser';
 import { JSDOM } from 'jsdom';
 import fs, { stat } from 'fs';
 import axios from 'axios';
-import { ChartType, ComboType, Difficulty, Genres, ScoreType, SyncType } from './maimaiDXNetEnums';
+import { ChartType, ComboType, Difficulty, Genres, ScoreType, SyncType } from './CommonEnums';
 
 const diffText = {
     [Difficulty.Basic]: 'basic',

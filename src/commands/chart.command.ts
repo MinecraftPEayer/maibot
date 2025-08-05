@@ -2,27 +2,21 @@ import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 import { createCanvas, loadImage, registerFont } from 'canvas';
 import JSONdb from 'simple-json-db';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
-import { calculateB50, chartType, convertDXScoreToStar, diff } from 'src/lib/Utils';
+import {
+    calculateB50,
+    convertDXScoreToStar,
+    getChartTypeFromName,
+    getDifficultyIdFromName,
+    getRatingBaseImage,
+} from 'src/lib/Utils';
 import axios from 'axios';
-
-const scoreType = ScoreType.Achievement;
-
-let diffText = {
-    [Difficulty.Basic]: 'BASIC',
-    [Difficulty.Advanced]: 'ADVANCED',
-    [Difficulty.Expert]: 'EXPERT',
-    [Difficulty.Master]: 'MASTER',
-    [Difficulty.ReMaster]: 'Re:MASTER',
-    [Difficulty.UTAGE]: 'UTAGE',
-};
+import fs from 'fs';
+import sharp from 'sharp';
+import { ComboType, Difficulty, ScoreType, SyncType } from 'src/lib/CommonEnums';
+import { ScoreData } from 'types/SongDatabase';
+import { DifficultyDisplayName } from 'src/lib/constant/CommonConstant';
 
 let diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
-
-const chartTypeNum = {
-    std: 0,
-    dx: 1,
-    utage: 2,
-};
 
 const diffTip = {
     10: '',
@@ -59,39 +53,6 @@ function initializeFonts() {
 
 const FontStack = '"Noto Sans", "Noto Sans JP", sans-serif';
 
-const ratingBaseImage = {
-    normal: 'normal',
-    blue: 'blue',
-    green: 'green',
-    yellow: 'orange',
-    red: 'red',
-    purple: 'purple',
-    bronze: 'bronze',
-    silver: 'silver',
-    gold: 'gold',
-    platinum: 'platinum',
-    rainbow: 'rainbow',
-};
-
-function getRatingBaseImage(rating: number) {
-    if (rating >= 15000) return ratingBaseImage.rainbow;
-    if (rating >= 14500) return ratingBaseImage.platinum;
-    if (rating >= 14000) return ratingBaseImage.gold;
-    if (rating >= 13000) return ratingBaseImage.silver;
-    if (rating >= 12000) return ratingBaseImage.bronze;
-    if (rating >= 10000) return ratingBaseImage.purple;
-    if (rating >= 7000) return ratingBaseImage.red;
-    if (rating >= 4000) return ratingBaseImage.yellow;
-    if (rating >= 2000) return ratingBaseImage.green;
-    if (rating >= 1000) return ratingBaseImage.blue;
-    return ratingBaseImage.normal;
-}
-
-import fs from 'fs';
-import sharp from 'sharp';
-import { ComboType, Difficulty, ScoreType, SyncType } from 'src/lib/maimaiDXNetEnums';
-import { ScoreData } from 'types/SongDatabase';
-
 async function getImageBuffer(imageURL: string, cache?: boolean): Promise<Buffer> {
     if (cache === undefined) cache = false;
     try {
@@ -125,6 +86,8 @@ const data = new SlashCommandBuilder()
     .setDescription('生成Rating Chart')
     .addUserOption((option) => option.setName('user').setDescription('要查詢的玩家').setRequired(false));
 
+const scoreType = ScoreType.Achievement;
+
 async function execute(interaction: ChatInputCommandInteraction) {
     let db = new JSONdb('data/linking.json');
     let optionUser = interaction.options.getUser('user');
@@ -152,10 +115,8 @@ async function execute(interaction: ChatInputCommandInteraction) {
             scores[key] = latestData.allScores[key].map((score: any) => {
                 return {
                     title: score.name,
-                    type: chartTypeNum[score.chartType as 'std' | 'dx' | 'utage'],
-                    difficulty:
-                        diff[score.difficulty as 'basic' | 'advanced' | 'expert' | 'master' | 'remaster' | 'utage'] ||
-                        Difficulty.Basic,
+                    type: getChartTypeFromName(score.chartType),
+                    difficulty: getDifficultyIdFromName(score.difficulty) || Difficulty.Basic,
                     achievement: parseFloat(score.achievement),
                     comboType: ComboType[score.comboType.replace(/[+]/g, 'p')] || ComboType.None,
                     syncType: SyncType[score.syncType.replace(/[+]/g, 'p')] || SyncType.None,
@@ -198,7 +159,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
         message += [' OK', 'Fetching scores...'].join('\n');
         await interaction.editReply(message);
-        for (const [difficulty, diffName] of Object.entries(diffText)) {
+        for (const [difficulty, diffName] of Object.entries(DifficultyDisplayName)) {
             if (!diffs.includes(parseInt(difficulty))) continue;
 
             message += `\n> Fetching ${diffName} scores...`;

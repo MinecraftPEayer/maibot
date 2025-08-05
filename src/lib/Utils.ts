@@ -1,39 +1,8 @@
 import fs from 'fs';
 import { B50Data, SongDatabase } from 'types/SongDatabase';
 import exception from 'config/exception.json';
-import { ChartType, ComboType, Difficulty, SyncType } from './maimaiDXNetEnums';
-
-const chartType: { [key: number]: 'STD' | 'DX' | 'UTAGE' } = {
-    0: 'STD',
-    1: 'DX',
-    2: 'UTAGE',
-};
-
-const RankFactor = {
-    'SSS+': 0.224,
-    SSS: 0.216,
-    'SS+': 0.211,
-    SS: 0.208,
-    'S+': 0.203,
-    S: 0.2,
-    AAA: 0.168,
-    AA: 0.152,
-    A: 0.136,
-    BBB: 0.12,
-    BB: 0.112,
-    B: 0.096,
-    C: 0.08,
-    D: 0.05,
-};
-
-const diff = {
-    basic: Difficulty.Basic,
-    advanced: Difficulty.Advanced,
-    expert: Difficulty.Expert,
-    master: Difficulty.Master,
-    remaster: Difficulty.ReMaster,
-    utage: Difficulty.UTAGE,
-};
+import { ChartType, ComboType, Difficulty, SyncType } from './CommonEnums';
+import { RatingBaseImageName, RankFactor, ChartTypeName } from './constant/CommonConstant';
 
 function convertAchievementToRank(achievement: number) {
     if (achievement >= 100.5) return 'SSS+';
@@ -94,7 +63,8 @@ function calculateB50(
         if (song) {
             let sheet = song.sheets.find(
                 (sht) =>
-                    sht.type.toUpperCase() === chartType[item.type] && sht.difficulty === diffLabel[item.difficulty],
+                    sht.type.toUpperCase() === ChartTypeName[item.type] &&
+                    sht.difficulty === diffLabel[item.difficulty],
             );
             if (sheet) {
                 const constant = sheet.internalLevelValue,
@@ -104,7 +74,7 @@ function calculateB50(
                     ? B15Data
                     : B35Data
                 ).push({
-                    type: chartType[item.type],
+                    type: ChartTypeName[item.type],
                     title: (exception as any)[item.title] ?? item.title,
                     achievement: item.achievement,
                     ranking: convertAchievementToRank(item.achievement),
@@ -154,7 +124,7 @@ function calculateScore(
         if (song) {
             let sheet = song.sheets.find(
                 (sht) =>
-                    sht.type.toUpperCase() === chartType[item.type] &&
+                    sht.type.toUpperCase() === ChartTypeName[item.type] &&
                     (sht.type === 'utage' || sht.difficulty === diffLabel[item.difficulty]),
             );
             if (sheet) {
@@ -162,7 +132,7 @@ function calculateScore(
                     rating = calculateRating(item.achievement, constant),
                     imageURL = song.imageName;
                 data.push({
-                    type: chartType[item.type],
+                    type: ChartTypeName[item.type],
                     title: (exception as any)[item.title] ?? item.title,
                     achievement: item.achievement,
                     ranking: convertAchievementToRank(item.achievement),
@@ -183,13 +153,59 @@ function calculateScore(
     };
 }
 
+function getRatingBaseImage(rating: number) {
+    if (rating >= 15000) return RatingBaseImageName.rainbow;
+    if (rating >= 14500) return RatingBaseImageName.platinum;
+    if (rating >= 14000) return RatingBaseImageName.gold;
+    if (rating >= 13000) return RatingBaseImageName.silver;
+    if (rating >= 12000) return RatingBaseImageName.bronze;
+    if (rating >= 10000) return RatingBaseImageName.purple;
+    if (rating >= 7000) return RatingBaseImageName.red;
+    if (rating >= 4000) return RatingBaseImageName.yellow;
+    if (rating >= 2000) return RatingBaseImageName.green;
+    if (rating >= 1000) return RatingBaseImageName.blue;
+    return RatingBaseImageName.normal;
+}
+
+function getDifficultyIdFromName(name: string): Difficulty {
+    switch (name.toLowerCase()) {
+        case 'basic':
+            return Difficulty.Basic;
+        case 'advanced':
+            return Difficulty.Advanced;
+        case 'expert':
+            return Difficulty.Expert;
+        case 'master':
+            return Difficulty.Master;
+        case 'remaster':
+            return Difficulty.ReMaster;
+        case 'utage':
+            return Difficulty.UTAGE;
+        default:
+            throw new Error(`Unknown difficulty name: ${name}`);
+    }
+}
+
+function getChartTypeFromName(name: string): ChartType {
+    switch (name.toLowerCase()) {
+        case 'std':
+            return ChartType.STD;
+        case 'dx':
+            return ChartType.DX;
+        case 'utage':
+            return ChartType.UTAGE;
+        default:
+            throw new Error(`Unknown chart type name: ${name}`);
+    }
+}
+
 export {
     calculateB50,
-    chartType,
     calculateScore,
     calculateRating,
-    RankFactor,
     convertAchievementToRank,
     convertDXScoreToStar,
-    diff,
+    getRatingBaseImage,
+    getDifficultyIdFromName,
+    getChartTypeFromName,
 };

@@ -15,24 +15,10 @@ import exception from 'config/exception.json';
 import { Emojis } from 'src/lib/constant/emojis';
 import JSONdb from 'simple-json-db';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
-import { Difficulty, ScoreType } from 'src/lib/maimaiDXNetEnums';
-import { calculateRating, calculateScore } from 'src/lib/Utils';
+import { Difficulty, ScoreType } from 'src/lib/CommonEnums';
+import { calculateRating, calculateScore, getChartTypeFromName } from 'src/lib/Utils';
 import { ScoreData } from 'types/SongDatabase';
-
-const chart_type = {
-    std: 0,
-    dx: 1,
-    utage: 2,
-};
-
-const diffText = {
-    [Difficulty.Basic]: 'BASIC',
-    [Difficulty.Advanced]: 'ADVANCED',
-    [Difficulty.Expert]: 'EXPERT',
-    [Difficulty.Master]: 'MASTER',
-    [Difficulty.ReMaster]: 'Re:MASTER',
-    [Difficulty.UTAGE]: 'UTAGE',
-};
+import { DifficultyDisplayName } from 'src/lib/constant/CommonConstant';
 
 const diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
 
@@ -175,14 +161,14 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
                 let playerScores: { [key: string]: ScoreData[] } = {};
 
-                const scoreFilter = (s: any) =>
-                    s.type === chart_type[type] && ((exception as any)[s.title] ?? s.title) === song.title;
+                const scoreFilter = (s: ScoreData) =>
+                    s.type === getChartTypeFromName(type) && ((exception as any)[s.title] ?? s.title) === song.title;
                 if (!isUTAGE) {
                     message += [' OK', 'Fetching scores...'].join('\n');
 
                     await buttonInteraction.editReply(message);
 
-                    for (const [difficulty, diffName] of Object.entries(diffText)) {
+                    for (const [difficulty, diffName] of Object.entries(DifficultyDisplayName)) {
                         if (!diffs.includes(parseInt(difficulty))) continue;
 
                         message += `\n> Fetching ${diffName} scores...`;

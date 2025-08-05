@@ -22,12 +22,6 @@ enum Genres {
     GEKICHU = 106,
 }
 
-enum ChartType {
-    STD = 0,
-    DX = 1,
-    UTAGE = 2,
-}
-
 enum SyncType {
     None = -1,
     FS = 0,
@@ -45,12 +39,10 @@ enum ComboType {
     APp = 3,
 }
 
-enum ConstantDBLevelName {
-    Basic = 'bas',
-    Advanced = 'adv',
-    Expert = 'exp',
-    Master = 'mas',
-    ReMaster = 'remas',
+enum ChartType {
+    STD = 0,
+    DX = 1,
+    UTAGE = 2,
 }
 
-export { Difficulty, ScoreType, Genres, ChartType, SyncType, ComboType, ConstantDBLevelName };
+export { Difficulty, ScoreType, Genres, SyncType, ComboType, ChartType };

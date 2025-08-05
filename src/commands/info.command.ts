@@ -1,18 +1,10 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 import JSONdb from 'simple-json-db';
 import { Emojis } from 'src/lib/constant/emojis';
-import { Difficulty, ScoreType } from 'src/lib/maimaiDXNetEnums';
+import { Difficulty, ScoreType } from 'src/lib/CommonEnums';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
 import { ScoreData } from 'types/SongDatabase';
-
-let diffText = {
-    [Difficulty.Basic]: 'BASIC',
-    [Difficulty.Advanced]: 'ADVANCED',
-    [Difficulty.Expert]: 'EXPERT',
-    [Difficulty.Master]: 'MASTER',
-    [Difficulty.ReMaster]: 'Re:MASTER',
-    [Difficulty.UTAGE]: 'UTAGE',
-};
+import { DifficultyDisplayName } from 'src/lib/constant/CommonConstant';
 
 let diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
 
@@ -52,7 +44,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
     let dxScores = {} as {
         [key: string]: ScoreData[];
     };
-    for (const [difficulty, diffName] of Object.entries(diffText)) {
+    for (const [difficulty, diffName] of Object.entries(DifficultyDisplayName)) {
         if (!diffs.includes(parseInt(difficulty))) continue;
 
         message += `\n> Fetching ${diffName} scores...`;

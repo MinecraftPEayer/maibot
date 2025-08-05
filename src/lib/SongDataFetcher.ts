@@ -1,7 +1,7 @@
 import axios from 'axios';
 import fs from 'fs';
 import { Sheet, Song, SongDatabase } from 'types/SongDatabase';
-import { Difficulty } from './maimaiDXNetEnums';
+import { Difficulty } from './CommonEnums';
 import exception from 'config/exception.json';
 
 const diffText = {

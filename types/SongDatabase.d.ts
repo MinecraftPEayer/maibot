@@ -1,4 +1,4 @@
-import { Difficulty as DifficultyEnum, ComboType, SyncType } from 'src/lib/maimaiDXNetEnums';
+import { Difficulty as DifficultyEnum, ComboType, SyncType } from 'src/lib/CommonEnums';
 
 interface SongDatabase {
     songs: Song[];

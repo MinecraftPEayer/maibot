@@ -6,7 +6,6 @@ const data = new SlashCommandBuilder().setName('unlink').setDescription('取消�
 
 async function execute(interaction: ChatInputCommandInteraction) {
     let fetcher = MaimaiDXNetFetcher.getInstance();
-    let friendList = await fetcher.getFriendList();
 
     let db = new JSONdb('data/linking.json');
     if (!db.has(interaction.user.id)) {

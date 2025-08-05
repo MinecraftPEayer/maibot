@@ -9,26 +9,12 @@ import {
 } from 'discord.js';
 import JSONdb from 'simple-json-db';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
-import { calculateB50, convertDXScoreToStar, diff } from 'src/lib/Utils';
-import { ComboType, Difficulty, ScoreType, SyncType } from 'src/lib/maimaiDXNetEnums';
+import { calculateB50, convertDXScoreToStar, getChartTypeFromName, getDifficultyIdFromName } from 'src/lib/Utils';
+import { ComboType, Difficulty, ScoreType, SyncType } from 'src/lib/CommonEnums';
 import { Emojis } from 'src/lib/constant/emojis';
 import { ScoreData } from 'types/SongDatabase';
 import fs from 'fs';
-
-let diffText = {
-    [Difficulty.Basic]: 'BASIC',
-    [Difficulty.Advanced]: 'ADVANCED',
-    [Difficulty.Expert]: 'EXPERT',
-    [Difficulty.Master]: 'MASTER',
-    [Difficulty.ReMaster]: 'Re:MASTER',
-    [Difficulty.UTAGE]: 'UTAGE',
-};
-
-const chartType = {
-    std: 0,
-    dx: 1,
-    utage: 2,
-};
+import { DifficultyDisplayName } from 'src/lib/constant/CommonConstant';
 
 let diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
 
@@ -68,10 +54,8 @@ async function execute(interaction: ChatInputCommandInteraction) {
             scores[key] = latestData.allScores[key].map((score: any) => {
                 return {
                     title: score.name,
-                    type: chartType[score.chartType as 'std' | 'dx' | 'utage'],
-                    difficulty:
-                        diff[score.difficulty as 'basic' | 'advanced' | 'expert' | 'master' | 'remaster' | 'utage'] ||
-                        Difficulty.Basic,
+                    type: getChartTypeFromName(score.chartType),
+                    difficulty: getDifficultyIdFromName(score.difficulty) || Difficulty.Basic,
                     achievement: parseFloat(score.achievement),
                     comboType: ComboType[score.comboType.replace(/[+]/g, 'p')] || ComboType.None,
                     syncType: SyncType[score.syncType.replace(/[+]/g, 'p')] || SyncType.None,
@@ -117,7 +101,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
         await interaction.editReply(message);
 
         scores = {};
-        for (const [difficulty, diffName] of Object.entries(diffText)) {
+        for (const [difficulty, diffName] of Object.entries(DifficultyDisplayName)) {
             if (!diffs.includes(parseInt(difficulty))) continue;
 
             message += `\n> Fetching ${diffName} scores...`;
@@ -174,7 +158,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     .map((data) => {
                         return [
                             `**#${B50Data[currentType].indexOf(data) + 1} ${data.title}**`,
-                            `> ${data.type === 'STD' ? Emojis.STD : Emojis.DX} ${diffText[data.difficulty]} ${data.level} (${data.constant.toFixed(1)})`,
+                            `> ${data.type === 'STD' ? Emojis.STD : Emojis.DX} ${DifficultyDisplayName[data.difficulty]} ${data.level} (${data.constant.toFixed(1)})`,
                             `> ${Emojis[data.ranking]}- **${data.rating}**`,
                         ].join('\n');
                     })
@@ -243,7 +227,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         .map((data) => {
                             return [
                                 `**#${B50Data[currentType].indexOf(data) + 1} ${data.title}**`,
-                                `> ${data.type === 'STD' ? Emojis.STD : Emojis.DX} ${diffText[data.difficulty]} ${data.level} (${data.constant})`,
+                                `> ${data.type === 'STD' ? Emojis.STD : Emojis.DX} ${DifficultyDisplayName[data.difficulty]} ${data.level} (${data.constant})`,
                                 `> ${Emojis[data.ranking]}- **${data.rating}**`,
                             ].join('\n');
                         })
