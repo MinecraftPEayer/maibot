@@ -1,5 +1,7 @@
 import express from 'express';
 import fs from 'fs';
+import { createServer } from 'https';
+import config from 'config/config.json';
 
 export default () => {
     const app = express();
@@ -121,7 +123,10 @@ export default () => {
         }
     });
 
-    app.listen(parseInt(process.env.API_PORT || '3000'), () => {
+    (config.api.https.enabled ? createServer({
+        cert: fs.readFileSync(config.api.https.cert_path),
+        key: fs.readFileSync(config.api.https.key_path)
+    }, app) : app).listen(config.api.port || 3000, () => {
         console.log(`API server is running on port ${process.env.API_PORT || '3000'}`);
     });
 };

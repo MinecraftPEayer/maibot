@@ -1,0 +1,10 @@
+{
+    "api": {
+        "port": 3000,
+        "https": {
+            "enabled": false,
+            "cert_path": "certificate.crt",
+            "key_path": "private.key"
+        }
+    }
+}
