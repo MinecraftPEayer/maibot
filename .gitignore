@@ -3,4 +3,4 @@ node_modules
 tmp
 data
 private.key
-cerificate.crt
+certificate.crt
