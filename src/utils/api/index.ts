@@ -127,6 +127,6 @@ export default () => {
         cert: fs.readFileSync(config.api.https.cert_path),
         key: fs.readFileSync(config.api.https.key_path)
     }, app) : app).listen(config.api.port || 3000, () => {
-        console.log(`API server is running on port ${process.env.API_PORT || '3000'}`);
+        console.log(`API server is running on port ${config.api.port || 3000}`);
     });
 };
