@@ -31,6 +31,7 @@ export const Emojis = {
     FDX_Short: '<:FSDX_Short:1383102954067722363>',
     FDXp_Full: '<:FSDXp_Full:1383102917892112445>',
     FDXp_Short: '<:FSDXp_Short:1383102987622420704>',
+    SYNC: '<:SYNCPLAY:1402996967310889000>',
     Tap: '<:Tap:1385244588054413404>',
     Hold: '<:Hold:1385244613132161154>',
     Slide: '<:Slide:1385244662846980226>',

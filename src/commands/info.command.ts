@@ -25,7 +25,9 @@ async function execute(interaction: ChatInputCommandInteraction) {
     if (fs.existsSync(`data/user/${optionUser?.id ?? interaction.user.id}`)) {
         await interaction.reply('Processing...');
 
-        let data = JSON.parse(fs.readFileSync(`data/user/${optionUser?.id ?? interaction.user.id}/latest.json`));
+        let data = JSON.parse(
+            fs.readFileSync(`data/user/${optionUser?.id ?? interaction.user.id}/latest.json`, 'utf-8'),
+        );
 
         playerInfo = {
             name: data.playerData.playerName,

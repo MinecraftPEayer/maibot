@@ -6,7 +6,6 @@ import {
     ButtonStyle,
     ChatInputCommandInteraction,
     Colors,
-    Emoji,
     SlashCommandBuilder,
     StringSelectMenuBuilder,
     StringSelectMenuInteraction,
@@ -16,16 +15,18 @@ import exception from 'config/exception.json';
 import { Emojis } from 'src/lib/constant/emojis';
 import JSONdb from 'simple-json-db';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
-import { Difficulty, ScoreType } from 'src/lib/CommonEnums';
+import { ComboType, Difficulty, ScoreType, SyncType } from 'src/lib/CommonEnums';
 import {
     calculateRating,
     calculateScore,
+    convertDXScoreToStar,
     getChartTypeFromName,
     getDifficultyEmoji,
     getDifficultyIdFromName,
 } from 'src/lib/Utils';
-import { ScoreData, Sheet } from 'types/SongDatabase';
+import { B50Data, ScoreData, Sheet } from 'types/SongDatabase';
 import { DifficultyDisplayName } from 'src/lib/constant/CommonConstant';
+import fs from 'fs';
 
 const diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
 
@@ -162,55 +163,113 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
             case 'my_record':
                 let db = new JSONdb('data/linking.json');
-                let friendCode = db.get(buttonInteraction.user.id);
-                if (!friendCode) return await buttonInteraction.reply('你還沒綁定帳號');
 
-                let message = 'Fetching player info...';
+                let playerInfo: {
+                    name: string;
+                    rating: string;
+                    avatar: string;
+                };
 
-                await buttonInteraction.reply(message);
-                let playerInfo = await DXNetFetcher.getPlayer(friendCode);
+                let scoreData: B50Data[] = [];
+
+                let syncType = [Emojis.FS_Short, Emojis.FSp_Short, Emojis.FDX_Short, Emojis.FDXp_Short, Emojis.SYNC];
+                let comboType = [Emojis.FC_Short, Emojis.FCp_Short, Emojis.AP_Short, Emojis.APp_Short];
 
                 let playerScores: { [key: string]: ScoreData[] } = {};
 
+                await buttonInteraction.reply('Processing...');
+
                 const scoreFilter = (s: ScoreData) =>
                     s.type === getChartTypeFromName(type) && ((exception as any)[s.title] ?? s.title) === song.title;
-                if (!isUTAGE) {
-                    message += [' OK', 'Fetching scores...'].join('\n');
+                if (fs.existsSync(`data/user/${buttonInteraction.user.id}`) && !isUTAGE) {
+                    let data = JSON.parse(
+                        fs.readFileSync(`data/user/${buttonInteraction.user.id}/latest.json`, 'utf-8'),
+                    );
+
+                    playerInfo = {
+                        name: data.playerData.playerName,
+                        rating: data.playerData.rating,
+                        avatar: data.playerData.avatar,
+                    };
+
+                    let scores = Object.values(data.allScores)
+                        .map((item: any) => {
+                            return item.map((score: any) => {
+                                return {
+                                    title: score.name,
+                                    type: getChartTypeFromName(score.chartType),
+                                    difficulty:
+                                        (getDifficultyIdFromName(score.difficulty) as Difficulty) || Difficulty.Basic,
+                                    achievement: parseFloat(score.achievement),
+                                    comboType: (ComboType[score.comboType.replace(/[+]/g, 'p')] ||
+                                        ComboType.None) as ComboType,
+                                    syncType: (SyncType[score.syncType.replace(/[+]/g, 'p')] ||
+                                        SyncType.None) as SyncType,
+                                    dxScore: parseInt(score.dxScore.split('/')[0].replace(/,/g, '')),
+                                    dxStar: convertDXScoreToStar(
+                                        parseInt(score.dxScore.split('/')[0].replace(/,/g, '')),
+                                        parseInt(score.dxScore.split('/')[1].replace(/,/g, '')),
+                                    ),
+                                };
+                            });
+                        })
+                        .map((item: unknown) =>
+                            (item as any[]).filter(
+                                (s: any) =>
+                                    s.type === getChartTypeFromName(type) &&
+                                    ((exception as any)[s.title] ?? s.title) === song.title,
+                            ),
+                        )
+                        .flat();
+
+                    scoreData = calculateScore(scores as any[]).data;
+                } else {
+                    let friendCode = db.get(buttonInteraction.user.id);
+                    if (!friendCode) return await buttonInteraction.editReply('你還沒綁定帳號');
+
+                    let message = 'Fetching player info...';
 
                     await buttonInteraction.editReply(message);
+                    playerInfo = (await DXNetFetcher.getPlayer(friendCode)) || {
+                        name: '',
+                        rating: '',
+                        avatar: '',
+                    };
 
-                    for (const [difficulty, diffName] of Object.entries(DifficultyDisplayName)) {
-                        if (!diffs.includes(parseInt(difficulty))) continue;
+                    if (!isUTAGE) {
+                        message += [' OK', 'Fetching scores...'].join('\n');
 
-                        message += `\n> Fetching ${diffName} scores...`;
                         await buttonInteraction.editReply(message);
-                        let scoreData = await MaimaiDXNetFetcher.getInstance().getScores(
-                            scoreType,
-                            friendCode,
-                            parseInt(difficulty),
-                        );
-                        playerScores[diffName] = scoreData.data;
-                        message += ' OK';
+
+                        for (const [difficulty, diffName] of Object.entries(DifficultyDisplayName)) {
+                            if (!diffs.includes(parseInt(difficulty))) continue;
+
+                            message += `\n> Fetching ${diffName} scores...`;
+                            await buttonInteraction.editReply(message);
+                            let scoreData = await MaimaiDXNetFetcher.getInstance().getScores(
+                                scoreType,
+                                friendCode,
+                                parseInt(difficulty),
+                            );
+                            playerScores[diffName] = scoreData.data;
+                            message += ' OK';
+                        }
+                    } else {
+                        message += [' OK', 'Fetching scores...', '> Fetching UTAGE scores...'].join('\n');
+                        playerScores['UTAGE'] = (
+                            await DXNetFetcher.getScores(scoreType, friendCode, Difficulty.UTAGE)
+                        ).data;
                     }
-                } else {
-                    message += [' COMPLETED', 'Fetching scores...', '> Fetching UTAGE scores...'].join('\n');
-                    playerScores['UTAGE'] = (
-                        await DXNetFetcher.getScores(scoreType, friendCode, Difficulty.UTAGE)
-                    ).data;
+                    await buttonInteraction.editReply(
+                        ['Fetching player info... OK', 'Fetching scores... OK', 'Calculating...'].join('\n'),
+                    );
+
+                    let scores = Object.values(playerScores)
+                        .map((item) => item.filter(scoreFilter))
+                        .flat();
+
+                    scoreData = calculateScore(scores).data;
                 }
-                await buttonInteraction.editReply(
-                    ['Fetching player info... COMPLETED', 'Fetching scores... COMPLETED', 'Calculating...'].join('\n'),
-                );
-
-                let scores = Object.values(playerScores)
-                    .map((item) => item.filter(scoreFilter))
-                    .flat();
-
-                let scoreData = calculateScore(scores).data;
-
-                let syncType = [Emojis.FS_Short, Emojis.FSp_Short, Emojis.FDX_Short, Emojis.FDXp_Short];
-                let comboType = [Emojis.FC_Short, Emojis.FCp_Short, Emojis.AP_Short, Emojis.APp_Short];
-
                 buttonInteraction.editReply({
                     content: '',
                     embeds: [
@@ -229,6 +288,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         },
                     ],
                 });
+
                 break;
 
             case 'detail_selector':
