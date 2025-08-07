@@ -4,6 +4,7 @@ import exception from 'config/exception.json';
 import { ChartType, ComboType, Difficulty, SyncType } from './CommonEnums';
 import { RatingBaseImageName, RankFactor, ChartTypeName } from './constant/CommonConstant';
 import { Emojis } from './constant/emojis';
+import { User } from 'discord.js'
 
 function convertAchievementToRank(achievement: number) {
     if (achievement >= 100.5) return 'SSS+';

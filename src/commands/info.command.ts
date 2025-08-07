@@ -5,6 +5,7 @@ import { Difficulty, ScoreType } from 'src/lib/CommonEnums';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
 import { ScoreData } from 'types/SongDatabase';
 import { DifficultyDisplayName } from 'src/lib/constant/CommonConstant';
+import fs from 'fs';
 
 let diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
 
@@ -17,115 +18,154 @@ async function execute(interaction: ChatInputCommandInteraction) {
     let db = new JSONdb('data/linking.json');
     let optionUser = interaction.options.getUser('user');
 
-    if (optionUser && !db.has(optionUser.id)) {
-        return await interaction.reply(`${optionUser.username} 還沒綁定帳號`);
-    }
-    if (!db.has(interaction.user.id)) return await interaction.reply('你還沒綁定帳號');
+    let playerInfo: any = {};
 
-    let id = optionUser ? optionUser.id : interaction.user.id;
+    let SSSp, SSS, SSp, SS, Sp, S, APp, AP, FCp, FC, FDXp, FDX, FSp, FS, CLEAR, star5, star4, star3, star2, star1;
+    // 如果有現有資料就從裡面拉
+    if (fs.existsSync(`data/user/${optionUser?.id ?? interaction.user.id}`)) {
+        await interaction.reply('Processing...');
 
-    let message = 'Fetching player info...';
+        let data = JSON.parse(fs.readFileSync(`data/user/${optionUser?.id ?? interaction.user.id}/latest.json`));
 
-    await interaction.reply(message);
+        playerInfo = {
+            name: data.playerData.playerName,
+            rating: data.playerData.rating,
+        };
 
-    let friendCode = db.get(id);
-    let playerInfo = await MaimaiDXNetFetcher.getInstance().getPlayer(friendCode);
+        let ov = data.playerData.overviewData;
+        SSSp = ov.SSSp.split('/')[0];
+        SSS = ov.SSS.split('/')[0];
+        SSp = ov.SSp.split('/')[0];
+        SS = ov.SS.split('/')[0];
+        Sp = ov.Sp.split('/')[0];
+        S = ov.S.split('/')[0];
+        CLEAR = ov.CLEAR.split('/')[0];
+        APp = ov.APp.split('/')[0];
+        AP = ov.AP.split('/')[0];
+        FCp = ov.FCp.split('/')[0];
+        FC = ov.FC.split('/')[0];
+        FDXp = ov.FDXp.split('/')[0];
+        FDX = ov.FDX.split('/')[0];
+        FSp = ov.FSp.split('/')[0];
+        FS = ov.FS.split('/')[0];
+        star5 = ov.dxstar_5.split('/')[0];
+        star4 = ov.dxstar_4.split('/')[0];
+        star3 = ov.dxstar_3.split('/')[0];
+        star2 = ov.dxstar_2.split('/')[0];
+        star1 = ov.dxstar_1.split('/')[0];
+    } else {
+        if (optionUser && !db.has(optionUser.id)) {
+            return await interaction.reply(`${optionUser.username} 還沒綁定帳號`);
+        }
+        if (!db.has(interaction.user.id)) return await interaction.reply('你還沒綁定帳號');
 
-    if (!playerInfo) {
-        return await interaction.editReply('無法獲取玩家資訊');
-    }
+        let id = optionUser ? optionUser.id : interaction.user.id;
 
-    message += [' OK', 'Fetching scores...'].join('\n');
-    await interaction.editReply(message);
+        let message = 'Fetching player info...';
 
-    let achievementScores = {} as {
-        [key: string]: ScoreData[];
-    };
-    let dxScores = {} as {
-        [key: string]: ScoreData[];
-    };
-    for (const [difficulty, diffName] of Object.entries(DifficultyDisplayName)) {
-        if (!diffs.includes(parseInt(difficulty))) continue;
+        await interaction.reply(message);
 
-        message += `\n> Fetching ${diffName} scores...`;
+        let friendCode = db.get(id);
+        playerInfo = await MaimaiDXNetFetcher.getInstance().getPlayer(friendCode);
+
+        if (!playerInfo) {
+            return await interaction.editReply('無法獲取玩家資訊');
+        }
+
+        message += [' OK', 'Fetching scores...'].join('\n');
         await interaction.editReply(message);
-        let achievementScoreData = await MaimaiDXNetFetcher.getInstance().getScores(
-            ScoreType.Achievement,
-            friendCode,
-            parseInt(difficulty),
+
+        let achievementScores = {} as {
+            [key: string]: ScoreData[];
+        };
+        let dxScores = {} as {
+            [key: string]: ScoreData[];
+        };
+        for (const [difficulty, diffName] of Object.entries(DifficultyDisplayName)) {
+            if (!diffs.includes(parseInt(difficulty))) continue;
+
+            message += `\n> Fetching ${diffName} scores...`;
+            await interaction.editReply(message);
+            let achievementScoreData = await MaimaiDXNetFetcher.getInstance().getScores(
+                ScoreType.Achievement,
+                friendCode,
+                parseInt(difficulty),
+            );
+            let dxScoreData = await MaimaiDXNetFetcher.getInstance().getScores(
+                ScoreType.DXScore,
+                friendCode,
+                parseInt(difficulty),
+            );
+            achievementScores[diffName] = achievementScoreData.data;
+            dxScores[diffName] = dxScoreData.data;
+            message += ' OK';
+        }
+        await interaction.editReply(
+            ['Fetching player info... OK', 'Fetching scores... OK', 'Calculating...'].join('\n'),
         );
-        let dxScoreData = await MaimaiDXNetFetcher.getInstance().getScores(
-            ScoreType.DXScore,
-            friendCode,
-            parseInt(difficulty),
-        );
-        achievementScores[diffName] = achievementScoreData.data;
-        dxScores[diffName] = dxScoreData.data;
-        message += ' OK';
+
+        let allAchievementScore = Object.values(achievementScores).flat();
+        SSSp = allAchievementScore.filter((score) => score.achievement >= 100.5).length;
+        SSS = allAchievementScore.filter((score) => score.achievement >= 100).length;
+        SSp = allAchievementScore.filter((score) => score.achievement >= 99.5).length;
+        SS = allAchievementScore.filter((score) => score.achievement >= 99).length;
+        Sp = allAchievementScore.filter((score) => score.achievement >= 98).length;
+        S = allAchievementScore.filter((score) => score.achievement >= 97).length;
+
+        CLEAR = allAchievementScore.filter((score) => score.achievement >= 80).length;
+
+        // FC = 0, FCp = 1, AP = 2, APp = 3
+        FC = allAchievementScore.filter(
+            (score) => score.comboType === 0 || score.comboType === 1 || score.comboType === 2 || score.comboType === 3,
+        ).length;
+        FCp = allAchievementScore.filter(
+            (score) => score.comboType === 1 || score.comboType === 2 || score.comboType === 3,
+        ).length;
+        AP = allAchievementScore.filter((score) => score.comboType === 2 || score.comboType === 3).length;
+        APp = allAchievementScore.filter((score) => score.comboType === 3).length;
+
+        // FS = 0, FSp = 1, FDX = 2, FDXp = 3
+        FS = allAchievementScore.filter(
+            (score) => score.syncType === 0 || score.syncType === 1 || score.syncType === 2 || score.syncType === 3,
+        ).length;
+        FSp = allAchievementScore.filter(
+            (score) => score.syncType === 1 || score.syncType === 2 || score.syncType === 3,
+        ).length;
+        FDX = allAchievementScore.filter((score) => score.syncType === 2 || score.syncType === 3).length;
+        FDXp = allAchievementScore.filter((score) => score.syncType === 3).length;
+
+        let allDXScore = Object.values(dxScores).flat();
+        star1 = allDXScore.filter((score) => (score.dxStar ?? 0) >= 1).length;
+        star2 = allDXScore.filter((score) => (score.dxStar ?? 0) >= 2).length;
+        star3 = allDXScore.filter((score) => (score.dxStar ?? 0) >= 3).length;
+        star4 = allDXScore.filter((score) => (score.dxStar ?? 0) >= 4).length;
+        star5 = allDXScore.filter((score) => (score.dxStar ?? 0) === 5).length;
     }
-    await interaction.editReply(['Fetching player info... OK', 'Fetching scores... OK', 'Calculating...'].join('\n'));
-
-    let allAchievementScore = Object.values(achievementScores).flat();
-    let SSSpCount = allAchievementScore.filter((score) => score.achievement >= 100.5).length;
-    let SSSCount = allAchievementScore.filter((score) => score.achievement >= 100).length;
-    let SSpCount = allAchievementScore.filter((score) => score.achievement >= 99.5).length;
-    let SSCount = allAchievementScore.filter((score) => score.achievement >= 99).length;
-    let SpCount = allAchievementScore.filter((score) => score.achievement >= 98).length;
-    let SCount = allAchievementScore.filter((score) => score.achievement >= 97).length;
-
-    let clearCount = allAchievementScore.filter((score) => score.achievement >= 80).length;
-
-    // FC = 0, FCp = 1, AP = 2, APp = 3
-    let FCCount = allAchievementScore.filter(
-        (score) => score.comboType === 0 || score.comboType === 1 || score.comboType === 2 || score.comboType === 3,
-    ).length;
-    let FCpCount = allAchievementScore.filter(
-        (score) => score.comboType === 1 || score.comboType === 2 || score.comboType === 3,
-    ).length;
-    let APCount = allAchievementScore.filter((score) => score.comboType === 2 || score.comboType === 3).length;
-    let APpCount = allAchievementScore.filter((score) => score.comboType === 3).length;
-
-    // FS = 0, FSp = 1, FDX = 2, FDXp = 3
-    let FSCount = allAchievementScore.filter(
-        (score) => score.syncType === 0 || score.syncType === 1 || score.syncType === 2 || score.syncType === 3,
-    ).length;
-    let FSpCount = allAchievementScore.filter(
-        (score) => score.syncType === 1 || score.syncType === 2 || score.syncType === 3,
-    ).length;
-    let FDXCount = allAchievementScore.filter((score) => score.syncType === 2 || score.syncType === 3).length;
-    let FDXpCount = allAchievementScore.filter((score) => score.syncType === 3).length;
-
-    let allDXScore = Object.values(dxScores).flat();
-    let star1Count = allDXScore.filter((score) => (score.dxStar ?? 0) >= 1).length;
-    let star2Count = allDXScore.filter((score) => (score.dxStar ?? 0) >= 2).length;
-    let star3Count = allDXScore.filter((score) => (score.dxStar ?? 0) >= 3).length;
-    let star4Count = allDXScore.filter((score) => (score.dxStar ?? 0) >= 4).length;
-    let star5Count = allDXScore.filter((score) => (score.dxStar ?? 0) === 5).length;
 
     await interaction.editReply(
         [
             `**${playerInfo?.name}** (Rating: ${playerInfo?.rating})`,
             '',
-            `${Emojis['SSS+']} ${SSSpCount}`,
-            `${Emojis.SSS} ${SSSCount}`,
-            `${Emojis['SS+']} ${SSpCount}`,
-            `${Emojis.SS} ${SSCount}`,
-            `${Emojis['S+']} ${SpCount}`,
-            `${Emojis.S} ${SCount}`,
-            `${Emojis.Clear}: ${clearCount}`,
-            `${Emojis.FC_Short} FC: ${FCCount}`,
-            `${Emojis['FCp_Short']} FC+: ${FCpCount}`,
-            `${Emojis.AP_Short} AP: ${APCount}`,
-            `${Emojis['APp_Short']} AP+: ${APpCount}`,
-            `${Emojis.FS_Short} FS: ${FSCount}`,
-            `${Emojis['FSp_Short']} FS+: ${FSpCount}`,
-            `${Emojis.FDX_Short} FDX: ${FDXCount}`,
-            `${Emojis['FDXp_Short']} FDX+: ${FDXpCount}`,
-            `${Emojis.DXStar_1}: ${star1Count}`,
-            `${Emojis.DXStar_2}: ${star2Count}`,
-            `${Emojis.DXStar_3}: ${star3Count}`,
-            `${Emojis.DXStar_4}: ${star4Count}`,
-            `${Emojis.DXStar_5}: ${star5Count}`,
+            `${Emojis['SSS+']} ${SSSp}`,
+            `${Emojis.SSS} ${SSS}`,
+            `${Emojis['SS+']} ${SSp}`,
+            `${Emojis.SS} ${SS}`,
+            `${Emojis['S+']} ${Sp}`,
+            `${Emojis.S} ${S}`,
+            `${Emojis.Clear}: ${CLEAR}`,
+            `${Emojis.FC_Short} FC: ${FC}`,
+            `${Emojis['FCp_Short']} FC+: ${FCp}`,
+            `${Emojis.AP_Short} AP: ${AP}`,
+            `${Emojis['APp_Short']} AP+: ${APp}`,
+            `${Emojis.FS_Short} FS: ${FS}`,
+            `${Emojis['FSp_Short']} FS+: ${FSp}`,
+            `${Emojis.FDX_Short} FDX: ${FDX}`,
+            `${Emojis['FDXp_Short']} FDX+: ${FDXp}`,
+            `${Emojis.DXStar_1}: ${star1}`,
+            `${Emojis.DXStar_2}: ${star2}`,
+            `${Emojis.DXStar_3}: ${star3}`,
+            `${Emojis.DXStar_4}: ${star4}`,
+            `${Emojis.DXStar_5}: ${star5}`,
         ].join('\n'),
     );
 }
