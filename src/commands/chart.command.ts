@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
-import { createCanvas, loadImage, registerFont } from 'canvas';
+import { createCanvas, loadImage, registerFont, CanvasRenderingContext2D } from 'canvas';
 import JSONdb from 'simple-json-db';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
 import {
@@ -27,8 +27,30 @@ const diffTip = {
     0: 'assets/diff_bsc.png',
 };
 
+const RankingImage = {
+    'SSS+': 'sssplus',
+    SSS: 'sss',
+    'SS+': 'ssplus',
+    SS: 'ss',
+    'S+': 'splus',
+    S: 's',
+    AAA: 'aaa',
+    AA: 'aa',
+    A: 'a',
+    BBB: 'bbb',
+    BB: 'bb',
+    B: 'b',
+    C: 'c',
+    D: 'd',
+};
+
 function initializeFonts() {
     const fontPath = 'assets/fonts';
+
+    registerFont(`${fontPath}/SEGAMaruGothicDB.ttf`, {
+        family: 'SEGAMaruGothic',
+        weight: 'normal',
+    });
 
     registerFont(`${fontPath}/NotoSans-Regular.ttf`, {
         family: 'Noto Sans',
@@ -51,7 +73,7 @@ function initializeFonts() {
     });
 }
 
-const FontStack = '"Noto Sans", "Noto Sans JP", sans-serif';
+const FontStack = '"SEGAMaruGothic", "Noto Sans", "Noto Sans JP", sans-serif';
 
 async function getImageBuffer(imageURL: string, cache?: boolean): Promise<Buffer> {
     if (cache === undefined) cache = false;
@@ -87,6 +109,22 @@ const data = new SlashCommandBuilder()
     .addUserOption((option) => option.setName('user').setDescription('要查詢的玩家').setRequired(false));
 
 const scoreType = ScoreType.Achievement;
+
+async function drawRank(ctx: CanvasRenderingContext2D, ranking: string, posX: number, posY: number) {
+    let image = await loadImage(`assets/ranking/${ranking.toLowerCase().replace(/[+]/g, 'plus')}.png`);
+    ctx.drawImage(image, 0, 0, 200, 89, posX - 2, posY - 12, 54, 24);
+}
+
+function drawBoldText(ctx: CanvasRenderingContext2D, text: string, posX: number, posY: number, lineWidth?: number) {
+    let originalStrokeStyle = ctx.strokeStyle,
+        originalLineWidth = ctx.lineWidth;
+    ctx.strokeStyle = ctx.fillStyle;
+    ctx.lineWidth = lineWidth || 1;
+    ctx.strokeText(text, posX, posY);
+    ctx.fillText(text, posX, posY);
+    ctx.strokeStyle = originalStrokeStyle;
+    ctx.lineWidth = originalLineWidth;
+}
 
 async function execute(interaction: ChatInputCommandInteraction) {
     let db = new JSONdb('data/linking.json');
@@ -188,7 +226,6 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
     const bgImg = await loadImage('assets/background.png');
     ctx.drawImage(bgImg, 896, 0, 1088, 1620, 0, 0, 1088, 1674);
-    ctx.drawImage(bgImg, 896, 0, 1088, 1620, 0, 0, 1088, 1674);
 
     ctx.fillStyle = 'white';
     ctx.beginPath();
@@ -232,11 +269,11 @@ async function execute(interaction: ChatInputCommandInteraction) {
     ctx.font = `bold 24px ${FontStack}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(parsedRating[0], 206, 102);
-    ctx.fillText(parsedRating[1], 224, 102);
-    ctx.fillText(parsedRating[2], 241.5, 102);
-    ctx.fillText(parsedRating[3], 258.5, 102);
-    ctx.fillText(parsedRating[4], 276, 102);
+    drawBoldText(ctx, parsedRating[0], 206, 101, 0.5);
+    drawBoldText(ctx, parsedRating[1], 224, 101, 0.5);
+    drawBoldText(ctx, parsedRating[2], 241.5, 101, 0.5);
+    drawBoldText(ctx, parsedRating[3], 258.5, 101, 0.5);
+    drawBoldText(ctx, parsedRating[4], 276, 101, 0.5);
 
     ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
     ctx.beginPath();
@@ -319,13 +356,13 @@ async function execute(interaction: ChatInputCommandInteraction) {
                 ctx.font = `12px ${FontStack}`;
                 ctx.fillText(chartInfo.achievement.toFixed(4), baseX + 8, baseY + 92);
                 ctx.font = `bold 24px ${FontStack}`;
-                ctx.fillText(chartInfo.ranking, baseX + 8, baseY + 110);
+                drawRank(ctx, chartInfo.ranking, baseX + 8, baseY + 110);
 
                 ctx.textAlign = 'right';
                 ctx.font = `12px ${FontStack}`;
                 ctx.fillText(chartInfo.constant.toFixed(1), baseX + 184, baseY + 88);
                 ctx.font = `bold 32px ${FontStack}`;
-                ctx.fillText(chartInfo.rating.toString(), baseX + 184, baseY + 108);
+                drawBoldText(ctx, chartInfo.rating.toString(), baseX + 184, baseY + 108, 1.5);
             }
         }
 
@@ -412,14 +449,14 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     ctx.font = `12px ${FontStack}`;
                     ctx.fillText(chartInfo.achievement.toFixed(4), baseX + 8, baseY + 92);
                     ctx.font = `bold 24px ${FontStack}`;
-                    ctx.fillText(chartInfo.ranking, baseX + 8, baseY + 110);
+                    drawRank(ctx, chartInfo.ranking, baseX + 8, baseY + 110);
 
                     ctx.textAlign = 'right';
                     ctx.font = `12px ${FontStack}`;
                     if (chartInfo.constant === null) console.log(chartInfo);
                     ctx.fillText(chartInfo.constant.toFixed(1), baseX + 184, baseY + 88);
                     ctx.font = `bold 32px ${FontStack}`;
-                    ctx.fillText(chartInfo.rating.toString(), baseX + 184, baseY + 108);
+                    drawBoldText(ctx, chartInfo.rating.toString(), baseX + 184, baseY + 108, 1.5);
                 }
             }
         }

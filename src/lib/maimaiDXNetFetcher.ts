@@ -180,6 +180,10 @@ class MaimaiDXNetFetcher {
         name: string;
         avatar: string;
         rating: string;
+        title: string;
+        titleType: string;
+        course: string;
+        classRank: string;
     } | null> {
         if (!this.loginFinished) {
             await this.login();
@@ -220,11 +224,27 @@ class MaimaiDXNetFetcher {
             let rating = dom.window.document.querySelector('.rating_block')?.textContent ?? '';
             let avatar = dom.window.document.querySelector('.basic_block > img')?.getAttribute('src') ?? '';
 
+            let title = dom.window.document.querySelector('.trophy_inner_block')?.textContent ?? '';
+            let titleType;
+            if (dom.window.document.querySelector('.trophy_Normal')) titleType = 'Normal';
+            else if (dom.window.document.querySelector('.trophy_Bronze')) titleType = 'Bronze';
+            else if (dom.window.document.querySelector('.trophy_Silver')) titleType = 'Silver';
+            else if (dom.window.document.querySelector('.trophy_Gold')) titleType = 'Gold';
+            else if (dom.window.document.querySelector('.trophy_Rainbow')) titleType = 'Rainbow';
+            else titleType = 'None';
+
+            let course = dom.window.document.querySelectorAll('.h_35.f_l')[0]?.getAttribute('src') ?? '';
+            let classRank = dom.window.document.querySelectorAll('.h_35.f_l')[1]?.getAttribute('src') ?? '';
+
             console.log(`Fetched player info (code: ${friendCode}) successfully: ${name}`);
             return {
                 name,
                 rating,
                 avatar,
+                title,
+                titleType,
+                course,
+                classRank,
             };
         } catch (error) {
             console.error('Error adding friend:', error);
