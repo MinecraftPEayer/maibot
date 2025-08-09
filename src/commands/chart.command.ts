@@ -356,7 +356,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                 ctx.font = `12px ${FontStack}`;
                 ctx.fillText(chartInfo.achievement.toFixed(4), baseX + 8, baseY + 92);
                 ctx.font = `bold 24px ${FontStack}`;
-                drawRank(ctx, chartInfo.ranking, baseX + 8, baseY + 110);
+                await drawRank(ctx, chartInfo.ranking, baseX + 8, baseY + 110);
 
                 ctx.textAlign = 'right';
                 ctx.font = `12px ${FontStack}`;
@@ -449,7 +449,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     ctx.font = `12px ${FontStack}`;
                     ctx.fillText(chartInfo.achievement.toFixed(4), baseX + 8, baseY + 92);
                     ctx.font = `bold 24px ${FontStack}`;
-                    drawRank(ctx, chartInfo.ranking, baseX + 8, baseY + 110);
+                    await drawRank(ctx, chartInfo.ranking, baseX + 8, baseY + 110);
 
                     ctx.textAlign = 'right';
                     ctx.font = `12px ${FontStack}`;
