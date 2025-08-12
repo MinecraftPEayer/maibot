@@ -7,6 +7,7 @@ export default () => {
     if (!fs.existsSync('data')) fs.mkdirSync('data', { recursive: true });
     if (!fs.existsSync('data/api')) fs.mkdirSync('data/api', { recursive: true });
     if (!fs.existsSync('data/user')) fs.mkdirSync('data/user', { recursive: true });
+    if (!fs.existsSync('data/playerData')) fs.mkdirSync('data/playerData', { recursive: true });
 
     if (!fs.existsSync('data/api/token.json')) {
         fs.writeFileSync('data/api/token.json', JSON.stringify([], null, 2));

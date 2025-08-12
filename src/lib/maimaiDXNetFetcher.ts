@@ -407,6 +407,90 @@ class MaimaiDXNetFetcher {
 
         return { data: output };
     }
+
+    getLatestCacheDataDate(friendCode: string): Date | null {
+        const dataPath = `data/playerData/${friendCode}/latest.json`;
+        if (fs.existsSync(dataPath)) {
+            const latestData = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+            return new Date(parseInt(latestData.date.replace(/,/g, '')));
+        }
+        return null;
+    }
+
+    playerCacheDataExists(friendCode: string): boolean {
+        const dataPath = `data/playerData/${friendCode}/latest.json`;
+        return fs.existsSync(dataPath);
+    }
+
+    savePlayerCacheData(
+        friendCode: string,
+        data: {
+            playerData: {
+                name: string;
+                avatar: string;
+                rating: string;
+                title: string;
+                titleType: string;
+                course: string;
+                classRank: string;
+            };
+            scoreData: {
+                [key: string]: {
+                    title: string;
+                    type: ChartType;
+                    difficulty: Difficulty;
+                    utageKind?: string;
+                    achievement: number;
+                    comboType: ComboType;
+                    syncType: SyncType;
+                    dxScore?: number;
+                    dxStar?: number;
+                }[];
+            };
+        },
+    ): void {
+        if (!fs.existsSync(`data/playerData/${friendCode}`)) fs.mkdirSync(`data/playerData/${friendCode}`);
+        fs.writeFileSync(
+            `data/playerData/${friendCode}/latest.json`,
+            JSON.stringify(
+                {
+                    date: Date.now().toLocaleString(),
+                    data: data,
+                },
+                null,
+                2,
+            ),
+        );
+        new Date().toDateString();
+    }
+
+    getPlayerCacheData(friendCode: string): {
+        playerData: {
+            name: string;
+            avatar: string;
+            rating: string;
+            title: string;
+            titleType: string;
+            course: string;
+            classRank: string;
+        };
+        scoreData: {
+            [key: string]: {
+                title: string;
+                type: ChartType;
+                difficulty: Difficulty;
+                utageKind?: string;
+                achievement: number;
+                comboType: ComboType;
+                syncType: SyncType;
+                dxScore?: number;
+                dxStar?: number;
+            }[];
+        };
+    } {
+        let json = fs.readFileSync(`data/playerData/${friendCode}/latest.json`, 'utf8');
+        return JSON.parse(json).data;
+    }
 }
 
 export default MaimaiDXNetFetcher;
