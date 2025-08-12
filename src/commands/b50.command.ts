@@ -292,7 +292,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         break;
                     case 'no':
                         let message = 'Fetching player info...';
-                        await interaction.editReply({ content: message, components: [] });
+                        await interaction.editReply({ content: message, components: [], embeds: [] });
 
                         playerInfo = (await fetcher.getPlayer(friendCode)) ?? {
                             name: '',
