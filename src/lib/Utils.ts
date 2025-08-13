@@ -4,7 +4,7 @@ import exception from 'config/exception.json';
 import { ChartType, ComboType, Difficulty, SyncType } from './CommonEnums';
 import { RatingBaseImageName, RankFactor, ChartTypeName } from './constant/CommonConstant';
 import { Emojis } from './constant/emojis';
-import { User } from 'discord.js'
+import { User } from 'discord.js';
 
 function convertAchievementToRank(achievement: number) {
     if (achievement >= 100.5) return 'SSS+';
@@ -93,10 +93,10 @@ function calculateB50(
     }
 
     B15Data = B15Data.sort((a, b) =>
-        b.rating === a.rating ? a.title.localeCompare(b.title) : b.rating - a.rating,
+        b.rating === a.rating ? a.achievement - b.achievement : b.rating - a.rating,
     ).slice(0, 15);
     B35Data = B35Data.sort((a, b) =>
-        b.rating === a.rating ? a.title.localeCompare(b.title) : b.rating - a.rating,
+        b.rating === a.rating ? a.achievement - b.achievement : b.rating - a.rating,
     ).slice(0, 35);
 
     return {
