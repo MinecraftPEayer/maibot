@@ -9,6 +9,7 @@ import {
     SlashCommandBuilder,
     StringSelectMenuBuilder,
     StringSelectMenuInteraction,
+    EmbedBuilder,
 } from 'discord.js';
 import SongDataFetcher from 'src/lib/SongDataFetcher';
 import exception from 'config/exception.json';
@@ -24,15 +25,62 @@ import {
     getDifficultyEmoji,
     getDifficultyIdFromName,
 } from 'src/lib/Utils';
-import { B50Data, ScoreData, Sheet } from 'types/SongDatabase';
+import { B50Data, ScoreData, Sheet, Song } from 'types/SongDatabase';
 import { DifficultyDisplayName } from 'src/lib/constant/CommonConstant';
 import fs from 'fs';
 
+type PlayerInfo = {
+    name: string;
+    avatar: string;
+    rating: string;
+    title: string;
+    titleType: string;
+    course: string;
+    classRank: string;
+};
+
 const diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
+
+let syncType = [Emojis.FS_Short, Emojis.FSp_Short, Emojis.FDX_Short, Emojis.FDXp_Short, Emojis.SYNC];
+let comboType = [Emojis.FC_Short, Emojis.FCp_Short, Emojis.AP_Short, Emojis.APp_Short];
 
 const DXNetFetcher = MaimaiDXNetFetcher.getInstance();
 
 const scoreType = ScoreType.Achievement;
+
+async function sendScore(
+    interaction: ButtonInteraction,
+    song: Song,
+    playerInfo: PlayerInfo,
+    playerScores: { [key: string]: ScoreData[] },
+    isUTAGE: boolean,
+    scoreFilter: (s: ScoreData) => boolean,
+) {
+    let scores = Object.values(playerScores)
+        .map((item) => item.filter(scoreFilter))
+        .flat();
+
+    let scoreData = calculateScore(scores).data;
+    interaction.editReply({
+        content: '',
+        embeds: [
+            {
+                title: song.title,
+                description: `${playerInfo?.name}`,
+                thumbnail: {
+                    url: `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`,
+                },
+                fields: scoreData.map((score) => {
+                    return {
+                        name: `${score.difficulty === Difficulty.UTAGE ? Emojis.Utage + '' : score.type === 'DX' ? Emojis.DX + ' ' : Emojis.STD + ' '}${isUTAGE ? playerScores['UTAGE'][0].utageKind : getDifficultyEmoji(score.difficulty)}`,
+                        value: `${Emojis[score.ranking]} ${score.achievement.toFixed(4)}%\n${score.comboType !== -1 ? comboType[score.comboType] + ' ' : ' '}${score.syncType !== -1 ? syncType[score.syncType] + ' ' : ' '}`,
+                    };
+                }),
+            },
+        ],
+        components: [],
+    });
+}
 
 const data = new SlashCommandBuilder()
     .setName('song')
@@ -164,16 +212,11 @@ async function execute(interaction: ChatInputCommandInteraction) {
             case 'my_record':
                 let db = new JSONdb('data/linking.json');
 
-                let playerInfo: {
-                    name: string;
-                    rating: string;
-                    avatar: string;
-                };
+                let playerInfo: PlayerInfo;
 
-                let scoreData: B50Data[] = [];
-
-                let syncType = [Emojis.FS_Short, Emojis.FSp_Short, Emojis.FDX_Short, Emojis.FDXp_Short, Emojis.SYNC];
-                let comboType = [Emojis.FC_Short, Emojis.FCp_Short, Emojis.AP_Short, Emojis.APp_Short];
+                let scores: {
+                    [key: string]: ScoreData[];
+                } = {};
 
                 let playerScores: { [key: string]: ScoreData[] } = {};
 
@@ -190,6 +233,10 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         name: data.playerData.playerName,
                         rating: data.playerData.rating,
                         avatar: data.playerData.avatar,
+                        title: data.playerData.title.text,
+                        titleType: data.playerData.title.type,
+                        course: data.playerData.course,
+                        classRank: data.playerData['class'],
                     };
 
                     let scores = Object.values(data.allScores)
@@ -222,73 +269,203 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         )
                         .flat();
 
-                    scoreData = calculateScore(scores as any[]).data;
+                    let scoreCalculated = calculateScore(scores).data;
+
+                    let scoreData: {
+                        [key: string]: B50Data[];
+                    } = {};
+                    ['basic', 'advanced', 'expert', 'master', 'remaster'].forEach((diff, index) => {
+                        scoreData[diff] = [scoreCalculated[index]];
+                    });
+
+                    sendScore(
+                        buttonInteraction as ButtonInteraction,
+                        song,
+                        playerInfo,
+                        scoreData,
+                        isUTAGE,
+                        scoreFilter,
+                    );
                 } else {
                     let friendCode = db.get(buttonInteraction.user.id);
                     if (!friendCode) return await buttonInteraction.editReply('你還沒綁定帳號');
 
-                    let message = 'Fetching player info...';
+                    const fetcher = MaimaiDXNetFetcher.getInstance();
 
-                    await buttonInteraction.editReply(message);
-                    playerInfo = (await DXNetFetcher.getPlayer(friendCode)) || {
-                        name: '',
-                        rating: '',
-                        avatar: '',
-                    };
+                    let cacheExists = fetcher.playerCacheDataExists(friendCode);
+                    let lastDataDate = fetcher.getLatestCacheDataDate(friendCode);
+                    if (
+                        cacheExists &&
+                        lastDataDate &&
+                        Date.now() - lastDataDate.getTime() <= 24 * 60 * 60 * 1000 &&
+                        !isUTAGE
+                    ) {
+                        let actionRow = new ActionRowBuilder<ButtonBuilder>()
+                            .addComponents(
+                                new ButtonBuilder().setLabel('Yes').setStyle(ButtonStyle.Success).setCustomId('yes'),
+                            )
+                            .addComponents(
+                                new ButtonBuilder().setLabel('No').setStyle(ButtonStyle.Danger).setCustomId('no'),
+                            );
 
-                    if (!isUTAGE) {
-                        message += [' OK', 'Fetching scores...'].join('\n');
+                        let reply = await buttonInteraction.editReply({
+                            embeds: [
+                                new EmbedBuilder()
+                                    .setTitle('We found cached score data. Would you like to use it or fetch new data?')
+                                    .setDescription(`Time: <t:${(lastDataDate.getTime() / 1000).toFixed()}:F>`),
+                            ],
+                            components: [actionRow],
+                        });
+
+                        let collector = reply.createMessageComponentCollector({
+                            max: 1,
+                            time: 60000,
+                            filter: (i) => i.user.id === interaction.user.id,
+                        });
+                        let btnUsed = false;
+                        collector.on('collect', async (btnI) => {
+                            btnUsed = true;
+                            switch (btnI.customId) {
+                                case 'yes':
+                                    let data = fetcher.getPlayerCacheData(friendCode);
+                                    playerInfo = data.playerData;
+                                    scores = data.scoreData;
+                                    await buttonInteraction.editReply({
+                                        content: 'Processing...',
+                                        components: [],
+                                    });
+                                    sendScore(
+                                        buttonInteraction as ButtonInteraction,
+                                        song,
+                                        playerInfo,
+                                        scores,
+                                        isUTAGE,
+                                        scoreFilter,
+                                    );
+                                    break;
+                                case 'no':
+                                    let message = 'Fetching player info...';
+                                    await buttonInteraction.editReply({ content: message, components: [], embeds: [] });
+
+                                    playerInfo = (await fetcher.getPlayer(friendCode)) ?? {
+                                        name: '',
+                                        avatar: '',
+                                        rating: '',
+                                        title: '',
+                                        titleType: '',
+                                        course: '',
+                                        classRank: '',
+                                    };
+
+                                    message += [' OK', 'Fetching scores...'].join('\n');
+                                    await buttonInteraction.editReply(message);
+
+                                    scores = {};
+                                    for (const [difficulty, diffName] of Object.entries(DifficultyDisplayName)) {
+                                        if (!diffs.includes(parseInt(difficulty))) continue;
+
+                                        message += `\n> Fetching ${diffName} scores...`;
+                                        await buttonInteraction.editReply(message);
+                                        let scoreData = await fetcher.getScores(
+                                            scoreType,
+                                            friendCode,
+                                            parseInt(difficulty),
+                                        );
+                                        scores[diffName] = scoreData.data;
+                                        message += ' OK';
+                                    }
+
+                                    fetcher.savePlayerCacheData(friendCode, {
+                                        playerData: playerInfo,
+                                        scoreData: scores,
+                                    });
+
+                                    await buttonInteraction.editReply(
+                                        ['Fetching player info... OK', 'Fetching scores... OK', 'Calculating...'].join(
+                                            '\n',
+                                        ),
+                                    );
+
+                                    sendScore(
+                                        buttonInteraction as ButtonInteraction,
+                                        song,
+                                        playerInfo,
+                                        scores,
+                                        isUTAGE,
+                                        scoreFilter,
+                                    );
+                                    break;
+
+                                default:
+                                    btnI.reply({
+                                        content: 'how tf can you get here, go back right now bro',
+                                    });
+                                    break;
+                            }
+                        });
+                        collector.on('end', async () => {
+                            if (btnUsed) return;
+                            interaction.editReply({
+                                components: [],
+                            });
+                        });
+                    } else {
+                        let message = 'Fetching player info...';
 
                         await buttonInteraction.editReply(message);
+                        playerInfo = (await DXNetFetcher.getPlayer(friendCode)) || {
+                            name: '',
+                            avatar: '',
+                            rating: '',
+                            title: '',
+                            titleType: '',
+                            course: '',
+                            classRank: '',
+                        };
 
-                        for (const [difficulty, diffName] of Object.entries(DifficultyDisplayName)) {
-                            if (!diffs.includes(parseInt(difficulty))) continue;
+                        if (!isUTAGE) {
+                            message += [' OK', 'Fetching scores...'].join('\n');
 
-                            message += `\n> Fetching ${diffName} scores...`;
                             await buttonInteraction.editReply(message);
-                            let scoreData = await MaimaiDXNetFetcher.getInstance().getScores(
-                                scoreType,
-                                friendCode,
-                                parseInt(difficulty),
-                            );
-                            playerScores[diffName] = scoreData.data;
-                            message += ' OK';
+
+                            for (const [difficulty, diffName] of Object.entries(DifficultyDisplayName)) {
+                                if (!diffs.includes(parseInt(difficulty))) continue;
+
+                                message += `\n> Fetching ${diffName} scores...`;
+                                await buttonInteraction.editReply(message);
+                                let scoreData = await MaimaiDXNetFetcher.getInstance().getScores(
+                                    scoreType,
+                                    friendCode,
+                                    parseInt(difficulty),
+                                );
+                                playerScores[diffName] = scoreData.data;
+                                message += ' OK';
+                            }
+                        } else {
+                            message += [' OK', 'Fetching scores...', '> Fetching UTAGE scores...'].join('\n');
+                            playerScores['UTAGE'] = (
+                                await DXNetFetcher.getScores(scoreType, friendCode, Difficulty.UTAGE)
+                            ).data;
                         }
-                    } else {
-                        message += [' OK', 'Fetching scores...', '> Fetching UTAGE scores...'].join('\n');
-                        playerScores['UTAGE'] = (
-                            await DXNetFetcher.getScores(scoreType, friendCode, Difficulty.UTAGE)
-                        ).data;
+                        await buttonInteraction.editReply(
+                            ['Fetching player info... OK', 'Fetching scores... OK', 'Calculating...'].join('\n'),
+                        );
+
+                        fetcher.savePlayerCacheData(friendCode, {
+                            playerData: playerInfo,
+                            scoreData: scores,
+                        });
+
+                        sendScore(
+                            buttonInteraction as ButtonInteraction,
+                            song,
+                            playerInfo,
+                            playerScores,
+                            isUTAGE,
+                            scoreFilter,
+                        );
                     }
-                    await buttonInteraction.editReply(
-                        ['Fetching player info... OK', 'Fetching scores... OK', 'Calculating...'].join('\n'),
-                    );
-
-                    let scores = Object.values(playerScores)
-                        .map((item) => item.filter(scoreFilter))
-                        .flat();
-
-                    scoreData = calculateScore(scores).data;
                 }
-                buttonInteraction.editReply({
-                    content: '',
-                    embeds: [
-                        {
-                            title: song.title,
-                            description: `${playerInfo?.name}`,
-                            thumbnail: {
-                                url: `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`,
-                            },
-                            fields: scoreData.map((score) => {
-                                return {
-                                    name: `${score.difficulty === Difficulty.UTAGE ? Emojis.Utage + '' : score.type === 'DX' ? Emojis.DX + ' ' : Emojis.STD + ' '}${isUTAGE ? playerScores['UTAGE'][0].utageKind : getDifficultyEmoji(score.difficulty)}`,
-                                    value: `${Emojis[score.ranking]} ${score.achievement.toFixed(4)}%\n${score.comboType !== -1 ? comboType[score.comboType] + ' ' : ' '}${score.syncType !== -1 ? syncType[score.syncType] + ' ' : ' '}`,
-                                };
-                            }),
-                        },
-                    ],
-                });
-
                 break;
 
             case 'detail_selector':
