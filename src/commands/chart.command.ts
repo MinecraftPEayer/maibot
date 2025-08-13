@@ -465,7 +465,7 @@ async function drawAndSendChart(
     ctx.lineWidth = 1;
     ctx.strokeStyle = 'black';
     const MaxWidth = 256;
-    let text = playerData.title;
+    let text = playerData.title.replace(/[\t\n]/g, '');
     if (ctx.measureText(text).width > MaxWidth) {
         while (ctx.measureText(text).width > MaxWidth && text.length > 0) {
             text = text.slice(0, -1);
