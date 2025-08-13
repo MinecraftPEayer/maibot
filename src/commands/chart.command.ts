@@ -22,6 +22,7 @@ import sharp from 'sharp';
 import { ComboType, Difficulty, ScoreType, SyncType } from 'src/lib/CommonEnums';
 import { B50Data, ScoreData } from 'types/SongDatabase';
 import { DifficultyDisplayName } from 'src/lib/constant/CommonConstant';
+import * as StackBlur from 'stackblur-canvas';
 
 type PlayerInfo = {
     name: string;
@@ -44,21 +45,13 @@ const diffTip = {
     0: 'assets/diff_bsc.png',
 };
 
-const RankingImage = {
-    'SSS+': 'sssplus',
-    SSS: 'sss',
-    'SS+': 'ssplus',
-    SS: 'ss',
-    'S+': 'splus',
-    S: 's',
-    AAA: 'aaa',
-    AA: 'aa',
-    A: 'a',
-    BBB: 'bbb',
-    BB: 'bb',
-    B: 'b',
-    C: 'c',
-    D: 'd',
+const DifficultyColor = {
+    [Difficulty.Basic]: ['#45c124', '#daf3d0'],
+    [Difficulty.Advanced]: ['#ffba01', '#f3ecae'],
+    [Difficulty.Expert]: ['#ff7b7b', '#f8e7e7'],
+    [Difficulty.Master]: ['#9f51dc', '#efe7fa'],
+    [Difficulty.ReMaster]: ['#dbaaff', '#501e89'],
+    [Difficulty.UTAGE]: ['#ff6ffd', '#f8e8f6'],
 };
 
 function initializeFonts() {
@@ -119,262 +112,477 @@ async function getImageBuffer(imageURL: string, cache?: boolean): Promise<Buffer
         return Buffer.alloc(0);
     }
 }
+function drawRoundRect(options: {
+    ctx: CanvasRenderingContext2D;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    radius: number;
+    fillStyle: string;
+}) {
+    const { ctx, x, y, width, height, radius, fillStyle } = options;
+    let originalFillStyle = ctx.fillStyle;
+    ctx.fillStyle = fillStyle;
+    ctx.beginPath();
+    ctx.roundRect(x, y, width, height, radius);
+    ctx.fill();
+    ctx.fillStyle = originalFillStyle;
+}
+
+function drawCustomRoundRect(options: {
+    ctx: CanvasRenderingContext2D;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    radius?: {
+        topLeft?: number;
+        topRight?: number;
+        bottomLeft?: number;
+        bottomRight?: number;
+    };
+    fillStyle: string;
+}) {
+    const { ctx, x, y, width, height, radius, fillStyle } = options;
+    const topLeft = radius?.topLeft ?? 0,
+        topRight = radius?.topRight ?? 0,
+        bottomLeft = radius?.bottomLeft ?? 0,
+        bottomRight = radius?.bottomRight ?? 0;
+    let originalFillStyle = ctx.fillStyle;
+    ctx.beginPath();
+    ctx.moveTo(x + topLeft, y);
+    ctx.lineTo(x + width - topRight, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + topRight);
+    ctx.lineTo(x + width, y + height - bottomRight);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - bottomRight, y + height);
+    ctx.lineTo(x + bottomLeft, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - bottomLeft);
+    ctx.lineTo(x, y + topLeft);
+    ctx.quadraticCurveTo(x, y, x + topLeft, y);
+    ctx.closePath();
+    ctx.fillStyle = fillStyle;
+    ctx.fill();
+    ctx.fillStyle = originalFillStyle;
+}
+
+function drawChartType(ctx: CanvasRenderingContext2D, x: number, y: number, chartType: 'dx' | 'std') {
+    let originalFillStyle = ctx.fillStyle,
+        originalFont = ctx.font;
+    switch (chartType) {
+        case 'dx':
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x - 10, y + 20);
+            ctx.lineTo(x - 10 + 61, y + 20);
+            ctx.lineTo(x + 61, y);
+            ctx.lineTo(x, y);
+            ctx.fill();
+
+            const TextColor = ['#FF1C00', '#FFAB00', '#FFEB00', '#A4FF00', '#0081FF'];
+            const Text = 'でらっくす';
+            ctx.font = `10px ${FontStack}`;
+            for (let i = 0; i < 50; i += 10) {
+                ctx.fillStyle = TextColor[i / 10];
+                ctx.lineWidth = 0.5;
+                ctx.strokeStyle = TextColor[i / 10];
+                ctx.strokeText(Text[i / 10], x + 1 + i, y + 5 + 8);
+                ctx.fillText(Text[i / 10], x + 1 + i, y + 5 + 8);
+            }
+            ctx.save();
+            break;
+        case 'std':
+            ctx.fillStyle = '#73ADF8';
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x - 10, y + 20);
+            ctx.lineTo(x - 10 + 75, y + 20);
+            ctx.lineTo(x + 75, y);
+            ctx.lineTo(x, y);
+            ctx.fill();
+
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = `10px ${FontStack}`;
+            ctx.lineWidth = 0.5;
+            ctx.strokeStyle = 'white';
+            ctx.strokeText('スタンダード', x + 3, y + 5 + 8);
+            ctx.fillText('スタンダード', x + 3, y + 5 + 8);
+            ctx.save();
+            break;
+    }
+    ctx.font = originalFont;
+    ctx.fillStyle = originalFillStyle;
+}
+
+async function drawSongBox(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    song: B50Data,
+    songBoxDim: { width: number; height: number },
+    index: number,
+) {
+    const score = song,
+        X = x,
+        Y = y;
+
+    let songBackgroundImg = await loadImage(
+        await getImageBuffer(`https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${score.backgroundImg}`, true),
+    );
+    let bgImgCanvas = createCanvas(songBoxDim.width, songBoxDim.height);
+    let bgImgCtx = bgImgCanvas.getContext('2d');
+    bgImgCtx.save();
+    bgImgCtx.beginPath();
+    bgImgCtx.roundRect(0, 0, songBoxDim.width, songBoxDim.height, 8);
+    bgImgCtx.clip();
+
+    const scaleWidth = songBoxDim.width / songBackgroundImg.width;
+    const scaleHeight = songBoxDim.height / songBackgroundImg.height;
+    const scale = Math.max(scaleWidth, scaleHeight);
+
+    const scaledWidth = songBackgroundImg.width * scale;
+    const scaledHeight = songBackgroundImg.height * scale;
+    const xOffset = (songBoxDim.width - scaledWidth) / 2;
+    const yOffset = (songBoxDim.height - scaledHeight) / 2;
+
+    bgImgCtx.drawImage(songBackgroundImg, xOffset, yOffset, scaledWidth, scaledHeight);
+    bgImgCtx.restore();
+
+    StackBlur.canvasRGBA(bgImgCanvas as unknown as HTMLCanvasElement, 0, 0, songBoxDim.width, songBoxDim.height, 4);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(X, Y, songBoxDim.width, songBoxDim.height, 8);
+    ctx.clip();
+    ctx.drawImage(bgImgCanvas, X, Y, songBoxDim.width, songBoxDim.height);
+    ctx.restore();
+
+    drawRoundRect({
+        ctx,
+        x: X,
+        y: Y,
+        width: songBoxDim.width,
+        height: songBoxDim.height,
+        radius: 8,
+        fillStyle: 'rgba(0, 0, 0, 0.5)',
+    });
+
+    drawCustomRoundRect({
+        ctx,
+        x: X,
+        y: Y,
+        width: songBoxDim.width,
+        height: 28,
+        radius: {
+            topLeft: 8,
+            topRight: 8,
+            bottomLeft: 0,
+            bottomRight: 0,
+        },
+        fillStyle: '#D9D9D9',
+    });
+
+    drawCustomRoundRect({
+        ctx,
+        x: X + 18,
+        y: Y,
+        width: songBoxDim.width - 18,
+        height: 24,
+        radius: {
+            topRight: 8,
+            bottomLeft: 4,
+        },
+        fillStyle: 'white',
+    });
+
+    ctx.font = `6px ${FontStack}`;
+    ctx.fillStyle = 'black';
+    ctx.fillText('#', X + 2, Y + 20 + 6, songBoxDim.width - 20);
+
+    ctx.font = `8px ${FontStack}`;
+    ctx.fillText(`${index + 1}`.length === 1 ? `0${index + 1}` : `${index + 1}`, X + 6, Y + 18 + 8);
+
+    ctx.font = `14px ${FontStack}`;
+    const MaxWidth = 142;
+    let text = score.title;
+    if (ctx.measureText(text).width > MaxWidth) {
+        while (ctx.measureText(text + '...').width > MaxWidth && text.length > 0) {
+            text = text.slice(0, -1);
+        }
+        text += '...';
+    }
+    ctx.fillText(text, X + 22, Y + 4 + 14);
+
+    ctx.beginPath();
+    ctx.moveTo(X, Y + 28);
+    ctx.lineTo(X, Y + 28 + 28);
+    ctx.lineTo(X + (106 - 64), Y + 28 + 28);
+    ctx.lineTo(X + (120 - 64), Y + 28);
+    ctx.lineTo(X, Y + 28);
+    ctx.closePath();
+    ctx.fillStyle = DifficultyColor[score.difficulty as Difficulty][0];
+    ctx.fill();
+
+    ctx.font = `20px ${FontStack}`;
+    ctx.fillStyle = DifficultyColor[score.difficulty as Difficulty][1];
+    drawBoldText(ctx, score.constant.toString().split('.')[0], X + 3, Y + 28 + 6 + 16, 0.5);
+
+    ctx.font = `12px ${FontStack}`;
+    drawBoldText(ctx, '.' + (score.constant.toString().split('.')[1] ?? '0'), X + 30, Y + 28 + 11 + 10.5, 0.5);
+
+    if (parseInt(score.constant.toString().split('.')[1]) > 5) {
+        ctx.fillText('+', X + 30, Y + 28 + 2 + 8);
+    }
+
+    drawChartType(ctx, X + (120 - 64), Y + 28, score.type.toLowerCase() as 'dx' | 'std');
+
+    ctx.fillStyle = 'white';
+    ctx.font = `12px ${FontStack}`;
+    ctx.fillText(`${score.achievement.toFixed(4)}%`, X + 6, Y + songBoxDim.height - 6 - 2);
+
+    const RankImg = await loadImage(`assets/ranking/${score.ranking.toLowerCase().replace(/[+]/g, 'plus')}.png`);
+    ctx.drawImage(RankImg, X + 6, Y + songBoxDim.height - 16 - 20 - 2, 45, 20);
+
+    ctx.font = `28px ${FontStack}`;
+    ctx.save();
+    ctx.lineWidth = 0.5;
+    ctx.strokeStyle = 'white';
+    ctx.fillText(score.rating.toString(), X + songBoxDim.width - 55 - 4 - 2, Y + songBoxDim.height - 2 - 4 - 2);
+    ctx.strokeText(score.rating.toString(), X + songBoxDim.width - 55 - 4 - 2, Y + songBoxDim.height - 2 - 4 - 2);
+}
+
+const WIDTH = 1920,
+    HEIGHT = 1080;
 
 async function drawAndSendChart(
     interaction: ChatInputCommandInteraction,
-    playerInfo: any,
+    playerData: PlayerInfo,
     scores: {
         [key: string]: ScoreData[];
     },
 ) {
     initializeFonts();
-    console.log('Drawing chart for player:', playerInfo?.name);
+    console.log('Drawing chart for player:', playerData?.name);
     const { B15Data, B35Data } = calculateB50(Object.values(scores).flat());
 
     await interaction.editReply(['Fetching player info... OK', 'Fetching scores... OK', 'Drawing...'].join('\n'));
 
-    const canvas = createCanvas(1088, 1674);
+    const canvas = createCanvas(WIDTH, HEIGHT);
+    if (!canvas) return;
+
+    canvas.width = WIDTH;
+    canvas.height = HEIGHT;
+
     const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, WIDTH, HEIGHT);
 
     const bgImg = await loadImage('assets/background.png');
-    ctx.drawImage(bgImg, 896, 0, 1088, 1620, 0, 0, 1088, 1674);
 
-    ctx.fillStyle = 'white';
-    ctx.beginPath();
-    ctx.roundRect(16, 16, 314, 112, 16);
-    ctx.fill();
+    ctx.drawImage(bgImg, 0, 0, WIDTH, HEIGHT);
 
-    if (playerInfo?.avatar) {
-        const avatarImg = await loadImage(
-            await getImageBuffer(`https://chart.minecraftpeayer.me/api/proxy/img?url=${playerInfo?.avatar}`),
-        );
+    drawRoundRect({
+        ctx,
+        x: 30,
+        y: 30,
+        width: WIDTH - 60,
+        height: HEIGHT - 60,
+        radius: 54,
+        fillStyle: 'rgba(0, 0, 0, 0.5)',
+    });
 
-        ctx.drawImage(avatarImg, 24, 24, 96, 96);
-    }
+    const logoImg = await loadImage('assets/logo.png');
+    ctx.drawImage(logoImg, 1558, 64, 298, 108);
 
-    ctx.fillStyle = '#f7f7ff';
-    ctx.beginPath();
-    ctx.roundRect(128, 24, 194, 48, 6);
-    ctx.fill();
+    drawRoundRect({
+        ctx,
+        x: 64,
+        y: 64,
+        width: 390,
+        height: 108,
+        radius: 8,
+        fillStyle: 'rgba(183, 183, 183, 0.45)',
+    });
 
-    ctx.fillStyle = 'black';
-    ctx.font = `20px ${FontStack}`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(playerInfo?.name ?? '', 220, 48);
-
-    const rating =
-        B15Data.map((item) => item.rating).reduce((a, b) => a + b, 0) +
-        B35Data.map((item) => item.rating).reduce((a, b) => a + b, 0);
+    const avatarImg = await loadImage(
+        await getImageBuffer(`https://chart.minecraftpeayer.me/api/proxy/img?url=${playerData.avatar}`),
+    );
+    ctx.drawImage(avatarImg, 72, 72, 92, 92);
 
     const ratingImg = await loadImage(
         await getImageBuffer(
-            `https://maimaidx-eng.com/maimai-mobile/img/rating_base_${getRatingBaseImage(rating)}.png`,
+            `https://chart.minecraftpeayer.me/api/proxy/img?url=https://maimaidx-eng.com/maimai-mobile/img/rating_base_${getRatingBaseImage(parseInt(playerData.rating))}.png`,
+        ),
+    );
+    ctx.drawImage(ratingImg, 172, 70, 104, 30);
+    ctx.font = `14px ${FontStack}`;
+    ctx.fillStyle = 'white';
+    let baseX = 217;
+    let rating = playerData.rating;
+    ctx.fillText(rating[0], baseX, 90);
+    ctx.fillText(rating[1], baseX + 10.5, 90);
+    ctx.fillText(rating[2], baseX + 21.5, 90);
+    ctx.fillText(rating[3], baseX + 32.5, 90);
+    ctx.fillText(rating[4], baseX + 43.5, 90);
+
+    const classImg = await loadImage(
+        await getImageBuffer(`https://chart.minecraftpeayer.me/api/proxy/img?url=${playerData.classRank}`),
+    );
+    ctx.drawImage(classImg, 276, 68, 58, 32);
+
+    drawRoundRect({
+        ctx,
+        x: 172,
+        y: 100,
+        width: 244,
+        height: 36,
+        radius: 4,
+        fillStyle: 'white',
+    });
+    ctx.font = `20px ${FontStack}`;
+    ctx.fillStyle = 'black';
+    ctx.fillText(playerData.name, 180, 106 + 20);
+
+    const courseImg = await loadImage(
+        await getImageBuffer(`https://chart.minecraftpeayer.me/api/proxy/img?url=${playerData.course}`),
+    );
+    ctx.drawImage(courseImg, 341, 104, 71, 28);
+
+    const titleBackImg = await loadImage(
+        await getImageBuffer(
+            `https://chart.minecraftpeayer.me/api/proxy/img?url=https://maimaidx-eng.com/maimai-mobile/img/trophy_${playerData.titleType.toLowerCase()}.png`,
         ),
     );
 
-    ctx.drawImage(ratingImg, 0, 0, 296, 86, 128, 24 + 48 + 4, 165, 48);
+    ctx.drawImage(titleBackImg, 172, 138, 270, 25);
 
-    const parsedRating = `${' '.repeat('00000'.length - rating.toString().length)}${rating}`.split('');
-
+    ctx.font = `16px ${FontStack}`;
     ctx.fillStyle = 'white';
-    ctx.font = `bold 24px ${FontStack}`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    drawBoldText(ctx, parsedRating[0], 206, 101, 0.5);
-    drawBoldText(ctx, parsedRating[1], 224, 101, 0.5);
-    drawBoldText(ctx, parsedRating[2], 241.5, 101, 0.5);
-    drawBoldText(ctx, parsedRating[3], 258.5, 101, 0.5);
-    drawBoldText(ctx, parsedRating[4], 276, 101, 0.5);
-
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-    ctx.beginPath();
-    ctx.roundRect(16, 144, 1056, 1514, 16);
-    ctx.fill();
-
-    ctx.fillStyle = 'oklch(0.446 0.03 256.802)';
-    ctx.font = `14px ${FontStack}`;
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('B15', 32, 168);
-
-    for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < 5; j++) {
-            const baseX = 32 + j * (192 + 16);
-            const baseY = 176 + i * (128 + 16);
-
-            ctx.fillStyle = '#444';
-            ctx.beginPath();
-            ctx.roundRect(baseX, baseY, 192, 128, 8);
-            ctx.fill();
-
-            let index = i * 5 + j;
-            let chartInfo = B15Data[index];
-
-            if (chartInfo) {
-                const songImg = await loadImage(
-                    await getImageBuffer(
-                        `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${chartInfo.backgroundImg}`,
-                        true,
-                    ),
-                );
-                ctx.save();
-                ctx.beginPath();
-                ctx.roundRect(baseX, baseY, 192, 128, 8);
-                ctx.clip();
-                ctx.drawImage(songImg, 0, 31, 190, 128, baseX, baseY, 192, 128);
-                ctx.restore();
-
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-                ctx.beginPath();
-                ctx.roundRect(baseX, baseY, 192, 128, 8);
-                ctx.fill();
-
-                ctx.fillStyle = 'white';
-                ctx.font = `16px ${FontStack}`;
-                ctx.textAlign = 'left';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(`#${index + 1}`, baseX + 8, baseY + 20);
-
-                const maxWidth = 176;
-                let title = chartInfo.title;
-                const currentFont = ctx.font;
-                if (ctx.measureText(title).width > maxWidth) {
-                    while (ctx.measureText(title + '...').width > maxWidth && title.length > 0) {
-                        title = title.slice(0, -1);
-                    }
-                    title += '...';
-                }
-                ctx.fillText(title, baseX + 8, baseY + 40);
-                ctx.font = currentFont;
-
-                ctx.font = `12px ${FontStack}`;
-                ctx.fillText(chartInfo.type, baseX + 8, baseY + 56);
-
-                const difficultyImg = await loadImage(diffTip[chartInfo.difficulty]);
-                ctx.save();
-
-                ctx.beginPath();
-                ctx.moveTo(baseX + 168, baseY);
-                ctx.lineTo(baseX + 188, baseY);
-                ctx.arcTo(baseX + 192, baseY, baseX + 192, baseY + 4, 8);
-                ctx.lineTo(baseX + 192, baseY + 24);
-                ctx.lineTo(baseX + 168, baseY + 24);
-                ctx.closePath();
-                ctx.clip();
-                ctx.drawImage(difficultyImg, baseX + 168, baseY, 24, 24);
-                ctx.restore();
-
-                ctx.font = `12px ${FontStack}`;
-                ctx.fillText(chartInfo.achievement.toFixed(4), baseX + 8, baseY + 92);
-                ctx.font = `bold 24px ${FontStack}`;
-                await drawRank(ctx, chartInfo.ranking, baseX + 8, baseY + 110);
-
-                ctx.textAlign = 'right';
-                ctx.font = `12px ${FontStack}`;
-                ctx.fillText(chartInfo.constant.toFixed(1), baseX + 184, baseY + 88);
-                ctx.font = `bold 32px ${FontStack}`;
-                drawBoldText(ctx, chartInfo.rating.toString(), baseX + 184, baseY + 108, 1.5);
-            }
-        }
-
-        ctx.strokeStyle = 'oklch(0.446 0.03 256.802)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(32, 176 + 3 * (128 + 16));
-        ctx.lineTo(1056, 176 + 3 * (128 + 16));
-        ctx.stroke();
-
-        ctx.fillStyle = 'oklch(0.446 0.03 256.802)';
-        ctx.font = `14px ${FontStack}`;
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('B35', 32, 176 + 3 * (128 + 16) + 30);
-
-        for (let i = 0; i < 7; i++) {
-            for (let j = 0; j < 5; j++) {
-                const baseX = 32 + j * (192 + 16);
-                const baseY = 650 + i * (128 + 16);
-
-                ctx.fillStyle = '#444';
-                ctx.beginPath();
-                ctx.roundRect(baseX, baseY, 192, 128, 8);
-                ctx.fill();
-
-                let index = i * 5 + j;
-                let chartInfo = B35Data[index];
-
-                if (chartInfo) {
-                    const songImg = await loadImage(
-                        await getImageBuffer(
-                            `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${chartInfo.backgroundImg}`,
-                            true,
-                        ),
-                    );
-
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.roundRect(baseX, baseY, 192, 128, 8);
-                    ctx.clip();
-                    ctx.drawImage(songImg, 0, 31, 190, 128, baseX, baseY, 192, 128);
-                    ctx.restore();
-
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-                    ctx.beginPath();
-                    ctx.roundRect(baseX, baseY, 192, 128, 8);
-                    ctx.fill();
-
-                    ctx.fillStyle = 'white';
-                    ctx.font = `16px ${FontStack}`;
-                    ctx.textAlign = 'left';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText(`#${index + 1}`, baseX + 8, baseY + 20);
-
-                    const maxWidth = 176; // 192 - 16 for padding
-                    let title = chartInfo.title;
-                    const currentFont = ctx.font;
-                    if (ctx.measureText(title).width > maxWidth) {
-                        while (ctx.measureText(title + '...').width > maxWidth && title.length > 0) {
-                            title = title.slice(0, -1);
-                        }
-                        title += '...';
-                    }
-                    ctx.fillText(title, baseX + 8, baseY + 40);
-                    ctx.font = currentFont;
-
-                    ctx.font = `12px ${FontStack}`;
-                    ctx.fillText(chartInfo.type, baseX + 8, baseY + 56);
-
-                    const difficultyImg = await loadImage(diffTip[chartInfo.difficulty]);
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.moveTo(baseX + 168, baseY);
-                    ctx.lineTo(baseX + 188, baseY);
-                    ctx.arcTo(baseX + 192, baseY, baseX + 192, baseY + 4, 8);
-                    ctx.lineTo(baseX + 192, baseY + 24);
-                    ctx.lineTo(baseX + 168, baseY + 24);
-                    ctx.closePath();
-                    ctx.clip();
-                    ctx.drawImage(difficultyImg, baseX + 168, baseY, 24, 24);
-                    ctx.restore();
-
-                    ctx.font = `12px ${FontStack}`;
-                    ctx.fillText(chartInfo.achievement.toFixed(4), baseX + 8, baseY + 92);
-                    ctx.font = `bold 24px ${FontStack}`;
-                    await drawRank(ctx, chartInfo.ranking, baseX + 8, baseY + 110);
-
-                    ctx.textAlign = 'right';
-                    ctx.font = `12px ${FontStack}`;
-                    if (chartInfo.constant === null) console.log(chartInfo);
-                    ctx.fillText(chartInfo.constant.toFixed(1), baseX + 184, baseY + 88);
-                    ctx.font = `bold 32px ${FontStack}`;
-                    drawBoldText(ctx, chartInfo.rating.toString(), baseX + 184, baseY + 108, 1.5);
-                }
-            }
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'black';
+    const MaxWidth = 256;
+    let text = playerData.title;
+    if (ctx.measureText(text).width > MaxWidth) {
+        while (ctx.measureText(text).width > MaxWidth && text.length > 0) {
+            text = text.slice(0, -1);
         }
     }
+    ctx.fillText(text, 178, 141 + 16);
+    ctx.strokeText(text, 178, 141 + 16);
+
+    drawRoundRect({
+        ctx,
+        x: 64,
+        y: 187,
+        width: 100,
+        height: 20,
+        radius: 10,
+        fillStyle: '#73ADF8',
+    });
+
+    ctx.font = `12px ${FontStack}`;
+    ctx.fillStyle = 'white';
+    ctx.fillText('OLD CHART', 74, 192 + 10);
+
+    const B35BaseX = 64,
+        B35BaseY = 216,
+        Gap = 10;
+
+    const songBoxDim = {
+        width: 168,
+        height: 152,
+    };
+
+    for (let i = 0; i < 5; i++) {
+        for (let j = 0; j < 7; j++) {
+            const X = B35BaseX + j * (songBoxDim.width + Gap),
+                Y = B35BaseY + i * (songBoxDim.height + Gap);
+
+            const index = i * 7 + j;
+            const score = B35Data[index];
+
+            await drawSongBox(ctx, X, Y, score, songBoxDim, index);
+        }
+    }
+
+    ctx.fillStyle = 'white';
+    ctx.font = `8px ${FontStack}`;
+    ctx.fillText('B35', B35BaseX + 116, B35BaseY - 8 - 2);
+    ctx.font = `20px ${FontStack}`;
+    let B35Total = 0;
+    B35Data.forEach((b35) => (B35Total += b35.rating));
+    ctx.fillText(B35Total.toString(), B35BaseX + 134, B35BaseY - 8 - 2);
+
+    ctx.font = `8px ${FontStack}`;
+    ctx.fillText('AVG', B35BaseX + 215, B35BaseY - 8 - 2);
+    ctx.font = `20px ${FontStack}`;
+    ctx.fillText(Math.floor(B35Total / 35).toString(), B35BaseX + 236, B35BaseY - 8 - 2);
+
+    ctx.font = `8px ${FontStack}`;
+    ctx.fillText('RANGE', B35BaseX + 300, B35BaseY - 8 - 2);
+    ctx.font = `20px ${FontStack}`;
+    ctx.fillText(`${B35Data[0].rating} / ${B35Data[34].rating}`, B35BaseX + 334, B35BaseY - 8 - 2);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(1316, 173);
+    ctx.lineTo(1316, 1015);
+    ctx.lineTo(1316 + 1, 1015);
+    ctx.closePath();
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    const B15BaseX = 1332,
+        B15BaseY = 216;
+
+    ctx.fillStyle = 'white';
+    ctx.roundRect(B15BaseX, B15BaseY - 8 - 20, 100, 20, 10);
+    ctx.fill();
+
+    ctx.fillStyle = 'black';
+    ctx.font = `12px ${FontStack}`;
+    ctx.fillText('NEW', B15BaseX + 10, B15BaseY - 8 - 20 + 15);
+
+    let chartText = 'CHART';
+    const TextColor = ['#FF1C00', '#FFAB00', '#FFEB00', '#A4FF00', '#0081FF'];
+
+    for (let i = 0; i < 10 * 5; i += 10) {
+        ctx.fillStyle = TextColor[i / 10];
+        ctx.fillText(chartText[i / 10], B15BaseX + 42 + i, B15BaseY - 8 - 20 + 15);
+    }
+
+    for (let i = 0; i < 5; i++) {
+        for (let j = 0; j < 3; j++) {
+            const X = B15BaseX + j * (songBoxDim.width + Gap),
+                Y = B15BaseY + i * (songBoxDim.height + Gap);
+
+            const index = i * 3 + j;
+            const score = B15Data[index];
+
+            await drawSongBox(ctx, X, Y, score, songBoxDim, index);
+        }
+    }
+
+    ctx.fillStyle = 'white';
+    ctx.font = `8px ${FontStack}`;
+    ctx.fillText('B15', B15BaseX + 116, B15BaseY - 8 - 2);
+    ctx.font = `20px ${FontStack}`;
+    let B15Total = 0;
+    B15Data.forEach((b15) => (B15Total += b15.rating));
+    ctx.fillText(B15Total.toString(), B15BaseX + 134, B15BaseY - 8 - 2);
+
+    ctx.font = `8px ${FontStack}`;
+    ctx.fillText('AVG', B15BaseX + 215, B15BaseY - 8 - 2);
+    ctx.font = `20px ${FontStack}`;
+    ctx.fillText(Math.floor(B15Total / 15).toString(), B15BaseX + 236, B15BaseY - 8 - 2);
+
+    ctx.font = `8px ${FontStack}`;
+    ctx.fillText('RANGE', B15BaseX + 300, B15BaseY - 8 - 2);
+    ctx.font = `20px ${FontStack}`;
+    ctx.fillText(`${B15Data[0].rating} / ${B15Data[14].rating}`, B15BaseX + 334, B15BaseY - 8 - 2);
 
     let attachment = canvas.toBuffer('image/png');
     await interaction.editReply({
