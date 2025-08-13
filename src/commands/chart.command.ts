@@ -525,7 +525,7 @@ async function drawAndSendChart(
     ctx.font = `8px ${FontStack}`;
     ctx.fillText('RANGE', B35BaseX + 300, B35BaseY - 8 - 2);
     ctx.font = `20px ${FontStack}`;
-    ctx.fillText(`${B35Data[0].rating} / ${B35Data[34].rating}`, B35BaseX + 334, B35BaseY - 8 - 2);
+    ctx.fillText(`${B35Data[0].rating} / ${B35Data[B35Data.length - 1].rating}`, B35BaseX + 334, B35BaseY - 8 - 2);
 
     ctx.save();
     ctx.beginPath();
@@ -584,7 +584,7 @@ async function drawAndSendChart(
     ctx.font = `8px ${FontStack}`;
     ctx.fillText('RANGE', B15BaseX + 300, B15BaseY - 8 - 2);
     ctx.font = `20px ${FontStack}`;
-    ctx.fillText(`${B15Data[0].rating} / ${B15Data[14].rating}`, B15BaseX + 334, B15BaseY - 8 - 2);
+    ctx.fillText(`${B15Data[0].rating} / ${B15Data[B15Data.length - 1].rating}`, B15BaseX + 334, B15BaseY - 8 - 2);
 
     let attachment = canvas.toBuffer('image/png');
     await interaction.editReply({
