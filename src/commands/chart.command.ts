@@ -462,6 +462,8 @@ async function execute(interaction: ChatInputCommandInteraction) {
         await interaction.reply({
             content: 'Processing...',
         });
+
+        drawAndSendChart(interaction, playerInfo, scores);
     } else {
         if (optionUser && !db.has(optionUser.id)) {
             return await interaction.reply(`${optionUser.username} 還沒綁定帳號`);
