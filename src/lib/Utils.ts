@@ -93,10 +93,10 @@ function calculateB50(
     }
 
     B15Data = B15Data.sort((a, b) =>
-        b.rating === a.rating ? a.achievement - b.achievement : b.rating - a.rating,
+        b.rating === a.rating ? b.achievement - a.achievement : b.rating - a.rating,
     ).slice(0, 15);
     B35Data = B35Data.sort((a, b) =>
-        b.rating === a.rating ? a.achievement - b.achievement : b.rating - a.rating,
+        b.rating === a.rating ? b.achievement - a.achievement : b.rating - a.rating,
     ).slice(0, 35);
 
     return {
