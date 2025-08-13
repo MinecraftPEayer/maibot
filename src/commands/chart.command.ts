@@ -629,13 +629,13 @@ async function execute(interaction: ChatInputCommandInteraction) {
     };
 
     let playerInfo: PlayerInfo = {
-        name: '',
-        avatar: '',
-        rating: '',
-        title: '',
-        titleType: '',
-        course: '',
-        classRank: '',
+        name: ' ',
+        avatar: 'https://maimaidx-eng.com/maimai-mobile/img/Icon/34f0363f4ce86d07.png',
+        rating: '0',
+        title: ' ',
+        titleType: 'Normal',
+        course: 'https://maimaidx-eng.com/maimai-mobile/img/course/course_rank_00T7GHJvGe.png',
+        classRank: 'https://maimaidx-eng.com/maimai-mobile/img/class/class_rank_s_00ZqZmdpb8.png',
     };
 
     if (fs.existsSync(`data/user/${optionUser?.id ? optionUser.id : interaction.user.id}/latest.json`)) {
