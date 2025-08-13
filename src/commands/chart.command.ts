@@ -522,7 +522,7 @@ async function drawAndSendChart(
     ctx.font = `8px ${FontStack}`;
     ctx.fillText('AVG', B35BaseX + 215, B35BaseY - 8 - 2);
     ctx.font = `20px ${FontStack}`;
-    ctx.fillText(Math.floor(B35Total / 35).toString(), B35BaseX + 236, B35BaseY - 8 - 2);
+    ctx.fillText(Math.floor(B35Total / B35Data.length).toString(), B35BaseX + 236, B35BaseY - 8 - 2);
 
     ctx.font = `8px ${FontStack}`;
     ctx.fillText('RANGE', B35BaseX + 300, B35BaseY - 8 - 2);
@@ -581,7 +581,7 @@ async function drawAndSendChart(
     ctx.font = `8px ${FontStack}`;
     ctx.fillText('AVG', B15BaseX + 215, B15BaseY - 8 - 2);
     ctx.font = `20px ${FontStack}`;
-    ctx.fillText(Math.floor(B15Total / 15).toString(), B15BaseX + 236, B15BaseY - 8 - 2);
+    ctx.fillText(Math.floor(B15Total / B15Data.length).toString(), B15BaseX + 236, B15BaseY - 8 - 2);
 
     ctx.font = `8px ${FontStack}`;
     ctx.fillText('RANGE', B15BaseX + 300, B15BaseY - 8 - 2);
