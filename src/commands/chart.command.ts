@@ -227,6 +227,8 @@ async function drawSongBox(
         X = x,
         Y = y;
 
+    if (!score) return;
+
     let songBackgroundImg = await loadImage(
         await getImageBuffer(`https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${score.backgroundImg}`, true),
     );
