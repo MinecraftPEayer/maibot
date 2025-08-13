@@ -471,8 +471,10 @@ async function drawAndSendChart(
             text = text.slice(0, -1);
         }
     }
-    ctx.fillText(text, 178, 141 + 16);
-    ctx.strokeText(text, 178, 141 + 16);
+
+    let measuredText = ctx.measureText(text);
+    ctx.fillText(text, 178 + 128 - measuredText.width / 2, 141 + 16);
+    ctx.strokeText(text, 178 + 128 - measuredText.width / 2, 141 + 16);
 
     drawRoundRect({
         ctx,

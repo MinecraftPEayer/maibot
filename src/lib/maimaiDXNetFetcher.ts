@@ -224,7 +224,8 @@ class MaimaiDXNetFetcher {
             let rating = dom.window.document.querySelector('.rating_block')?.textContent ?? '';
             let avatar = dom.window.document.querySelector('.basic_block > img')?.getAttribute('src') ?? '';
 
-            let title = dom.window.document.querySelector('.trophy_inner_block')?.textContent ?? '';
+            let title =
+                dom.window.document.querySelector('.trophy_inner_block')?.textContent.replace(/[\t\n]/g, '') ?? '';
             let titleType;
             if (dom.window.document.querySelector('.trophy_Normal')) titleType = 'Normal';
             else if (dom.window.document.querySelector('.trophy_Bronze')) titleType = 'Bronze';
