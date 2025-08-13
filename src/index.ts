@@ -64,6 +64,10 @@ client.on('ready', async () => {
 client.on('interactionCreate', async (interaction) => {
     if (interaction.isAutocomplete()) {
         const command = client.commands.get(interaction.commandName);
+        if (!command) {
+            return interaction.respond([]);
+        }
+
         if (!command.autocomplete) {
             return interaction.respond([]);
         }
