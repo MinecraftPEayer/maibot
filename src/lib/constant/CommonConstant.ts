@@ -1,11 +1,14 @@
 import { Difficulty, ChartType } from '../CommonEnums';
 
 export const ChartTypeName: {
-    [key in ChartType]: 'STD' | 'DX' | 'UTAGE';
+    [key in ChartType | string]: 'STD' | 'DX' | 'UTAGE';
 } = {
     [ChartType.STD]: 'STD',
     [ChartType.DX]: 'DX',
     [ChartType.UTAGE]: 'UTAGE',
+    STD: 'STD',
+    DX: 'DX',
+    UTAGE: 'UTAGE',
 };
 
 export const RatingBaseImageName = {

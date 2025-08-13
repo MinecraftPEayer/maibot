@@ -26,7 +26,7 @@ import {
     getDifficultyIdFromName,
 } from 'src/lib/Utils';
 import { B50Data, ScoreData, Sheet, Song } from 'types/SongDatabase';
-import { DifficultyDisplayName } from 'src/lib/constant/CommonConstant';
+import { DifficultyDisplayName, DifficultyName } from 'src/lib/constant/CommonConstant';
 import fs from 'fs';
 
 type PlayerInfo = {
@@ -61,6 +61,7 @@ async function sendScore(
         .flat();
 
     let scoreData = calculateScore(scores).data;
+
     interaction.editReply({
         content: '',
         embeds: [
@@ -274,18 +275,11 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     let scoreData: {
                         [key: string]: B50Data[];
                     } = {};
-                    ['basic', 'advanced', 'expert', 'master', 'remaster'].forEach((diff, index) => {
-                        scoreData[diff] = [scoreCalculated[index]];
+                    scoreCalculated.forEach((item) => {
+                        scoreData[DifficultyName[item.difficulty]] = [item];
                     });
 
-                    sendScore(
-                        buttonInteraction as ButtonInteraction,
-                        song,
-                        playerInfo,
-                        scoreData,
-                        isUTAGE,
-                        scoreFilter,
-                    );
+                    sendScore(buttonInteraction as ButtonInteraction, song, playerInfo, scoreData, isUTAGE, () => true);
                 } else {
                     let friendCode = db.get(buttonInteraction.user.id);
                     if (!friendCode) return await buttonInteraction.editReply('你還沒綁定帳號');
