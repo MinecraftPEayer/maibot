@@ -488,9 +488,15 @@ class MaimaiDXNetFetcher {
                 dxStar?: number;
             }[];
         };
+        date: Date;
     } {
         let json = fs.readFileSync(`data/playerData/${friendCode}/latest.json`, 'utf8');
-        return JSON.parse(json).data;
+        let data = JSON.parse(json);
+        return {
+            playerData: data.data.playerData,
+            scoreData: data.data.scoreData,
+            date: new Date(parseInt(data.date.replace(/[,]/g, ''))),
+        };
     }
 }
 

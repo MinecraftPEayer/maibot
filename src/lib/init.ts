@@ -1,6 +1,7 @@
+import axios from 'axios';
 import fs from 'fs';
 
-export default () => {
+export default async () => {
     if (!fs.existsSync('tmp')) fs.mkdirSync('tmp', { recursive: true });
     if (!fs.existsSync('tmp/cache')) fs.mkdirSync('tmp/cache', { recursive: true });
     if (!fs.existsSync('tmp/cache/image')) fs.mkdirSync('tmp/cache/image', { recursive: true });
@@ -11,5 +12,9 @@ export default () => {
 
     if (!fs.existsSync('data/api/token.json')) {
         fs.writeFileSync('data/api/token.json', JSON.stringify([], null, 2));
+    }
+    if (!fs.existsSync('commit_hash.txt')) {
+        const { data } = await axios.get('https://api.github.com/repos/MinecraftPEayer/maibot/commits/master');
+        fs.writeFileSync('commit_hash.txt', data.sha);
     }
 };

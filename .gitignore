@@ -4,3 +4,4 @@ tmp
 data
 private.key
 certificate.crt
+commit_hash.txt
