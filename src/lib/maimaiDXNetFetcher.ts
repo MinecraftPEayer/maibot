@@ -206,7 +206,7 @@ class MaimaiDXNetFetcher {
             let data = resp.data;
             let dom = new JSDOM(data);
 
-            if (dom.window.document.title === 'maimai DX NET－Error－') {
+            if (dom.window.document.title === 'maimai DX NET－Error－' || resp.status === 302 || resp.data === '') {
                 await this.login();
                 resp = await axios.get(
                     `https://maimaidx-eng.com/maimai-mobile/friend/friendDetail/?idx=${friendCode}`,
