@@ -671,7 +671,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
             classRank: latestData.playerData['class'],
         };
 
-        let updateTime = new Date(latestData.date ? latestData.date.replace(/[,]/g, '') : Date.now());
+        let updateTime = new Date(latestData.date ? latestData.date : Date.now());
 
         await interaction.reply({
             content: 'Processing...',
