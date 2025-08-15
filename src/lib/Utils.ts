@@ -5,6 +5,7 @@ import { ChartType, ComboType, Difficulty, SyncType } from './CommonEnums';
 import { RatingBaseImageName, RankFactor, ChartTypeName } from './constant/CommonConstant';
 import { Emojis } from './constant/emojis';
 import { User } from 'discord.js';
+import { registerFont } from 'canvas';
 
 function convertAchievementToRank(achievement: number) {
     if (achievement >= 100.5) return 'SSS+';
@@ -220,6 +221,37 @@ function getDifficultyEmoji(difficulty: Difficulty | string): string {
     }
 }
 
+function initializeFonts() {
+    const fontPath = 'assets/fonts';
+
+    registerFont(`${fontPath}/SEGAMaruGothicDB.ttf`, {
+        family: 'SEGAMaruGothic',
+        weight: 'normal',
+    });
+
+    registerFont(`${fontPath}/NotoSans-Regular.ttf`, {
+        family: 'Noto Sans',
+        weight: 'normal',
+    });
+
+    registerFont(`${fontPath}/NotoSans-Bold.ttf`, {
+        family: 'Noto Sans',
+        weight: 'bold',
+    });
+
+    registerFont(`${fontPath}/NotoSansJP-Regular.ttf`, {
+        family: 'Noto Sans JP',
+        weight: 'normal',
+    });
+
+    registerFont(`${fontPath}/NotoSansJP-Bold.ttf`, {
+        family: 'Noto Sans JP',
+        weight: 'bold',
+    });
+}
+
+const FontStack = '"SEGAMaruGothic", "Noto Sans", "Noto Sans JP", sans-serif';
+
 export {
     calculateB50,
     calculateScore,
@@ -230,4 +262,6 @@ export {
     getRatingBaseImage,
     getDifficultyIdFromName,
     getChartTypeFromName,
+    initializeFonts,
+    FontStack,
 };

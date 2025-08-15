@@ -15,6 +15,8 @@ import {
     getChartTypeFromName,
     getDifficultyIdFromName,
     getRatingBaseImage,
+    initializeFonts,
+    FontStack,
 } from 'src/lib/Utils';
 import axios from 'axios';
 import fs from 'fs';
@@ -53,37 +55,6 @@ const DifficultyColor = {
     [Difficulty.ReMaster]: ['#dbaaff', '#501e89'],
     [Difficulty.UTAGE]: ['#ff6ffd', '#f8e8f6'],
 };
-
-function initializeFonts() {
-    const fontPath = 'assets/fonts';
-
-    registerFont(`${fontPath}/SEGAMaruGothicDB.ttf`, {
-        family: 'SEGAMaruGothic',
-        weight: 'normal',
-    });
-
-    registerFont(`${fontPath}/NotoSans-Regular.ttf`, {
-        family: 'Noto Sans',
-        weight: 'normal',
-    });
-
-    registerFont(`${fontPath}/NotoSans-Bold.ttf`, {
-        family: 'Noto Sans',
-        weight: 'bold',
-    });
-
-    registerFont(`${fontPath}/NotoSansJP-Regular.ttf`, {
-        family: 'Noto Sans JP',
-        weight: 'normal',
-    });
-
-    registerFont(`${fontPath}/NotoSansJP-Bold.ttf`, {
-        family: 'Noto Sans JP',
-        weight: 'bold',
-    });
-}
-
-const FontStack = '"SEGAMaruGothic", "Noto Sans", "Noto Sans JP", sans-serif';
 
 async function getImageBuffer(imageURL: string, cache?: boolean): Promise<Buffer> {
     if (cache === undefined) cache = false;

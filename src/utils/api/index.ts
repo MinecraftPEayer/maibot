@@ -2,14 +2,18 @@ import express from 'express';
 import fs from 'fs';
 import { createServer } from 'https';
 import config from 'config/config.json';
+import { createCanvas, loadImage } from 'canvas';
+import { initializeFonts, FontStack } from 'src/lib/Utils';
 
 export default () => {
     const app = express();
 
     app.use(express.json());
 
+    const noAuthPaths = ['/img/dynamic/noteTable'];
+
     app.use((req, res, next) => {
-        if (req.headers['authorization'] !== `Bearer ${process.env.API_KEY}`) {
+        if (req.headers['authorization'] !== `Bearer ${process.env.API_KEY}` && !noAuthPaths.includes(req.path)) {
             return res.status(403).json({ error: 'Forbidden' });
         }
         next();
@@ -123,10 +127,69 @@ export default () => {
         }
     });
 
-    (config.api.https.enabled ? createServer({
-        cert: fs.readFileSync(config.api.https.cert_path),
-        key: fs.readFileSync(config.api.https.key_path)
-    }, app) : app).listen(config.api.port || 3000, () => {
+    app.get('/img/dynamic/noteTable', async (req, res) => {
+        const noteType = ['tap', 'hold', 'slide', 'touch', 'break'];
+        const judgementColor = ['#D49100', '#FF9D03', '#F75EA3', '#2FCA4C', '#868686'];
+        const { tap, hold, slide, touch, break: breakNote } = req.query;
+
+        if (!tap || !hold || !slide || !touch || !breakNote) {
+            res.status(400).send({
+                code: 400,
+                message: 'Bad request',
+            });
+        }
+
+        const notes = [tap, hold, slide, touch, breakNote].map((note) => String(note));
+        if (notes.some((note) => note.split(',').length !== 5)) {
+            res.status(400).send({
+                code: 400,
+                message: 'Bad request',
+            });
+        }
+
+        initializeFonts();
+
+        const totalData: {
+            [key: string]: string[];
+        } = {};
+        notes.forEach((note, index) => {
+            totalData[noteType[index]] = note.split(',');
+        });
+
+        const canvas = createCanvas(695, 253);
+        const ctx = canvas.getContext('2d');
+
+        let tableImg = await loadImage('assets/NoteTable.png');
+        ctx.drawImage(tableImg, 0, 0, 695, 253);
+
+        /**
+         * 起始點 164+47=211 / 66+25=91
+         * X offset = 66+47=113
+         * Y offset = 12+25=37
+         */
+
+        ctx.textAlign = 'right';
+        ctx.font = `24px ${FontStack}`;
+        for (let i = 0; i < 5; i++) {
+            Object.values(totalData).forEach((note, index) => {
+                ctx.fillStyle = judgementColor[i];
+                ctx.fillText(note[i], 211 + i * 113, 88 + index * 37);
+            });
+        }
+
+        res.header('Content-Type', 'image/png').send(canvas.toBuffer('image/png'));
+    });
+
+    (config.api.https.enabled
+        ? createServer(
+              {
+                  cert: fs.readFileSync(config.api.https.cert_path),
+                  key: fs.readFileSync(config.api.https.key_path),
+              },
+              app,
+          )
+        : app
+    ).listen(config.api.port || 3000, () => {
         console.log(`API server is running on port ${config.api.port || 3000}`);
     });
 };
