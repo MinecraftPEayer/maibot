@@ -766,15 +766,18 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         await interaction.editReply(message);
 
                         scores = {};
-                        for (const [difficulty, diffName] of Object.entries(DifficultyDisplayName)) {
-                            if (!diffs.includes(parseInt(difficulty))) continue;
-
-                            message += `\n> Fetching ${diffName} scores...`;
-                            await interaction.editReply(message);
+                        let delay = 1000;
+                        const fetchFunction = async (difficulty: string, diffName: string, delay: number) => {
+                            await new Promise((resolve) => setTimeout(resolve, delay))
                             let scoreData = await fetcher.getScores(scoreType, friendCode, parseInt(difficulty));
                             scores[diffName] = scoreData.data;
-                            message += ' OK';
                         }
+
+                        await Promise.all(
+                            Object.entries(DifficultyDisplayName).filter(([Difficulty, diffName]) => diffName !== 'UTAGE').map(([difficulty, diffName], index) =>
+                                fetchFunction(difficulty, diffName, delay*index)
+                            )
+                        );
 
                         fetcher.savePlayerCacheData(friendCode, {
                             playerData: playerInfo,
