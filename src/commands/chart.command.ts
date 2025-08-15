@@ -424,11 +424,16 @@ async function drawAndSendChart(
     ctx.fillStyle = 'white';
     let baseX = 217;
     let rating = playerData.rating;
-    ctx.fillText(rating[0], baseX, 90);
-    ctx.fillText(rating[1], baseX + 10.5, 90);
-    ctx.fillText(rating[2], baseX + 21.5, 90);
-    ctx.fillText(rating[3], baseX + 32.5, 90);
-    ctx.fillText(rating[4], baseX + 43.5, 90);
+    let ratingArray = [];
+    for (let i = 0; i < 5 - rating.length; i++) {
+        ratingArray.push(' ');
+    }
+    ratingArray.push(...rating.split(''));
+    ctx.fillText(ratingArray[0], baseX, 90);
+    ctx.fillText(ratingArray[1], baseX + 10.5, 90);
+    ctx.fillText(ratingArray[2], baseX + 21.5, 90);
+    ctx.fillText(ratingArray[3], baseX + 32.5, 90);
+    ctx.fillText(ratingArray[4], baseX + 43.5, 90);
 
     const classImg = await loadImage(
         await getImageBuffer(`https://chart.minecraftpeayer.me/api/proxy/img?url=${playerData.classRank}`),
@@ -768,15 +773,17 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         scores = {};
                         let delay = 1000;
                         const fetchFunction = async (difficulty: string, diffName: string, delay: number) => {
-                            await new Promise((resolve) => setTimeout(resolve, delay))
+                            await new Promise((resolve) => setTimeout(resolve, delay));
                             let scoreData = await fetcher.getScores(scoreType, friendCode, parseInt(difficulty));
                             scores[diffName] = scoreData.data;
-                        }
+                        };
 
                         await Promise.all(
-                            Object.entries(DifficultyDisplayName).filter(([Difficulty, diffName]) => diffName !== 'UTAGE').map(([difficulty, diffName], index) =>
-                                fetchFunction(difficulty, diffName, delay*index)
-                            )
+                            Object.entries(DifficultyDisplayName)
+                                .filter(([Difficulty, diffName]) => diffName !== 'UTAGE')
+                                .map(([difficulty, diffName], index) =>
+                                    fetchFunction(difficulty, diffName, delay * index),
+                                ),
                         );
 
                         fetcher.savePlayerCacheData(friendCode, {
