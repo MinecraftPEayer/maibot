@@ -292,8 +292,10 @@ async function drawSongBox(
     ctx.fill();
 
     ctx.font = `20px ${FontStack}`;
+    ctx.textAlign = 'right';
     ctx.fillStyle = DifficultyColor[score.difficulty as Difficulty][1];
-    drawBoldText(ctx, score.constant.toString().split('.')[0], X + 3, Y + 28 + 6 + 16, 0.5);
+    drawBoldText(ctx, score.constant.toString().split('.')[0], X + 3 + 26, Y + 28 + 6 + 16, 0.5);
+    ctx.textAlign = 'left';
 
     ctx.font = `12px ${FontStack}`;
     drawBoldText(ctx, '.' + (score.constant.toString().split('.')[1] ?? '0'), X + 30, Y + 28 + 11 + 10.5, 0.5);
