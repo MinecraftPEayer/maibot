@@ -161,6 +161,15 @@ class SongDataFetcher {
         }
         return data.songs[index];
     }
+
+    getSongByName(name: string): Song {
+        let data = this.getData();
+        let song = data.songs.find((item: any) => item.title.toLowerCase() === name.toLowerCase());
+        if (!song) {
+            throw new Error('Song not found');
+        }
+        return song;
+    }
 }
 
 export default SongDataFetcher;
