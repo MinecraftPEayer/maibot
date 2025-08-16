@@ -25,6 +25,7 @@ import { ComboType, Difficulty, ScoreType, SyncType } from 'src/lib/CommonEnums'
 import { B50Data, ScoreData } from 'types/SongDatabase';
 import { DifficultyDisplayName } from 'src/lib/constant/CommonConstant';
 import * as StackBlur from 'stackblur-canvas';
+import Logger from 'src/lib/logger';
 
 type PlayerInfo = {
     name: string;
@@ -38,15 +39,6 @@ type PlayerInfo = {
 
 let diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
 
-const diffTip = {
-    10: '',
-    4: 'assets/diff_rem.png',
-    3: 'assets/diff_mas.png',
-    2: 'assets/diff_exp.png',
-    1: 'assets/diff_adv.png',
-    0: 'assets/diff_bsc.png',
-};
-
 const DifficultyColor = {
     [Difficulty.Basic]: ['#45c124', '#daf3d0'],
     [Difficulty.Advanced]: ['#ffba01', '#f3ecae'],
@@ -55,6 +47,8 @@ const DifficultyColor = {
     [Difficulty.ReMaster]: ['#dbaaff', '#501e89'],
     [Difficulty.UTAGE]: ['#ff6ffd', '#f8e8f6'],
 };
+
+let logger: Logger;
 
 async function getImageBuffer(imageURL: string, cache?: boolean): Promise<Buffer> {
     if (cache === undefined) cache = false;
@@ -79,7 +73,7 @@ async function getImageBuffer(imageURL: string, cache?: boolean): Promise<Buffer
             return await sharp(buffer).png().toBuffer();
         }
     } catch (error) {
-        console.error(`Error fetching image from ${imageURL}:`, error);
+        logger.error(`Error fetching image from ${imageURL}:`, error);
         return Buffer.alloc(0);
     }
 }
@@ -337,7 +331,7 @@ async function drawAndSendChart(
     },
 ) {
     initializeFonts();
-    console.log('Drawing chart for player:', playerData?.name);
+    logger.log('Drawing chart for player:', playerData?.name);
     const { B15Data, B35Data } = calculateB50(Object.values(scores).flat());
 
     await interaction.editReply(['Fetching player info... OK', 'Fetching scores... OK', 'Drawing...'].join('\n'));
@@ -619,6 +613,7 @@ function drawBoldText(ctx: CanvasRenderingContext2D, text: string, posX: number,
 }
 
 async function execute(interaction: ChatInputCommandInteraction) {
+    logger = interaction.client.logger;
     let db = new JSONdb('data/linking.json');
     let optionUser = interaction.options.getUser('user');
 

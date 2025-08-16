@@ -1,0 +1,65 @@
+import { Request, Response } from 'express';
+import fs from 'fs';
+
+export async function POST(req: Request, res: Response) {
+    let body = req.body;
+
+    if (!body || !body.userData || !body.userData.token || !body.data) {
+        return res.status(400).json({ error: 'Bad request' });
+    }
+
+    let generatedToken = fs.readFileSync('data/api/token.json');
+    let tokenData = JSON.parse(generatedToken.toString());
+
+    let id = body.userData.id;
+
+    let date = new Date();
+    date.setHours(date.getHours() + 8);
+    let formattedDate =
+        date.getFullYear() +
+        '-' +
+        String(date.getMonth() + 1).padStart(2, '0') +
+        '-' +
+        String(date.getDate()).padStart(2, '0') +
+        '_' +
+        String(date.getHours()).padStart(2, '0') +
+        '-' +
+        String(date.getMinutes()).padStart(2, '0') +
+        '-' +
+        String(date.getSeconds()).padStart(2, '0');
+
+    if (tokenData.some((item: { id: string; token: string }) => item.id === id && item.token === body.userData.token)) {
+        if (!fs.existsSync(`data/user/${id}`)) fs.mkdirSync(`data/user/${id}`);
+        fs.writeFileSync(`data/user/${id}/${formattedDate}.json`, JSON.stringify(body.data, null, 2));
+        fs.writeFileSync(`data/user/${id}/latest.json`, JSON.stringify(body.data, null, 2));
+        fs.writeFileSync(
+            `data/api/token.json`,
+            JSON.stringify(
+                tokenData.filter((item: { id: string; token: string }) => item.id !== id),
+                null,
+                2,
+            ),
+        );
+
+        if (!fs.existsSync(`data/user/${id}/detailed.json`)) fs.writeFileSync(`data/user/${id}/detailed.json`, '[]');
+        fs.readFileSync(`data/user/${id}/detailed.json`, 'utf8');
+        let detailedData = JSON.parse(fs.readFileSync(`data/user/${id}/detailed.json`, 'utf8'));
+
+        body.data.recentCreditDetail.forEach((item: any) => {
+            if (
+                !detailedData.some(
+                    (d: any) =>
+                        item.time === d.time &&
+                        item.songName === d.songName &&
+                        item.difficulty === d.difficulty &&
+                        item.track === d.track,
+                )
+            )
+                detailedData.unshift(item);
+        });
+
+        fs.writeFileSync(`data/user/${id}/detailed.json`, JSON.stringify(detailedData, null, 2));
+
+        return res.status(200).json({ success: true });
+    }
+}

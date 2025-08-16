@@ -3,28 +3,32 @@ import fs from 'fs';
 import 'dotenv/config';
 import init from './lib/init';
 import MaimaiDXNetFetcher from './lib/maimaiDXNetFetcher';
-import SongDataFetcher from './lib/SongDataFetcher';
+import Logger from 'src/lib/logger';
 
 init();
 
-declare module 'discord.js' {
-    export interface Client {
-        commands: Map<string, any>;
-    }
-}
+const mainLogger = new Logger('main');
+process.logger = mainLogger;
+
+process.on('uncaughtException', (error) => {
+    mainLogger.error(`[UncaughtException]`, error);
+});
+
+mainLogger.log(`Starting bot (git-master-${fs.readFileSync('commit_hash.txt', 'utf-8').slice(0, 7)})`);
 
 const client = new Client({
     intents: ['Guilds', 'GuildMessages', 'MessageContent'],
 });
 
+client.logger = new Logger('Client');
+
 client.commands = new Map<string, any>();
 let commands = [];
 
 const fetcher = MaimaiDXNetFetcher.getInstance();
-fetcher.login();
 
 client.on('ready', async () => {
-    console.log(`Logged in as ${client.user?.tag}`);
+    client.logger.log(`Logged in as ${client.user?.tag}`);
 
     const files = fs.readdirSync('./src/commands').filter((file) => file.endsWith('.command.ts'));
 
@@ -34,29 +38,32 @@ client.on('ready', async () => {
             client.commands.set(command.data.name, command);
             commands.push(command.data.toJSON());
         } else {
-            console.error(`Command file ${file} is missing data or execute properties.`);
+            client.logger.error(`Command file ${file} is missing data or execute properties.`);
         }
     }
 
-    SongDataFetcher.getInstance();
-
     const rest = new REST({ version: '9' }).setToken(process.env.TOKEN!);
 
-    rest.put(Routes.applicationCommands(client.user!.id), {
-        body: commands,
-    })
-        .then(() => {
-            console.log('Successfully registered application commands.');
+    await rest
+        .put(Routes.applicationCommands(client.user!.id), {
+            body: commands,
         })
-        .catch(console.error);
+        .then(() => {
+            client.logger.log('[CommandRegister] Successfully registered application commands.');
+        })
+        .catch(client.logger.error);
 
-    rest.put(Routes.applicationGuildCommands(client.user!.id, '1120284154957930588'), {
-        body: commands,
-    })
-        .then(() => {
-            console.log('Successfully registered guild application commands.');
+    await rest
+        .put(Routes.applicationGuildCommands(client.user!.id, '1120284154957930588'), {
+            body: commands,
         })
-        .catch(console.error);
+        .then(() => {
+            client.logger.log('[CommandRegister] Successfully registered guild application commands.');
+        })
+        .catch(client.logger.error);
+
+    await fetcher.login();
+
     (await import('src/utils/api/index')).default();
 });
 
@@ -75,7 +82,7 @@ client.on('interactionCreate', async (interaction) => {
             const choices = await command.autocomplete(interaction);
             await interaction.respond(choices);
         } catch (error) {
-            console.error(`Error handling autocomplete for command ${interaction.commandName}:`, error);
+            client.logger.error(`Error handling autocomplete for command ${interaction.commandName}:`, error);
             await interaction.respond([]);
         }
     }
@@ -92,8 +99,9 @@ client.on('interactionCreate', async (interaction) => {
 
         try {
             await command.execute(interaction);
+            client.logger.log(`${interaction.user.username} - /${interaction.commandName}`);
         } catch (error) {
-            console.error(`Error executing command ${interaction.commandName}:`, error);
+            client.logger.error(`Error executing command ${interaction.commandName}:`, error);
             if (interaction.replied) {
                 await interaction.editReply({
                     content: `There was an error while executing this command.\`\`\`js\n${error}\`\`\``,

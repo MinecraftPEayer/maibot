@@ -4,6 +4,7 @@ import fs, { stat } from 'fs';
 import axios from 'axios';
 import { ChartType, ComboType, Difficulty, Genres, ScoreType, SyncType } from './CommonEnums';
 import { DifficultyDisplayName, DifficultyName } from './constant/CommonConstant';
+import Logger from './logger';
 
 const UserAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36';
@@ -12,6 +13,7 @@ class MaimaiDXNetFetcher {
     static instance: MaimaiDXNetFetcher | null = null;
     cookies: Cookie[] = [];
     loginFinished: boolean = false;
+    logger: Logger = new Logger('MaimaiDXNetFetcher');
 
     static getInstance() {
         if (!MaimaiDXNetFetcher.instance) {
@@ -96,7 +98,7 @@ class MaimaiDXNetFetcher {
             });
 
             this.loginFinished = true;
-            console.log('Logged in successfully');
+            this.logger.log('Logged in successfully');
         } catch (error) {
             Promise.reject('Error fetching user info');
         }
@@ -119,7 +121,7 @@ class MaimaiDXNetFetcher {
 
             let dom = new JSDOM(resp.data);
 
-            if (dom.window.document.title === 'maimai DX NET－Error－') {
+            if (dom.window.document.title === 'maimai DX NET－Error－' || resp.status === 302 || resp.data === '') {
                 await this.login();
                 resp = await axios.get('https://maimaidx-eng.com/maimai-mobile/friend', {
                     headers: {
@@ -140,10 +142,10 @@ class MaimaiDXNetFetcher {
                 output.push({ name, rating, idx });
             }
 
-            console.log('Fetched friend list successfully');
+            this.logger.log('Fetched friend list successfully');
             return output;
         } catch (error) {
-            console.error('Error fetching friend list:', error);
+            this.logger.error('Error fetching friend list:', error);
         }
     }
 
@@ -171,7 +173,7 @@ class MaimaiDXNetFetcher {
                 },
             );
         } catch (error) {
-            console.error('Error adding friend:', error);
+            this.logger.error('Error adding friend:', error);
             return null;
         }
     }
@@ -237,7 +239,7 @@ class MaimaiDXNetFetcher {
             let course = dom.window.document.querySelectorAll('.h_35.f_l')[0]?.getAttribute('src') ?? '';
             let classRank = dom.window.document.querySelectorAll('.h_35.f_l')[1]?.getAttribute('src') ?? '';
 
-            console.log(`Fetched player info (code: ${friendCode}) successfully: ${name}`);
+            this.logger.log(`Fetched player info (code: ${friendCode}) successfully: ${name}`);
             return {
                 name,
                 rating,
@@ -248,7 +250,7 @@ class MaimaiDXNetFetcher {
                 classRank,
             };
         } catch (error) {
-            console.error('Error adding friend:', error);
+            this.logger.error('Error getting player:', error);
             return null;
         }
     }
@@ -270,7 +272,7 @@ class MaimaiDXNetFetcher {
             dxStar?: number;
         }[];
     }> {
-        console.log(`Fetching ${DifficultyDisplayName[difficulty]} scores for player:`, friendCode);
+        this.logger.log(`Fetching ${DifficultyDisplayName[difficulty]} scores for player:`, friendCode);
 
         let resp = await axios.get(
             `https://maimaidx-eng.com/maimai-mobile/friend/friendGenreVs/battleStart/?scoreType=${scoreType}&genre=${Genres.ALL}&diff=${difficulty}&idx=${friendCode}`,
@@ -285,21 +287,24 @@ class MaimaiDXNetFetcher {
         let data = resp.data;
         let dom = new JSDOM(data);
 
-        if (dom.window.document.title === 'maimai DX NET－Error－') {
+        if (dom.window.document.title === 'maimai DX NET－Error－' || resp.status === 302 || resp.data === '') {
             await this.login();
-            resp = await axios.get('https://maimaidx-eng.com/maimai-mobile/friend', {
-                headers: {
-                    'User-Agent': UserAgent,
-                    Cookie: this.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
+            resp = await axios.get(
+                `https://maimaidx-eng.com/maimai-mobile/friend/friendGenreVs/battleStart/?scoreType=${scoreType}&genre=${Genres.ALL}&diff=${difficulty}&idx=${friendCode}`,
+                {
+                    headers: {
+                        'User-Agent': UserAgent,
+                        Cookie: this.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
+                    },
                 },
-            });
+            );
 
             dom = new JSDOM(resp.data);
         }
         if (dom.window.document.title === 'maimai DX NET－Error－') {
             let time = Date.now();
             fs.writeFileSync(`tmp/dxnet_error_${time}.html`, data);
-            console.error(`Error while fetching scores, response was saved to tmp/dxnet_error_${time}.html`);
+            this.logger.error(`Error while fetching scores, response was saved to tmp/dxnet_error_${time}.html`);
         }
 
         let allScore = dom.window.document.querySelectorAll(`.music_${DifficultyName[difficulty]}_score_back`);
