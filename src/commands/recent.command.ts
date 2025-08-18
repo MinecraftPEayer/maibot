@@ -1,6 +1,20 @@
-import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
+import {
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonInteraction,
+    ButtonStyle,
+    ChatInputCommandInteraction,
+    ContainerBuilder,
+    MediaGalleryBuilder,
+    MessageFlags,
+    SectionBuilder,
+    SeparatorBuilder,
+    SeparatorSpacingSize,
+    SlashCommandBuilder,
+    TextDisplayBuilder,
+    ThumbnailBuilder,
+} from 'discord.js';
 import fs from 'fs';
-import { DifficultyDisplayName } from 'src/lib/constant/CommonConstant';
 import SongDataFetcher from 'src/lib/SongDataFetcher';
 import { getDifficultyEmoji, getDifficultyIdFromName } from 'src/lib/Utils';
 import { Difficulty } from 'src/lib/CommonEnums';
@@ -14,6 +28,10 @@ const DifficultyColor = {
     [Difficulty.ReMaster]: 0xdbaaff,
     [Difficulty.UTAGE]: 0xff6ffd,
 };
+
+const ActionRow = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(new ButtonBuilder().setCustomId('previous').setLabel('Previous').setStyle(ButtonStyle.Primary))
+    .addComponents(new ButtonBuilder().setCustomId('next').setLabel('Next').setStyle(ButtonStyle.Primary));
 
 const data = new SlashCommandBuilder()
     .setName('recent')
@@ -29,8 +47,12 @@ const execute = async (interaction: ChatInputCommandInteraction) => {
         return await interaction.reply('Sorry, but this feature is only available for bookmark script users.');
     }
 
-    let detailedData = JSON.parse(fs.readFileSync(`data/user/${userId}/detailed.json`, 'utf-8'));
-    let splitedByCredit = [];
+    let playerData = JSON.parse(fs.readFileSync(`data/user/${userId}/latest.json`, 'utf-8')).playerData;
+
+    let detailedData = JSON.parse(fs.readFileSync(`data/user/${userId}/detailed.json`, 'utf-8')).sort(
+        (a: any, b: any) => new Date(b.time).getTime() - new Date(a.time).getTime(),
+    );
+    let splitedByCredit: any[] = [];
     for (let i = 0; i < detailedData.length; i++) {
         let track = detailedData[i].track;
         let thisCredit = detailedData.slice(i, i + track);
@@ -39,34 +61,102 @@ const execute = async (interaction: ChatInputCommandInteraction) => {
     }
     splitedByCredit.sort((a, b) => new Date(b[0].time).getTime() - new Date(a[0].time).getTime());
 
-    let embeds = splitedByCredit[0]
-        .sort((a: any, b: any) => new Date(a.time).getTime() - new Date(b.time).getTime())
-        .map((score: any) => {
-            let time = new Date(new Date(score.time).getTime());
-            return new EmbedBuilder()
-                .setTitle(score.songName)
-                .setDescription(
-                    [
-                        `${score.achievement} ${score.achievementNewRecord ? '(New Record)' : ''}`,
-                        `${Emojis[score.chartType.toUpperCase() as 'DX' | 'STD']} ${getDifficultyEmoji(getDifficultyIdFromName(score.difficulty))}`,
-                        `${score.dxScore} ${score.dxScoreNewRecord ? '(New Record)' : ''}`,
-                    ].join('\n'),
-                )
-                .setColor(DifficultyColor[getDifficultyIdFromName(score.difficulty) as Difficulty])
-                .setThumbnail(
-                    `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${SongDataFetcher.getInstance().getSongByName(score.songName).imageName}`,
-                )
-                .setImage(
-                    `https://maibot.minecraftpeayer.me/img/dynamic/noteTable?tap=${score.noteDetail['tap'].join(',')}&hold=${score.noteDetail['hold'].join(',')}&slide=${score.noteDetail['slide'].join(',')}&touch=${score.noteDetail['touch'].join(',')}&break=${score.noteDetail['break'].join(',')}&`,
-                )
-                .setFooter({
-                    iconURL: interaction.client.user.displayAvatarURL(),
-                    text: `TRACK ${score.track}`,
-                })
-                .setTimestamp(time);
-        });
+    let buttonState = [true, true]; // [previous, next]
 
-    await interaction.reply({ embeds });
+    let container = new ContainerBuilder();
+
+    let headerText = new TextDisplayBuilder().setContent([`# ${playerData.playerName}`].join('\n'));
+    container.addTextDisplayComponents(headerText);
+
+    let index = 0;
+    function getTracks(index: number) {
+        container.spliceComponents(1, container.components.length - 1);
+        splitedByCredit[index]
+            .sort((a: any, b: any) => new Date(a.time).getTime() - new Date(b.time).getTime())
+            .forEach((track: any) => {
+                container.addSeparatorComponents(
+                    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Large).setDivider(true),
+                );
+
+                let trackTimeAndIndex = new TextDisplayBuilder().setContent(
+                    `TRACK ${track.track} - <t:${Math.floor(new Date(track.time).getTime() / 1000)}:f>`,
+                );
+                container.addTextDisplayComponents(trackTimeAndIndex);
+
+                let trackInfoSection = new SectionBuilder();
+                let trackInfoText = new TextDisplayBuilder().setContent(
+                    [
+                        `## ${track.songName}`,
+                        `### ${track.achievement} ${track.achievementNewRecord ? '(New Record)' : ''}`,
+                        `${Emojis[track.chartType.toUpperCase() as 'DX' | 'STD']} ${getDifficultyEmoji(getDifficultyIdFromName(track.difficulty))}`,
+                        `DX Score: ${track.dxScore} ${track.dxScoreNewRecord ? '(New Record)' : ''}`,
+                        `Combo: ${track.combo}\tSync: ${track.sync}`,
+                        `${track.fcType === '' && track.syncType === '' ? '' : '# '}${track.fcType === '' ? '' : Emojis[`${track.fcType.replace(/[+]/g, 'p')}_Short` as keyof typeof Emojis]} ${track.syncType === '' ? '' : Emojis[`${track.syncType.replace(/[+]/g, 'p')}${track.syncType === 'SYNC' ? '' : '_Short'}` as keyof typeof Emojis]}`,
+                    ].join('\n'),
+                );
+                let trackInfoThumbnail = new ThumbnailBuilder().setURL(
+                    `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${SongDataFetcher.getInstance().getSongByName(track.songName).imageName}`,
+                );
+                let trackInfoNoteTable = new MediaGalleryBuilder().addItems({
+                    media: {
+                        url: `https://maibot.minecraftpeayer.me/img/dynamic/noteTable?tap=${track.noteDetail['tap'].join(',')}&hold=${track.noteDetail['hold'].join(',')}&slide=${track.noteDetail['slide'].join(',')}&touch=${track.noteDetail['touch'].join(',')}&break=${track.noteDetail['break'].join(',')}&`,
+                        width: 128,
+                    },
+                });
+
+                trackInfoSection.addTextDisplayComponents(trackInfoText).setThumbnailAccessory(trackInfoThumbnail);
+                container.addSectionComponents(trackInfoSection);
+
+                container.addMediaGalleryComponents(trackInfoNoteTable);
+            });
+
+        buttonState = [index > 0, index < splitedByCredit.length - 1];
+
+        ActionRow.components[0].setDisabled(!buttonState[0]);
+        ActionRow.components[1].setDisabled(!buttonState[1]);
+
+        container.addSeparatorComponents(
+            new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Large).setDivider(true),
+        );
+
+        container.addActionRowComponents(ActionRow);
+    }
+
+    getTracks(index);
+
+    let reply = await interaction.reply({ components: [container], flags: [MessageFlags.IsComponentsV2] });
+    let timeout = setTimeout(() => {
+        collector.emit('end');
+    }, 60000);
+    let collector = reply.createMessageComponentCollector({ filter: (i) => i.user.id === interaction.user.id });
+
+    collector.on('collect', async (buttonInteraction: ButtonInteraction) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+            collector.emit('end');
+        }, 60000);
+
+        switch (buttonInteraction.customId) {
+            case 'previous':
+                if (index === 0) return;
+                getTracks(--index);
+                break;
+            case 'next':
+                if (index === splitedByCredit.length - 1) return;
+                getTracks(++index);
+                break;
+        }
+
+        buttonInteraction.deferUpdate();
+        interaction.editReply({ components: [container], flags: [MessageFlags.IsComponentsV2] });
+    });
+
+    collector.on('end', async () => {
+        container.spliceComponents(container.components.length - 2, 2);
+        try {
+            await interaction.editReply({ components: [container], flags: [MessageFlags.IsComponentsV2] });
+        } catch (e) {}
+    });
 };
 
 export { data, execute };
