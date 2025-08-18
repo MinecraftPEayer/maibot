@@ -125,10 +125,10 @@ const execute = async (interaction: ChatInputCommandInteraction) => {
     getTracks(index);
 
     let reply = await interaction.reply({ components: [container], flags: [MessageFlags.IsComponentsV2] });
+    let collector = reply.createMessageComponentCollector({ filter: (i) => i.user.id === interaction.user.id });
     let timeout = setTimeout(() => {
         collector.emit('end');
     }, 60000);
-    let collector = reply.createMessageComponentCollector({ filter: (i) => i.user.id === interaction.user.id });
 
     collector.on('collect', async (buttonInteraction: ButtonInteraction) => {
         clearTimeout(timeout);
@@ -147,7 +147,7 @@ const execute = async (interaction: ChatInputCommandInteraction) => {
                 break;
         }
 
-        buttonInteraction.deferUpdate();
+        await buttonInteraction.deferUpdate();
         interaction.editReply({ components: [container], flags: [MessageFlags.IsComponentsV2] });
     });
 
