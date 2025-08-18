@@ -2,8 +2,9 @@ import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from '
 import fs from 'fs';
 import { DifficultyDisplayName } from 'src/lib/constant/CommonConstant';
 import SongDataFetcher from 'src/lib/SongDataFetcher';
-import { getDifficultyIdFromName } from 'src/lib/Utils';
+import { getDifficultyEmoji, getDifficultyIdFromName } from 'src/lib/Utils';
 import { Difficulty } from 'src/lib/CommonEnums';
+import { Emojis } from 'src/lib/constant/emojis';
 
 const DifficultyColor = {
     [Difficulty.Basic]: 0x45c124,
@@ -38,24 +39,32 @@ const execute = async (interaction: ChatInputCommandInteraction) => {
     }
     splitedByCredit.sort((a, b) => new Date(b[0].time).getTime() - new Date(a[0].time).getTime());
 
-    let embeds = splitedByCredit[0].map((score: any) => {
-        let time = new Date(new Date(score.time).getTime() + 8 * 60 * 60 * 1000);
-        return new EmbedBuilder()
-            .setAuthor({
-                name: `TRACK ${score.track} - ${time.getUTCFullYear()}/${(time.getUTCMonth() + 1).toString().padStart(2, '0')}/${time.getUTCDate().toString().padStart(2, '0')} ${time.getUTCHours().toString().padStart(2, '0')}:${time.getUTCMinutes().toString().padStart(2, '0')}`,
-            })
-            .setTitle(score.songName)
-            .setDescription(
-                `${score.achievement} ${score.achievementNewRecord ? '(New Record)' : ''}\n${score.chartType.toUpperCase()} ${DifficultyDisplayName[getDifficultyIdFromName(score.difficulty) as Difficulty]}\n${score.dxScore} ${score.dxScoreNewRecord ? '(New Record)' : ''}`,
-            )
-            .setColor(DifficultyColor[getDifficultyIdFromName(score.difficulty) as Difficulty])
-            .setThumbnail(
-                `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${SongDataFetcher.getInstance().getSongByName(score.songName).imageName}`,
-            )
-            .setImage(
-                `https://maibot.minecraftpeayer.me/img/dynamic/noteTable?tap=${score.noteDetail['tap'].join(',')}&hold=${score.noteDetail['hold'].join(',')}&slide=${score.noteDetail['slide'].join(',')}&touch=${score.noteDetail['touch'].join(',')}&break=${score.noteDetail['break'].join(',')}&`,
-            );
-    });
+    let embeds = splitedByCredit[0]
+        .sort((a: any, b: any) => new Date(a.time).getTime() - new Date(b.time).getTime())
+        .map((score: any) => {
+            let time = new Date(new Date(score.time).getTime());
+            return new EmbedBuilder()
+                .setTitle(score.songName)
+                .setDescription(
+                    [
+                        `${score.achievement} ${score.achievementNewRecord ? '(New Record)' : ''}`,
+                        `${Emojis[score.chartType.toUpperCase() as 'DX' | 'STD']} ${getDifficultyEmoji(getDifficultyIdFromName(score.difficulty))}`,
+                        `${score.dxScore} ${score.dxScoreNewRecord ? '(New Record)' : ''}`,
+                    ].join('\n'),
+                )
+                .setColor(DifficultyColor[getDifficultyIdFromName(score.difficulty) as Difficulty])
+                .setThumbnail(
+                    `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${SongDataFetcher.getInstance().getSongByName(score.songName).imageName}`,
+                )
+                .setImage(
+                    `https://maibot.minecraftpeayer.me/img/dynamic/noteTable?tap=${score.noteDetail['tap'].join(',')}&hold=${score.noteDetail['hold'].join(',')}&slide=${score.noteDetail['slide'].join(',')}&touch=${score.noteDetail['touch'].join(',')}&break=${score.noteDetail['break'].join(',')}&`,
+                )
+                .setFooter({
+                    iconURL: interaction.client.user.displayAvatarURL(),
+                    text: `TRACK ${score.track}`,
+                })
+                .setTimestamp(time);
+        });
 
     await interaction.reply({ embeds });
 };
