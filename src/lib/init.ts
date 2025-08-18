@@ -17,4 +17,6 @@ export default async () => {
         const { data } = await axios.get('https://api.github.com/repos/MinecraftPEayer/maibot/commits/master');
         fs.writeFileSync('commit_hash.txt', data.sha);
     }
+
+    process.logger.log(`Starting bot (git-master-${fs.readFileSync('commit_hash.txt', 'utf-8').slice(0, 7)})`);
 };

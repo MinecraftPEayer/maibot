@@ -5,16 +5,14 @@ import init from './lib/init';
 import MaimaiDXNetFetcher from './lib/maimaiDXNetFetcher';
 import Logger from 'src/lib/logger';
 
-init();
-
 const mainLogger = new Logger('main');
 process.logger = mainLogger;
+
+init();
 
 process.on('uncaughtException', (error) => {
     mainLogger.error(`[UncaughtException]`, error);
 });
-
-mainLogger.log(`Starting bot (git-master-${fs.readFileSync('commit_hash.txt', 'utf-8').slice(0, 7)})`);
 
 const client = new Client({
     intents: ['Guilds', 'GuildMessages', 'MessageContent'],
