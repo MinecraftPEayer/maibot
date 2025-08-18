@@ -399,9 +399,11 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         });
                         collector.on('end', async () => {
                             if (btnUsed) return;
-                            interaction.editReply({
-                                components: [],
-                            });
+                            try {
+                                interaction.editReply({
+                                    components: [],
+                                });
+                            } catch (error) {}
                         });
                     } else {
                         let message = 'Fetching player info...';
@@ -536,7 +538,9 @@ async function execute(interaction: ChatInputCommandInteraction) {
     });
 
     collector.on('end', async () => {
-        await interaction.editReply({ components: [] });
+        try {
+            await interaction.editReply({ components: [] });
+        } catch (error) {}
     });
 }
 

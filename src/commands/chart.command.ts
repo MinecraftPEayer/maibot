@@ -585,10 +585,14 @@ async function drawAndSendChart(
     );
 
     let attachment = canvas.toBuffer('image/png');
-    await interaction.editReply({
-        content: '',
-        files: [attachment],
-    });
+    try {
+        await interaction.editReply({
+            content: '',
+            files: [attachment],
+        });
+    } catch (error) {
+        logger.error('Error sending chart image:', error);
+    }
 }
 
 const data = new SlashCommandBuilder()
@@ -775,9 +779,11 @@ async function execute(interaction: ChatInputCommandInteraction) {
             });
             collector.on('end', async () => {
                 if (btnUsed) return;
-                interaction.editReply({
-                    components: [],
-                });
+                try {
+                    interaction.editReply({
+                        components: [],
+                    });
+                } catch (error) {}
             });
         } else {
             let message = 'Fetching player info...';
