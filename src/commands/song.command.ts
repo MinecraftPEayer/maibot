@@ -314,7 +314,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         let collector = reply.createMessageComponentCollector({
                             max: 1,
                             time: 60000,
-                            filter: (i) => i.user.id === interaction.user.id,
+                            filter: (i) => i.user.id === buttonInteraction.user.id,
                         });
                         let btnUsed = false;
                         collector.on('collect', async (btnI) => {
