@@ -87,7 +87,7 @@ async function sendB50(
                         return [
                             `**#${B50Data[currentType].indexOf(data) + 1} ${data.title}**`,
                             `> ${data.type === 'STD' ? Emojis.STD : Emojis.DX} ${getDifficultyEmoji(data.difficulty)} ${data.level} (${data.constant.toFixed(1)})`,
-                            `> ${Emojis[data.ranking]}- **${data.rating}**`,
+                            `> ${Emojis[data.ranking]}- ${data.achievement.toFixed(4)}% - **${data.rating}**`,
                         ].join('\n');
                     })
                     .join('\n')}`,
@@ -156,7 +156,7 @@ async function sendB50(
                             return [
                                 `**#${B50Data[currentType].indexOf(data) + 1} ${data.title}**`,
                                 `> ${data.type === 'STD' ? Emojis.STD : Emojis.DX} ${getDifficultyEmoji(data.difficulty)} ${data.level} (${data.constant})`,
-                                `> ${Emojis[data.ranking]}- **${data.rating}**`,
+                                `> ${Emojis[data.ranking]}- ${data.achievement}% - **${data.rating}**`,
                             ].join('\n');
                         })
                         .join('\n')}`,
