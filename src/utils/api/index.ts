@@ -31,19 +31,19 @@ export default async () => {
                 let route = await import(`${path}/${item}/route.ts`);
                 if (route.GET) {
                     app.get(`${path.replace(basePath, '')}/${item}`, await route.GET);
-                    logger.log(`Registered GET /${path.replace(basePath, '')}/${item}`);
+                    logger.log(`Registered GET ${path.replace(basePath, '')}/${item}`);
                 }
                 if (route.POST) {
                     app.post(`${path.replace(basePath, '')}/${item}`, await route.POST);
-                    logger.log(`Registered POST /${path.replace(basePath, '')}/${item}`);
+                    logger.log(`Registered POST ${path.replace(basePath, '')}/${item}`);
                 }
                 if (route.PUT) {
                     app.put(`${path.replace(basePath, '')}/${item}`, await route.PUT);
-                    logger.log(`Registered PUT /${path.replace(basePath, '')}/${item}`);
+                    logger.log(`Registered PUT ${path.replace(basePath, '')}/${item}`);
                 }
                 if (route.DELETE) {
                     app.delete(`${path.replace(basePath, '')}/${item}`, await route.DELETE);
-                    logger.log(`Registered DELETE /${path.replace(basePath, '')}/${item}`);
+                    logger.log(`Registered DELETE ${path.replace(basePath, '')}/${item}`);
                 }
             }
         }
