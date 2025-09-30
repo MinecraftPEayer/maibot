@@ -141,7 +141,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
             .filter((sheet) => sheet.type === type)
             .map((sheet) => {
                 return {
-                    label: `${sheet.difficulty.toUpperCase()}`,
+                    label: `${isUTAGE ? sheet.difficulty : DifficultyDisplayName[getDifficultyIdFromName(sheet.difficulty) as Difficulty]}`,
                     value: sheet.difficulty,
                 };
             }),
@@ -160,7 +160,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                             name: `${
                                 isUTAGE ? Emojis.Utage + '' : sheet.type === 'dx' ? Emojis.DX + ' ' : Emojis.STD + ' '
                             }${getDifficultyEmoji(getDifficultyIdFromName(sheet.difficulty))}`,
-                            value: `Lv: ${sheet.level}(${sheet.internalLevel ?? sheet.internalLevelValue ?? sheet.level + '.?'})\nNote Designer: ${sheet.noteDesigner}`,
+                            value: `Lv: ${sheet.level}(${sheet.internalLevel ?? sheet.internalLevelValue.toFixed(1) ?? sheet.level + '.?'})\nNote Designer: ${sheet.noteDesigner}`,
                         };
                     }),
                 thumbnail: {
@@ -198,7 +198,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                                                   ? Emojis.DX + ' '
                                                   : Emojis.STD + ' '
                                         }${getDifficultyEmoji(getDifficultyIdFromName(sheet.difficulty))}`,
-                                        value: `Lv: ${sheet.level}(${sheet.internalLevel ?? sheet.internalLevelValue ?? sheet.level + '.?'})\nNote Designer: ${sheet.noteDesigner}`,
+                                        value: `Lv: ${sheet.level}(${sheet.internalLevel ?? sheet.internalLevelValue.toFixed(1) ?? sheet.level + '.?'})\nNote Designer: ${sheet.noteDesigner}`,
                                     };
                                 }),
                             thumbnail: {
@@ -478,16 +478,27 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         ephemeral: true,
                     });
 
+                let title = [
+                    `${song.title} - ${!isUTAGE ? Emojis[selectedSheet.type.toUpperCase() as 'DX' | 'STD'] + ' ' : ''}`,
+                    getDifficultyEmoji(getDifficultyIdFromName(selectedSheet.difficulty)),
+                ];
+
                 interaction.editReply({
                     embeds: [
                         {
-                            title: `${song.title} - ${!isUTAGE ? Emojis[selectedSheet.type.toUpperCase() as 'DX' | 'STD'] + ' ' : ''}${getDifficultyEmoji(getDifficultyIdFromName(selectedSheet.difficulty))}`,
+                            title:
+                                title.join(' ').length >= 256
+                                    ? title[0] +
+                                      DifficultyDisplayName[
+                                          getDifficultyIdFromName(selectedSheet.difficulty) as Difficulty
+                                      ]
+                                    : title.join(' '),
                             description: [
                                 `Artist: ${song.artist}`,
                                 `Category: ${song.category}`,
                                 `BPM: ${song.bpm}`,
                                 `Version: ${song.version}`,
-                                `Level: ${selectedSheet.level} (${selectedSheet.internalLevelValue})`,
+                                `Level: ${selectedSheet.level} (${selectedSheet.internalLevelValue.toFixed(1)})`,
                                 `Note Designer: ${selectedSheet.noteDesigner}`,
                             ].join('\n'),
                             fields: [
