@@ -4,6 +4,7 @@ import 'dotenv/config';
 import init from './lib/init';
 import MaimaiDXNetFetcher from './lib/maimaiDXNetFetcher';
 import Logger from 'src/lib/logger';
+import SongDataFetcher from './lib/SongDataFetcher';
 
 const mainLogger = new Logger('main');
 process.logger = mainLogger;
@@ -27,6 +28,8 @@ const fetcher = MaimaiDXNetFetcher.getInstance();
 
 client.on('ready', async () => {
     client.logger.log(`Logged in as ${client.user?.tag}`);
+
+    SongDataFetcher.getInstance();
 
     const files = fs.readdirSync('./src/commands').filter((file) => file.endsWith('.command.ts'));
 
