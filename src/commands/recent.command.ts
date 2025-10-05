@@ -17,7 +17,7 @@ import {
 import fs from 'fs';
 import SongDataFetcher from 'src/lib/SongDataFetcher';
 import { getDifficultyEmoji, getDifficultyIdFromName } from 'src/lib/Utils';
-import { Difficulty } from 'src/lib/CommonEnums';
+import { ChartType, ComboType, Difficulty, SyncType } from 'src/lib/CommonEnums';
 import { Emojis } from 'src/lib/constant/emojis';
 
 const DifficultyColor = {
@@ -27,6 +27,27 @@ const DifficultyColor = {
     [Difficulty.Master]: 0x9f51dc,
     [Difficulty.ReMaster]: 0xdbaaff,
     [Difficulty.UTAGE]: 0xff6ffd,
+};
+
+const SyncEmojiName = {
+    [SyncType.FS]: 'FS',
+    [SyncType.FSp]: 'FSp',
+    [SyncType.FDX]: 'FDX',
+    [SyncType.FDXp]: 'FDXp',
+    [SyncType.SYNC]: 'SYNC',
+};
+
+const ComboEmojiName = {
+    [ComboType.FC]: 'FC',
+    [ComboType.FCp]: 'FCp',
+    [ComboType.AP]: 'AP',
+    [ComboType.APp]: 'APp',
+};
+
+const ChartTypeEmojiName: Record<ChartType, 'STD' | 'DX'> = {
+    [ChartType.STD]: 'STD',
+    [ChartType.DX]: 'DX',
+    [ChartType.UTAGE]: 'DX',
 };
 
 const ActionRow = new ActionRowBuilder<ButtonBuilder>()
@@ -87,11 +108,11 @@ const execute = async (interaction: ChatInputCommandInteraction) => {
                 let trackInfoText = new TextDisplayBuilder().setContent(
                     [
                         `## ${track.songName}`,
-                        `### ${track.achievement} ${track.achievementNewRecord ? '(New Record)' : ''}`,
-                        `${Emojis[track.chartType.toUpperCase() as 'DX' | 'STD']} ${getDifficultyEmoji(getDifficultyIdFromName(track.difficulty))}`,
-                        `DX Score: ${track.dxScore} ${track.dxScoreNewRecord ? '(New Record)' : ''}`,
-                        `Combo: ${track.combo}\tSync: ${track.sync}`,
-                        `${track.fcType === '' && track.syncType === '' ? '' : '# '}${track.fcType === '' ? '' : Emojis[`${track.fcType.replace(/[+]/g, 'p')}_Short` as keyof typeof Emojis]} ${track.syncType === '' ? '' : Emojis[`${track.syncType.replace(/[+]/g, 'p')}${track.syncType === 'SYNC' ? '' : '_Short'}` as keyof typeof Emojis]}`,
+                        `### ${track.achievement}% ${track.achievementNewRecord ? '(New Record)' : ''}`,
+                        `${Emojis[ChartTypeEmojiName[track.chartType as keyof typeof ChartTypeEmojiName]]} ${getDifficultyEmoji(track.difficulty)}`,
+                        `DX Score: ${track.dxScore.join('/')} ${track.dxScoreNewRecord ? '(New Record)' : ''}`,
+                        `Combo: ${track.combo.join('/')}\tSync: ${track.sync.join('/')}`,
+                        `${track.fcType === ComboType.None && track.syncType === SyncType.None ? '' : '# '}${track.fcType === ComboType.None ? '' : Emojis[`${ComboEmojiName[track.fcType as keyof typeof ComboEmojiName]}_Short` as keyof typeof Emojis]} ${track.syncType === SyncType.None ? '' : Emojis[`${SyncEmojiName[track.syncType as keyof typeof SyncEmojiName]}${track.syncType === SyncType.SYNC ? '' : '_Short'}` as keyof typeof Emojis]}`,
                     ].join('\n'),
                 );
                 let trackInfoThumbnail = new ThumbnailBuilder().setURL(
