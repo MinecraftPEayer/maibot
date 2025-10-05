@@ -45,4 +45,12 @@ enum ChartType {
     UTAGE = 2,
 }
 
-export { Difficulty, ScoreType, Genres, SyncType, ComboType, ChartType };
+enum TitleType {
+    Normal = 0,
+    Bronze = 1,
+    Silver = 2,
+    Gold = 3,
+    Rainbow = 4,
+}
+
+export { Difficulty, ScoreType, Genres, SyncType, ComboType, ChartType, TitleType };

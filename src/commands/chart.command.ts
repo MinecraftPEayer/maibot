@@ -21,7 +21,7 @@ import {
 import axios from 'axios';
 import fs from 'fs';
 import sharp from 'sharp';
-import { ComboType, Difficulty, ScoreType, SyncType } from 'src/lib/CommonEnums';
+import { ComboType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
 import { B50Data, ScoreData } from 'types/SongDatabase';
 import { DifficultyDisplayName } from 'src/lib/constant/CommonConstant';
 import * as StackBlur from 'stackblur-canvas';
@@ -30,11 +30,19 @@ import Logger from 'src/lib/logger';
 type PlayerInfo = {
     name: string;
     avatar: string;
-    rating: string;
+    rating: number;
     title: string;
-    titleType: string;
+    titleType: TitleType;
     course: string;
     classRank: string;
+};
+
+const TitleTypeName = {
+    [TitleType.Normal]: 'Normal',
+    [TitleType.Bronze]: 'Bronze',
+    [TitleType.Silver]: 'Silver',
+    [TitleType.Gold]: 'Gold',
+    [TitleType.Rainbow]: 'Rainbow',
 };
 
 let diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
@@ -383,14 +391,14 @@ async function drawAndSendChart(
 
     const ratingImg = await loadImage(
         await getImageBuffer(
-            `https://chart.minecraftpeayer.me/api/proxy/img?url=https://maimaidx-eng.com/maimai-mobile/img/rating_base_${getRatingBaseImage(parseInt(playerData.rating))}.png`,
+            `https://chart.minecraftpeayer.me/api/proxy/img?url=https://maimaidx-eng.com/maimai-mobile/img/rating_base_${getRatingBaseImage(playerData.rating)}.png`,
         ),
     );
     ctx.drawImage(ratingImg, 172, 70, 104, 30);
     ctx.font = `14px ${FontStack}`;
     ctx.fillStyle = 'white';
     let baseX = 217;
-    let rating = playerData.rating;
+    let rating = String(playerData.rating);
     let ratingArray = [];
     for (let i = 0; i < 5 - rating.length; i++) {
         ratingArray.push(' ');
@@ -427,7 +435,7 @@ async function drawAndSendChart(
 
     const titleBackImg = await loadImage(
         await getImageBuffer(
-            `https://chart.minecraftpeayer.me/api/proxy/img?url=https://maimaidx-eng.com/maimai-mobile/img/trophy_${playerData.titleType.toLowerCase()}.png`,
+            `https://chart.minecraftpeayer.me/api/proxy/img?url=https://maimaidx-eng.com/maimai-mobile/img/trophy_${TitleTypeName[playerData.titleType].toLowerCase()}.png`,
         ),
     );
 
@@ -632,9 +640,9 @@ async function execute(interaction: ChatInputCommandInteraction) {
     let playerInfo: PlayerInfo = {
         name: ' ',
         avatar: 'https://maimaidx-eng.com/maimai-mobile/img/Icon/34f0363f4ce86d07.png',
-        rating: '0',
+        rating: 0,
         title: ' ',
-        titleType: 'Normal',
+        titleType: TitleType.Normal,
         course: 'https://maimaidx-eng.com/maimai-mobile/img/course/course_rank_00T7GHJvGe.png',
         classRank: 'https://maimaidx-eng.com/maimai-mobile/img/class/class_rank_s_00ZqZmdpb8.png',
     };
@@ -648,16 +656,13 @@ async function execute(interaction: ChatInputCommandInteraction) {
             scores[key] = latestData.allScores[key].map((score: any) => {
                 return {
                     title: score.name,
-                    type: getChartTypeFromName(score.chartType),
-                    difficulty: getDifficultyIdFromName(score.difficulty) || Difficulty.Basic,
+                    type: score.chartType,
+                    difficulty: score.difficulty || Difficulty.Basic,
                     achievement: parseFloat(score.achievement),
-                    comboType: ComboType[score.comboType.replace(/[+]/g, 'p')] || ComboType.None,
-                    syncType: SyncType[score.syncType.replace(/[+]/g, 'p')] || SyncType.None,
-                    dxScore: parseInt(score.dxScore.split('/')[0].replace(/,/g, '')),
-                    dxStar: convertDXScoreToStar(
-                        parseInt(score.dxScore.split('/')[0].replace(/,/g, '')),
-                        parseInt(score.dxScore.split('/')[1].replace(/,/g, '')),
-                    ),
+                    comboType: score.comboType || ComboType.None,
+                    syncType: score.syncType || SyncType.None,
+                    dxScore: parseInt(score.dxScore[0]),
+                    dxStar: convertDXScoreToStar(score.dxScore[0], score.dxScore[1]),
                 };
             });
         }
@@ -732,9 +737,9 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         playerInfo = (await fetcher.getPlayer(friendCode)) ?? {
                             name: '',
                             avatar: '',
-                            rating: '',
+                            rating: 0,
                             title: '',
-                            titleType: '',
+                            titleType: TitleType.Normal,
                             course: '',
                             classRank: '',
                         };
@@ -792,9 +797,9 @@ async function execute(interaction: ChatInputCommandInteraction) {
             playerInfo = (await fetcher.getPlayer(friendCode)) ?? {
                 name: '',
                 avatar: '',
-                rating: '',
+                rating: 0,
                 title: '',
-                titleType: '',
+                titleType: TitleType.Normal,
                 course: '',
                 classRank: '',
             };

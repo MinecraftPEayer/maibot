@@ -35,26 +35,26 @@ async function execute(interaction: ChatInputCommandInteraction) {
         };
 
         let ov = data.playerData.overviewData;
-        SSSp = ov.SSSp.split('/')[0];
-        SSS = ov.SSS.split('/')[0];
-        SSp = ov.SSp.split('/')[0];
-        SS = ov.SS.split('/')[0];
-        Sp = ov.Sp.split('/')[0];
-        S = ov.S.split('/')[0];
-        CLEAR = ov.CLEAR.split('/')[0];
-        APp = ov.APp.split('/')[0];
-        AP = ov.AP.split('/')[0];
-        FCp = ov.FCp.split('/')[0];
-        FC = ov.FC.split('/')[0];
-        FDXp = ov.FDXp.split('/')[0];
-        FDX = ov.FDX.split('/')[0];
-        FSp = ov.FSp.split('/')[0];
-        FS = ov.FS.split('/')[0];
-        star5 = ov.dxstar_5.split('/')[0];
-        star4 = ov.dxstar_4.split('/')[0];
-        star3 = ov.dxstar_3.split('/')[0];
-        star2 = ov.dxstar_2.split('/')[0];
-        star1 = ov.dxstar_1.split('/')[0];
+        SSSp = ov.SSSp[0];
+        SSS = ov.SSS[0];
+        SSp = ov.SSp[0];
+        SS = ov.SS[0];
+        Sp = ov.Sp[0];
+        S = ov.S[0];
+        CLEAR = ov.CLEAR[0];
+        APp = ov.APp[0];
+        AP = ov.AP[0];
+        FCp = ov.FCp[0];
+        FC = ov.FC[0];
+        FDXp = ov.FDXp[0];
+        FDX = ov.FDX[0];
+        FSp = ov.FSp[0];
+        FS = ov.FS[0];
+        star5 = ov.dxstar_5[0];
+        star4 = ov.dxstar_4[0];
+        star3 = ov.dxstar_3[0];
+        star2 = ov.dxstar_2[0];
+        star1 = ov.dxstar_1[0];
     } else {
         if (optionUser && !db.has(optionUser.id)) {
             return await interaction.reply(`${optionUser.username} 還沒綁定帳號`);

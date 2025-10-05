@@ -2,7 +2,7 @@ import cookieParser, { Cookie } from 'set-cookie-parser';
 import { JSDOM } from 'jsdom';
 import fs, { stat } from 'fs';
 import axios from 'axios';
-import { ChartType, ComboType, Difficulty, Genres, ScoreType, SyncType } from './CommonEnums';
+import { ChartType, ComboType, Difficulty, Genres, ScoreType, SyncType, TitleType } from './CommonEnums';
 import { DifficultyDisplayName, DifficultyName } from './constant/CommonConstant';
 import Logger from './logger';
 
@@ -181,9 +181,9 @@ class MaimaiDXNetFetcher {
     async getPlayer(friendCode: string): Promise<{
         name: string;
         avatar: string;
-        rating: string;
+        rating: number;
         title: string;
-        titleType: string;
+        titleType: TitleType;
         course: string;
         classRank: string;
     } | null> {
@@ -223,18 +223,18 @@ class MaimaiDXNetFetcher {
                 dom = new JSDOM(resp.data);
             }
             let name = dom.window.document.querySelector('.name_block')?.textContent ?? '';
-            let rating = dom.window.document.querySelector('.rating_block')?.textContent ?? '';
+            let rating = parseInt(dom.window.document.querySelector('.rating_block')?.textContent ?? '0');
             let avatar = dom.window.document.querySelector('.basic_block > img')?.getAttribute('src') ?? '';
 
             let title =
                 dom.window.document.querySelector('.trophy_inner_block')?.textContent.replace(/[\t\n]/g, '') ?? '';
             let titleType;
-            if (dom.window.document.querySelector('.trophy_Normal')) titleType = 'Normal';
-            else if (dom.window.document.querySelector('.trophy_Bronze')) titleType = 'Bronze';
-            else if (dom.window.document.querySelector('.trophy_Silver')) titleType = 'Silver';
-            else if (dom.window.document.querySelector('.trophy_Gold')) titleType = 'Gold';
-            else if (dom.window.document.querySelector('.trophy_Rainbow')) titleType = 'Rainbow';
-            else titleType = 'None';
+            if (dom.window.document.querySelector('.trophy_Normal')) titleType = TitleType.Normal;
+            else if (dom.window.document.querySelector('.trophy_Bronze')) titleType = TitleType.Bronze;
+            else if (dom.window.document.querySelector('.trophy_Silver')) titleType = TitleType.Silver;
+            else if (dom.window.document.querySelector('.trophy_Gold')) titleType = TitleType.Gold;
+            else if (dom.window.document.querySelector('.trophy_Rainbow')) titleType = TitleType.Rainbow;
+            else titleType = TitleType.Normal;
 
             let course = dom.window.document.querySelectorAll('.h_35.f_l')[0]?.getAttribute('src') ?? '';
             let classRank = dom.window.document.querySelectorAll('.h_35.f_l')[1]?.getAttribute('src') ?? '';
@@ -434,9 +434,9 @@ class MaimaiDXNetFetcher {
             playerData: {
                 name: string;
                 avatar: string;
-                rating: string;
+                rating: number;
                 title: string;
-                titleType: string;
+                titleType: TitleType;
                 course: string;
                 classRank: string;
             };
@@ -474,9 +474,9 @@ class MaimaiDXNetFetcher {
         playerData: {
             name: string;
             avatar: string;
-            rating: string;
+            rating: number;
             title: string;
-            titleType: string;
+            titleType: TitleType;
             course: string;
             classRank: string;
         };
