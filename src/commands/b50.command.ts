@@ -16,7 +16,7 @@ import {
     getDifficultyEmoji,
     getDifficultyIdFromName,
 } from 'src/lib/Utils';
-import { ComboType, Difficulty, ScoreType, SyncType } from 'src/lib/CommonEnums';
+import { ComboType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
 import { Emojis } from 'src/lib/constant/emojis';
 import { ScoreData } from 'types/SongDatabase';
 import fs from 'fs';
@@ -25,9 +25,9 @@ import { DifficultyDisplayName } from 'src/lib/constant/CommonConstant';
 type PlayerInfo = {
     name: string;
     avatar: string;
-    rating: string;
+    rating: number;
     title: string;
-    titleType: string;
+    titleType: TitleType;
     course: string;
     classRank: string;
 };
@@ -199,9 +199,9 @@ async function execute(interaction: ChatInputCommandInteraction) {
     let playerInfo: PlayerInfo = {
         name: '',
         avatar: '',
-        rating: '',
+        rating: 0,
         title: '',
-        titleType: '',
+        titleType: TitleType.Normal,
         course: '',
         classRank: '',
     };
@@ -217,16 +217,13 @@ async function execute(interaction: ChatInputCommandInteraction) {
             scores[key] = latestData.allScores[key].map((score: any) => {
                 return {
                     title: score.name,
-                    type: getChartTypeFromName(score.chartType),
-                    difficulty: getDifficultyIdFromName(score.difficulty) || Difficulty.Basic,
-                    achievement: parseFloat(score.achievement),
-                    comboType: ComboType[score.comboType.replace(/[+]/g, 'p')] || ComboType.None,
-                    syncType: SyncType[score.syncType.replace(/[+]/g, 'p')] || SyncType.None,
-                    dxScore: parseInt(score.dxScore.split('/')[0].replace(/,/g, '')),
-                    dxStar: convertDXScoreToStar(
-                        parseInt(score.dxScore.split('/')[0].replace(/,/g, '')),
-                        parseInt(score.dxScore.split('/')[1].replace(/,/g, '')),
-                    ),
+                    type: score.chartType,
+                    difficulty: score.difficulty || Difficulty.Basic,
+                    achievement: score.achievement,
+                    comboType: score.comboType || ComboType.None,
+                    syncType: score.syncType || SyncType.None,
+                    dxScore: score.dxScore[0],
+                    dxStar: convertDXScoreToStar(score.dxScore[0], score.dxScore[1]),
                 };
             });
         }
@@ -299,9 +296,9 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         playerInfo = (await fetcher.getPlayer(friendCode)) ?? {
                             name: '',
                             avatar: '',
-                            rating: '',
+                            rating: 0,
                             title: '',
-                            titleType: '',
+                            titleType: TitleType.Normal,
                             course: '',
                             classRank: '',
                         };
@@ -354,9 +351,9 @@ async function execute(interaction: ChatInputCommandInteraction) {
             playerInfo = (await fetcher.getPlayer(friendCode)) ?? {
                 name: '',
                 avatar: '',
-                rating: '',
+                rating: 0,
                 title: '',
-                titleType: '',
+                titleType: TitleType.Normal,
                 course: '',
                 classRank: '',
             };
