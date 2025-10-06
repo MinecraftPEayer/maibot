@@ -26,16 +26,7 @@ import { B50Data, ScoreData } from 'types/SongDatabase';
 import { DifficultyDisplayName } from 'src/lib/constant/CommonConstant';
 import * as StackBlur from 'stackblur-canvas';
 import Logger from 'src/lib/logger';
-
-type PlayerInfo = {
-    name: string;
-    avatar: string;
-    rating: number;
-    title: string;
-    titleType: TitleType;
-    course: string;
-    classRank: string;
-};
+import { PlayerInfo } from 'types/main';
 
 const TitleTypeName = {
     [TitleType.Normal]: 'Normal',

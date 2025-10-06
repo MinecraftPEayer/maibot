@@ -16,7 +16,7 @@ import exception from 'config/exception.json';
 import { Emojis } from 'src/lib/constant/emojis';
 import JSONdb from 'simple-json-db';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
-import { ComboType, Difficulty, ScoreType, SyncType } from 'src/lib/CommonEnums';
+import { ComboType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
 import {
     calculateRating,
     calculateScore,
@@ -28,16 +28,7 @@ import {
 import { B50Data, ScoreData, Sheet, Song } from 'types/SongDatabase';
 import { DifficultyDisplayName, DifficultyName } from 'src/lib/constant/CommonConstant';
 import fs from 'fs';
-
-type PlayerInfo = {
-    name: string;
-    avatar: string;
-    rating: string;
-    title: string;
-    titleType: string;
-    course: string;
-    classRank: string;
-};
+import { PlayerInfo } from 'types/main';
 
 const diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
 
@@ -344,9 +335,9 @@ async function execute(interaction: ChatInputCommandInteraction) {
                                     playerInfo = (await fetcher.getPlayer(friendCode)) ?? {
                                         name: '',
                                         avatar: '',
-                                        rating: '',
+                                        rating: 0,
                                         title: '',
-                                        titleType: '',
+                                        titleType: TitleType.Normal,
                                         course: '',
                                         classRank: '',
                                     };
@@ -412,9 +403,9 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         playerInfo = (await DXNetFetcher.getPlayer(friendCode)) || {
                             name: '',
                             avatar: '',
-                            rating: '',
+                            rating: 0,
                             title: '',
-                            titleType: '',
+                            titleType: TitleType.Normal,
                             course: '',
                             classRank: '',
                         };

@@ -19,18 +19,9 @@ import {
 import { ComboType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
 import { Emojis } from 'src/lib/constant/emojis';
 import { ScoreData } from 'types/SongDatabase';
+import { PlayerInfo } from 'types/main';
 import fs from 'fs';
 import { DifficultyDisplayName } from 'src/lib/constant/CommonConstant';
-
-type PlayerInfo = {
-    name: string;
-    avatar: string;
-    rating: number;
-    title: string;
-    titleType: TitleType;
-    course: string;
-    classRank: string;
-};
 
 let diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
 
