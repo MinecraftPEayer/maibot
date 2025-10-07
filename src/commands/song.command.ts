@@ -236,18 +236,17 @@ async function execute(interaction: ChatInputCommandInteraction) {
                             return item.map((score: any) => {
                                 return {
                                     title: score.name,
-                                    type: getChartTypeFromName(score.chartType),
+                                    type: score.chartType,
                                     difficulty:
-                                        (getDifficultyIdFromName(score.difficulty) as Difficulty) || Difficulty.Basic,
-                                    achievement: parseFloat(score.achievement),
-                                    comboType: (ComboType[score.comboType.replace(/[+]/g, 'p')] ||
-                                        ComboType.None) as ComboType,
-                                    syncType: (SyncType[score.syncType.replace(/[+]/g, 'p')] ||
-                                        SyncType.None) as SyncType,
-                                    dxScore: parseInt(score.dxScore.split('/')[0].replace(/,/g, '')),
+                                        score.difficulty || Difficulty.Basic,
+                                    achievement: score.achievement,
+                                    comboType: score.comboType || SyncType.None,
+                                    syncType: score.syncType ||
+                                        SyncType.None,
+                                    dxScore: score.dxScore[0],
                                     dxStar: convertDXScoreToStar(
-                                        parseInt(score.dxScore.split('/')[0].replace(/,/g, '')),
-                                        parseInt(score.dxScore.split('/')[1].replace(/,/g, '')),
+                                        score.dxScore[0],
+                                        score.dxScore[1],
                                     ),
                                 };
                             });
