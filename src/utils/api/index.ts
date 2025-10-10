@@ -13,7 +13,24 @@ export default async () => {
 
     const noAuthPaths = ['/img/dynamic/noteTable'];
 
-    app.use((req, res, next) => {
+    let dynamicLoadingList: string[] = [];
+
+    app.use(async (req, res, next) => {
+        if (dynamicLoadingList.includes(req.path)) {
+            const routePath = `src/utils/api/routes${req.path}/route.ts`;
+            delete require.cache[require.resolve(routePath)];
+            let route = await import(`${routePath}?t=${Date.now()}`);
+
+            if (!route[req.method]) {
+                res.status(405).json({ error: 'Method Not Allowed' });
+                return;
+            }
+
+            route[req.method](req, res);
+            logger.log(`${req.method} ${req.path} ${res.statusCode} (dynamic)`);
+            return;
+        }
+
         if (req.headers['authorization'] !== `Bearer ${process.env.API_KEY}` && !noAuthPaths.includes(req.path)) {
             res.status(403).json({ error: 'Forbidden' });
         } else {
@@ -29,6 +46,14 @@ export default async () => {
             if (fs.statSync(`${path}/${item}`).isDirectory()) loadPath(`${path}/${item}`);
             if (fs.existsSync(`${path}/${item}/route.ts`)) {
                 let route = await import(`${path}/${item}/route.ts`);
+
+                if (route.debug) {
+                    // 動態載入，而非啟動時載入
+                    dynamicLoadingList.push(`${path.replace(basePath, '')}/${item}`);
+                    logger.log(`Loaded debug route: ${path.replace(basePath, '')}/${item}`);
+                    return;
+                }
+
                 if (route.GET) {
                     app.get(`${path.replace(basePath, '')}/${item}`, await route.GET);
                     logger.log(`Registered GET ${path.replace(basePath, '')}/${item}`);
