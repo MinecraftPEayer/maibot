@@ -9,13 +9,7 @@ import {
 } from 'discord.js';
 import JSONdb from 'simple-json-db';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
-import {
-    calculateB50,
-    convertDXScoreToStar,
-    getChartTypeFromName,
-    getDifficultyEmoji,
-    getDifficultyIdFromName,
-} from 'src/lib/Utils';
+import { calculateB50, convertDXScoreToStar, getDifficultyEmoji } from 'src/lib/Utils';
 import { ComboType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
 import { Emojis } from 'src/lib/constant/emojis';
 import { ScoreData } from 'types/SongDatabase';

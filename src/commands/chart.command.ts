@@ -9,18 +9,8 @@ import {
 import { createCanvas, loadImage, registerFont, CanvasRenderingContext2D, Canvas } from 'canvas';
 import JSONdb from 'simple-json-db';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
-import {
-    calculateB50,
-    convertDXScoreToStar,
-    getChartTypeFromName,
-    getDifficultyIdFromName,
-    getRatingBaseImage,
-    initializeFonts,
-    FontStack,
-} from 'src/lib/Utils';
-import axios from 'axios';
+import { calculateB50, convertDXScoreToStar, getRatingBaseImage, initializeFonts, FontStack } from 'src/lib/Utils';
 import fs from 'fs';
-import sharp from 'sharp';
 import { ComboType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
 import { B50Data, ScoreData } from 'types/SongDatabase';
 import { DifficultyDisplayName } from 'src/lib/constant/CommonConstant';

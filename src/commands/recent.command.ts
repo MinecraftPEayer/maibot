@@ -16,7 +16,7 @@ import {
 } from 'discord.js';
 import fs from 'fs';
 import SongDataFetcher from 'src/lib/SongDataFetcher';
-import { getDifficultyEmoji, getDifficultyIdFromName } from 'src/lib/Utils';
+import { getDifficultyEmoji } from 'src/lib/Utils';
 import { ChartType, ComboType, Difficulty, SyncType } from 'src/lib/CommonEnums';
 import { Emojis } from 'src/lib/constant/emojis';
 

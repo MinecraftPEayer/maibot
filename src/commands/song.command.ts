@@ -16,7 +16,7 @@ import exception from 'config/exception.json';
 import { Emojis } from 'src/lib/constant/emojis';
 import JSONdb from 'simple-json-db';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
-import { ComboType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
+import { Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
 import {
     calculateRating,
     calculateScore,
@@ -237,17 +237,12 @@ async function execute(interaction: ChatInputCommandInteraction) {
                                 return {
                                     title: score.name,
                                     type: score.chartType,
-                                    difficulty:
-                                        score.difficulty || Difficulty.Basic,
+                                    difficulty: score.difficulty || Difficulty.Basic,
                                     achievement: score.achievement,
                                     comboType: score.comboType || SyncType.None,
-                                    syncType: score.syncType ||
-                                        SyncType.None,
+                                    syncType: score.syncType || SyncType.None,
                                     dxScore: score.dxScore[0],
-                                    dxStar: convertDXScoreToStar(
-                                        score.dxScore[0],
-                                        score.dxScore[1],
-                                    ),
+                                    dxStar: convertDXScoreToStar(score.dxScore[0], score.dxScore[1]),
                                 };
                             });
                         })

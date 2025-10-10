@@ -5,7 +5,6 @@ import init from './lib/init';
 import MaimaiDXNetFetcher from './lib/maimaiDXNetFetcher';
 import Logger from 'src/lib/logger';
 import SongDataFetcher from './lib/SongDataFetcher';
-import { error } from 'console';
 
 const mainLogger = new Logger('main');
 process.logger = mainLogger;
