@@ -5,6 +5,7 @@ import init from './lib/init';
 import MaimaiDXNetFetcher from './lib/maimaiDXNetFetcher';
 import Logger from 'src/lib/logger';
 import SongDataFetcher from './lib/SongDataFetcher';
+import { error } from 'console';
 
 const mainLogger = new Logger('main');
 process.logger = mainLogger;
@@ -45,24 +46,22 @@ client.on('ready', async () => {
 
     const rest = new REST({ version: '9' }).setToken(process.env.TOKEN!);
 
-    await rest
-        .put(Routes.applicationCommands(client.user!.id), {
+    try {
+        await rest.put(Routes.applicationCommands(client.user!.id), {
             body: commands,
-        })
-        .then(() => {
-            client.logger.log('[CommandRegister] Successfully registered application commands.');
-        })
-        .catch(client.logger.error);
+        });
+        client.logger.log('[CommandRegister] Successfully registered application commands.');
+    } catch (error) {
+        client.logger.error('[CommandRegister] Failed to register application commands.', error);
+    }
 
-    await rest
-        .put(Routes.applicationGuildCommands(client.user!.id, '1120284154957930588'), {
+    try {
+        await rest.put(Routes.applicationGuildCommands(client.user!.id, '1120284154957930588'), {
             body: commands,
-        })
-        .then(() => {
-            client.logger.log('[CommandRegister] Successfully registered guild application commands.');
-        })
-        .catch(client.logger.error);
-
+        });
+    } catch (error) {
+        client.logger.error('[CommandRegister] Failed to register guild commands.', error);
+    }
     await fetcher.login();
 
     (await import('src/utils/api/index')).default();

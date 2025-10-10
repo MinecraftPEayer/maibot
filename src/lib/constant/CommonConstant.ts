@@ -1,4 +1,4 @@
-import { Difficulty, ChartType } from '../CommonEnums';
+import { Difficulty, ChartType, TitleType } from '../CommonEnums';
 
 export const ChartTypeName: {
     [key in ChartType | string]: 'STD' | 'DX' | 'UTAGE';
@@ -58,4 +58,12 @@ export const RankFactor = {
     B: 0.096,
     C: 0.08,
     D: 0.05,
+};
+
+export const TitleTypeName = {
+    [TitleType.Normal]: 'Normal',
+    [TitleType.Bronze]: 'Bronze',
+    [TitleType.Silver]: 'Silver',
+    [TitleType.Gold]: 'Gold',
+    [TitleType.Rainbow]: 'Rainbow',
 };
