@@ -2,16 +2,12 @@ export const debug = true;
 
 import { Request, Response } from 'express';
 import { Chart } from 'chart.js/auto';
-import { createCanvas, loadImage, CanvasRenderingContext2D } from 'canvas';
+import { createCanvas, loadImage } from 'canvas';
 import fs from 'fs';
 import { calculateB50, convertDXScoreToStar, FontStack, getRatingBaseImage, initializeFonts } from 'src/lib/Utils';
 import { ComboType, Difficulty, SyncType, TitleType } from 'src/lib/CommonEnums';
 import { ScoreData } from 'types/SongDatabase';
-import sharp from 'sharp';
-import Logger from 'src/lib/logger';
-import axios from 'axios';
-
-const logger = new Logger('API/DEBUG/CHART');
+import { getImageBuffer, drawRoundRect } from 'src/lib/DrawImageUtils';
 
 const TitleTypeName = {
     [TitleType.Normal]: 'Normal',
@@ -20,51 +16,6 @@ const TitleTypeName = {
     [TitleType.Gold]: 'Gold',
     [TitleType.Rainbow]: 'Rainbow',
 };
-
-async function getImageBuffer(imageURL: string, cache?: boolean): Promise<Buffer> {
-    if (cache === undefined) cache = false;
-    try {
-        let url = new URL(imageURL);
-        if (fs.existsSync(`tmp/cache/image/${url.pathname.split('/').pop()}`) && cache) {
-            const Buffer = fs.readFileSync(`tmp/cache/image/${url.pathname.split('/').pop()}`);
-            return sharp(Buffer).png().toBuffer();
-        } else {
-            const response = await axios.get(imageURL, {
-                responseType: 'arraybuffer',
-                headers: {
-                    'User-Agent':
-                        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
-                },
-                validateStatus: (status) => status < 500,
-            });
-            const buffer = Buffer.from(response.data);
-            if (cache) {
-                fs.writeFileSync(`tmp/cache/image/${url.pathname.split('/').pop()}`, buffer);
-            }
-            return await sharp(buffer).png().toBuffer();
-        }
-    } catch (error) {
-        logger.error(`Error fetching image from ${imageURL}:`, error);
-        return Buffer.alloc(0);
-    }
-}
-function drawRoundRect(options: {
-    ctx: CanvasRenderingContext2D;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    radius: number;
-    fillStyle: string;
-}) {
-    const { ctx, x, y, width, height, radius, fillStyle } = options;
-    let originalFillStyle = ctx.fillStyle;
-    ctx.fillStyle = fillStyle;
-    ctx.beginPath();
-    ctx.roundRect(x, y, width, height, radius);
-    ctx.fill();
-    ctx.fillStyle = originalFillStyle;
-}
 
 export async function GET(req: Request, res: Response) {
     initializeFonts();
