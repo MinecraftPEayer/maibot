@@ -111,7 +111,7 @@ const execute = async (interaction: ChatInputCommandInteraction) => {
                         `### ${track.achievement}% ${track.achievementNewRecord ? '(New Record)' : ''}`,
                         `${Emojis[ChartTypeEmojiName[track.chartType as keyof typeof ChartTypeEmojiName]]} ${getDifficultyEmoji(track.difficulty)}`,
                         `DX Score: ${track.dxScore.join('/')} ${track.dxScoreNewRecord ? '(New Record)' : ''}`,
-                        `Combo: ${track.combo.join('/')}\tSync: ${track.sync.join('/')}`,
+                        `Combo: ${track.combo.join('/')}\tSync: ${track.sync[0] === -1 ? '―' : track.sync.join('/')}`,
                         `${track.fcType === ComboType.None && track.syncType === SyncType.None ? '' : '# '}${track.fcType === ComboType.None ? '' : Emojis[`${ComboEmojiName[track.fcType as keyof typeof ComboEmojiName]}_Short` as keyof typeof Emojis]} ${track.syncType === SyncType.None ? '' : Emojis[`${SyncEmojiName[track.syncType as keyof typeof SyncEmojiName]}${track.syncType === SyncType.SYNC ? '' : '_Short'}` as keyof typeof Emojis]}`,
                     ].join('\n'),
                 );
