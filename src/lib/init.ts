@@ -18,5 +18,9 @@ export default async () => {
         fs.writeFileSync('commit_hash.txt', data.sha);
     }
 
-    process.logger.log(`Starting bot (git-master-${fs.readFileSync('commit_hash.txt', 'utf-8').slice(0, 7)})`);
+    process.BuildVersion = process.env.DEVELOPMENT
+        ? 'dev'
+        : `git-master-${fs.readFileSync('commit_hash.txt', 'utf-8').slice(0, 7)}`;
+
+    process.logger.log(`Starting bot (${process.BuildVersion})`);
 };

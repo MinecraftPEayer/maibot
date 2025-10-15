@@ -5,6 +5,7 @@ import { TitleType } from 'src/lib/CommonEnums';
 declare global {
     namespace NodeJS {
         export interface Process {
+            BuildVersion: string;
             logger: Logger;
         }
     }
