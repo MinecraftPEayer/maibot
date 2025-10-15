@@ -10,25 +10,39 @@ const data = new SlashCommandBuilder()
 async function execute(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply();
     const ratingNeeded = interaction.options.getInteger('rating');
-    let result = [];
+    let result: {
+        constant: string;
+        achievement: string;
+        rank: string;
+    }[] = [];
     for (let constant = 1; constant <= 15; constant += 0.1) {
         let achievement = 0;
-        while (parseFloat(achievement.toFixed(4)) <= 100.5) {
+
+        let calculateRate = 1;
+        while (parseFloat(achievement.toFixed(4)) <= 101) {
             const rating = Math.floor(
-                (parseFloat(achievement.toFixed(4)) / 100) *
+                (parseFloat((achievement > 100.5 ? 100.5 : achievement).toFixed(4)) / 100) *
                     RankFactor[convertAchievementToRank(parseFloat(achievement.toFixed(4)))] *
                     parseFloat(constant.toFixed(1)) *
                     100,
             );
             if (rating >= (ratingNeeded ?? 0)) {
-                result.push({
-                    constant: constant.toFixed(1),
-                    achievement: achievement.toFixed(4),
-                    rank: convertAchievementToRank(parseFloat(achievement.toFixed(4))),
-                });
-                break;
+                if (calculateRate === 0.0001) {
+                    if (!result.some((item) => item.achievement === achievement.toFixed(4))) {
+                        result.push({
+                            constant: constant.toFixed(1),
+                            achievement: achievement.toFixed(4),
+                            rank: convertAchievementToRank(parseFloat(achievement.toFixed(4))),
+                        });
+                    }
+                    break;
+                } else {
+                    achievement -= calculateRate;
+                    calculateRate /= 10;
+                }
             }
-            achievement += 0.01;
+
+            achievement += calculateRate;
         }
     }
 
@@ -38,10 +52,12 @@ async function execute(interaction: ChatInputCommandInteraction) {
         });
     }
 
-    let resultString = `Rating: ${ratingNeeded}\`\`\`\nConstant - Achievement    (Rank)\n`;
+    let resultString = `Rating: ${ratingNeeded}\`\`\`\n${'Constant'.padEnd(10, ' ')} - ${'Achievement'.padEnd(12, ' ')} (Rank)\n`;
+    let index = 0;
     for (let item of result) {
-        let index = result.indexOf(item);
-        let toAddString = `${parseFloat(item.constant) < 10 ? `${item.constant} ` : item.constant}     - ${parseFloat(item.achievement) < 100 ? ` ${item.achievement}` : item.achievement}%      (${item.rank})`;
+        let thisConstant = parseFloat(item.constant);
+        let nextConstant = parseFloat(result[index + 1]?.constant);
+        let toAddString = `${`${parseFloat(item.constant).toFixed(1)}${parseFloat((nextConstant - thisConstant).toFixed(1)) > 0.1 ? `~${(nextConstant - 0.1).toFixed(1)}` : `${index === result.length - 1 ? '~' : ''}`}`.padEnd(10, ' ')} - ${`${parseFloat(item.achievement).toFixed(4).padStart(7, ' ')}%`.padEnd(12, ' ')} (${item.rank})`;
         if ((resultString + toAddString).length > 1900) {
             let leftItemCount = result.length - index;
             resultString += `\n... (還有 ${leftItemCount} 項)\`\`\``;
@@ -49,6 +65,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
         } else {
             resultString += `${toAddString}${index === result.length - 1 ? '\`\`\`' : '\n'}`;
         }
+        index++;
     }
 
     await interaction.editReply({
