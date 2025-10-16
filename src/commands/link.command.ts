@@ -29,7 +29,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
     } else {
         await fetcher.addFriend(code ?? '');
         await interaction.editReply(
-            `好友代碼無效或你還不是機器人的好友，正在發送好友邀請...\n同意好友請求後請重新使用指令`,
+            `你還不是機器人的好友或好友代碼無效，正在發送好友邀請...\n同意好友請求後請重新使用指令`,
         );
     }
 }
