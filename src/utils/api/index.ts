@@ -16,7 +16,7 @@ export default async () => {
     let dynamicLoadingList: string[] = [];
 
     app.use(async (req, res, next) => {
-        if (dynamicLoadingList.includes(req.path)) {
+        if ((process.env.DEVELOPMENT || config.api.debug_route.enabled) && dynamicLoadingList.includes(req.path)) {
             const routePath = `src/utils/api/routes${req.path}/route.ts`;
             delete require.cache[require.resolve(routePath)];
             let route = await import(`${routePath}?t=${Date.now()}`);
@@ -78,12 +78,12 @@ export default async () => {
 
     (config.api.https.enabled
         ? createServer(
-              {
-                  cert: fs.readFileSync(config.api.https.cert_path),
-                  key: fs.readFileSync(config.api.https.key_path),
-              },
-              app,
-          )
+            {
+                cert: fs.readFileSync(config.api.https.cert_path),
+                key: fs.readFileSync(config.api.https.key_path),
+            },
+            app,
+        )
         : app
     ).listen(config.api.port || 3000, () => {
         logger.log(`API server is running on port ${config.api.port || 3000}`);

@@ -5,6 +5,9 @@
             "enabled": false,
             "cert_path": "certificate.crt",
             "key_path": "private.key"
+        },
+        "debug_route": {
+            "enabled": false
         }
     }
 }
