@@ -22,9 +22,9 @@ async function execute(interaction: ChatInputCommandInteraction) {
         while (parseFloat(achievement.toFixed(4)) <= 101) {
             const rating = Math.floor(
                 (parseFloat((achievement > 100.5 ? 100.5 : achievement).toFixed(4)) / 100) *
-                    RankFactor[convertAchievementToRank(parseFloat(achievement.toFixed(4)))] *
-                    parseFloat(constant.toFixed(1)) *
-                    100,
+                RankFactor[convertAchievementToRank(parseFloat(achievement.toFixed(4)))] *
+                parseFloat(constant.toFixed(1)) *
+                100,
             );
             if (rating >= (ratingNeeded ?? 0)) {
                 if (calculateRate === 0.0001) {
@@ -52,12 +52,12 @@ async function execute(interaction: ChatInputCommandInteraction) {
         });
     }
 
-    let resultString = `Rating: ${ratingNeeded}\`\`\`\n${'Constant'.padEnd(10, ' ')} - ${'Achievement'.padEnd(12, ' ')} (Rank)\n`;
+    let resultString = `Rating: ${ratingNeeded}\`\`\`\n${'Constant'.padEnd(9, ' ')} - ${'Achievement'.padEnd(12, ' ')} (Rank)\n`;
     let index = 0;
     for (let item of result) {
         let thisConstant = parseFloat(item.constant);
         let nextConstant = parseFloat(result[index + 1]?.constant);
-        let toAddString = `${`${parseFloat(item.constant).toFixed(1)}${parseFloat((nextConstant - thisConstant).toFixed(1)) > 0.1 ? `~${(nextConstant - 0.1).toFixed(1)}` : `${index === result.length - 1 ? '~' : ''}`}`.padEnd(10, ' ')} - ${`${parseFloat(item.achievement).toFixed(4).padStart(7, ' ')}%`.padEnd(12, ' ')} (${item.rank})`;
+        let toAddString = `${`${parseFloat(item.constant).toFixed(1).padStart(4, ' ')}${parseFloat((nextConstant - thisConstant).toFixed(1)) > 0.1 ? `~${(nextConstant - 0.1).toFixed(1)}` : `${index === result.length - 1 ? '~' : ''}`}`.padEnd(9, ' ')} - ${`${parseFloat(item.achievement).toFixed(4).padStart(8, ' ')}%`.padEnd(12, ' ')} (${item.rank})`;
         if ((resultString + toAddString).length > 1900) {
             let leftItemCount = result.length - index;
             resultString += `\n... (還有 ${leftItemCount} 項)\`\`\``;
