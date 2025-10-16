@@ -159,6 +159,29 @@ async function drawSongBox(
         fillStyle: '#D9D9D9',
     });
 
+    if (score.rating >= 300) {
+        const rainbowColors = ['#FF0000', '#FF7F00', '#FFFF00', '#00FF00', '#0000FF', '#4B0082', '#9400D3'];
+        const colorCount = rainbowColors.length;
+
+        let gradient = ctx.createLinearGradient(X + 18, Y, X + 18 + songBoxDim.width - 18, Y + 24);
+        for (let i = 0; i < colorCount; i++) {
+            gradient.addColorStop(i / (colorCount - 1), rainbowColors[i])
+        }
+
+        drawCustomRoundRect({
+            ctx,
+            x: X + 18,
+            y: Y,
+            width: songBoxDim.width - 18,
+            height: 24,
+            radius: {
+                topRight: 8,
+                bottomLeft: 4,
+            },
+            fillStyle: gradient,
+        });
+    }
+
     drawCustomRoundRect({
         ctx,
         x: X + 18,
@@ -169,7 +192,7 @@ async function drawSongBox(
             topRight: 8,
             bottomLeft: 4,
         },
-        fillStyle: 'white',
+        fillStyle: 'rgba(255, 255, 255, 0.6)',
     });
 
     ctx.font = `6px ${FontStack}`;
@@ -685,7 +708,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     interaction.editReply({
                         components: [],
                     });
-                } catch (error) {}
+                } catch (error) { }
             });
         } else {
             let message = 'Fetching player info...';

@@ -2,7 +2,7 @@ import fs from 'fs';
 import axios from 'axios';
 import { logger } from 'process';
 import sharp from 'sharp';
-import { CanvasRenderingContext2D } from 'canvas';
+import { CanvasRenderingContext2D, CanvasGradient } from 'canvas';
 
 async function getImageBuffer(imageURL: string, cache?: boolean): Promise<Buffer> {
     if (cache === undefined) cache = false;
@@ -62,7 +62,7 @@ function drawCustomRoundRect(options: {
         bottomLeft?: number;
         bottomRight?: number;
     };
-    fillStyle: string;
+    fillStyle: string | CanvasGradient;
 }) {
     const { ctx, x, y, width, height, radius, fillStyle } = options;
     const topLeft = radius?.topLeft ?? 0,
