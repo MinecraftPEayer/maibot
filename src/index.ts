@@ -101,6 +101,8 @@ client.on('interactionCreate', async (interaction) => {
             client.logger.log(`${interaction.user.username} - /${interaction.commandName}`);
         } catch (error) {
             client.logger.error(`Error executing command ${interaction.commandName}:`, error);
+            if (!interaction.isRepliable()) return;
+
             if (interaction.replied) {
                 await interaction.editReply({
                     content: `There was an error while executing this command.\`\`\`js\n${error}\`\`\``,
