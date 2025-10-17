@@ -1,8 +1,37 @@
 import axios from 'axios';
 import fs from 'fs';
-import { Sheet, Song, SongDatabase } from 'types/SongDatabase';
-import { Difficulty } from './CommonEnums';
+import { ConstantDatabase, Sheet, Song, SongDatabase } from 'types/SongDatabase';
+import { ChartType, Difficulty } from './CommonEnums';
 import exception from 'config/exception.json';
+
+type SourceSong = {
+    title: string;
+    artist: string;
+    bpm: number;
+    imageName: string;
+    version: string;
+    releaseDate: string;
+    isNew: boolean;
+    isLocked: boolean;
+    comment: string | null;
+    sheets: SourceSheet[];
+};
+
+type SourceSheet = {
+    type: 'dx' | 'std' | 'utage';
+    difficulty: 'basic' | 'advanced' | 'expert' | 'master' | 'remaster' | string;
+    level: string;
+    levelValue: number;
+    internalLevelValue: number;
+    noteCount: {
+        tap: number | null;
+        hold: number | null;
+        slide: number | null;
+        break: number | null;
+    };
+    syncType: string;
+    comboType: string;
+};
 
 const diffText = {
     [Difficulty.Basic]: 'basic',
@@ -11,6 +40,21 @@ const diffText = {
     [Difficulty.Master]: 'master',
     [Difficulty.ReMaster]: 'remaster',
     [Difficulty.UTAGE]: 'utage',
+};
+
+const chartTypeId = {
+    std: ChartType.STD,
+    dx: ChartType.DX,
+    utage: ChartType.UTAGE,
+};
+
+const diffId = {
+    basic: Difficulty.Basic,
+    advanced: Difficulty.Advanced,
+    expert: Difficulty.Expert,
+    master: Difficulty.Master,
+    remaster: Difficulty.ReMaster,
+    utage: Difficulty.UTAGE,
 };
 
 class SongDataFetcher {
@@ -40,12 +84,19 @@ class SongDataFetcher {
                 const jpConstantDBResponse = await axios.get(
                     'https://raw.githubusercontent.com/zvuc/otoge-db/refs/heads/master/maimai/data/music-ex.json',
                 );
-                if (intlConstantDBResponse.status === 200) {
-                    const intlConstantData = intlConstantDBResponse.data as SongDatabase['constant'];
-                    const jpConstantData = jpConstantDBResponse.data as SongDatabase['constant'];
 
-                    data.songs.forEach((song: Song) => {
-                        song.sheets.forEach((sheet: Sheet) => {
+                const outputData: { [key: string]: any } = {
+                    ...data,
+                };
+
+                if (intlConstantDBResponse.status === 200) {
+                    const intlConstantData = intlConstantDBResponse.data as ConstantDatabase[];
+                    const jpConstantData = jpConstantDBResponse.data as ConstantDatabase[];
+
+                    outputData.songs = [];
+
+                    data.songs.forEach((song: SourceSong) => {
+                        const mapped = song.sheets.map((sheet: SourceSheet) => {
                             let constantSong = intlConstantData.find(
                                 (item) => ((exception as any)[item.title] ?? item.title) === song.title,
                             );
@@ -56,8 +107,14 @@ class SongDataFetcher {
                                 );
                             }
 
+                            const type = chartTypeId[sheet.type];
+
                             let internalLevelValue = sheet.internalLevelValue;
 
+                            let diff;
+                            let utageType;
+                            if (sheet.type !== 'utage') diff = diffId[sheet.difficulty as keyof typeof diffId];
+                            else utageType = sheet.difficulty;
                             if (sheet.type === 'dx') {
                                 switch (sheet.difficulty) {
                                     case diffText[Difficulty.Basic]:
@@ -126,10 +183,22 @@ class SongDataFetcher {
                                         break;
                                 }
                             }
+
+                            return {
+                                ...sheet,
+                                type: type,
+                                difficulty: diff,
+                                utageType: utageType,
+                            };
+                        });
+
+                        outputData.songs.push({
+                            ...song,
+                            sheets: mapped,
                         });
                     });
                 }
-                fs.writeFileSync(this.filePath, JSON.stringify(data));
+                fs.writeFileSync(this.filePath, JSON.stringify(outputData));
             }
         } catch (error) {
             console.error('Error fetching song data:', error);
