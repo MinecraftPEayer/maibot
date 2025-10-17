@@ -24,7 +24,6 @@ interface SongDatabase {
         name: string;
     }[];
     updateTime: string;
-    // [];
 }
 
 type ConstantDatabase = {
@@ -198,7 +197,7 @@ type Version =
     | '25500';
 
 type B50Data = {
-    type: 'STD' | 'DX' | 'UTAGE';
+    type: ChartType;
     title: string;
     achievement: number;
     ranking: 'SSS+' | 'SSS' | 'SS+' | 'SS' | 'S+' | 'S' | 'AAA' | 'AA' | 'A' | 'BBB' | 'BB' | 'B' | 'C' | 'D';
@@ -206,7 +205,7 @@ type B50Data = {
     rating: number;
     constant: number;
     level: string;
-    difficulty: DifficultyEnum;
+    difficulty: Difficulty;
     comboType: ComboType;
     syncType: SyncType;
 };
@@ -214,7 +213,7 @@ type B50Data = {
 type ScoreData = {
     title: string;
     type: ChartType;
-    difficulty: DifficultyEnum;
+    difficulty: Difficulty;
     utageKind?: string;
     achievement: number;
     comboType: ComboType;

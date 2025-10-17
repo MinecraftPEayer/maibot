@@ -16,7 +16,7 @@ import exception from 'config/exception.json';
 import { Emojis } from 'src/lib/constant/emojis';
 import JSONdb from 'simple-json-db';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
-import { Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
+import { ChartType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
 import {
     calculateRating,
     calculateScore,
@@ -64,7 +64,7 @@ async function sendScore(
                 },
                 fields: scoreData.map((score) => {
                     return {
-                        name: `${score.difficulty === Difficulty.UTAGE ? Emojis.Utage + '' : score.type === 'DX' ? Emojis.DX + ' ' : Emojis.STD + ' '}${isUTAGE ? playerScores['UTAGE'][0].utageKind : getDifficultyEmoji(score.difficulty)}`,
+                        name: `${score.difficulty === Difficulty.UTAGE ? Emojis.Utage + '' : score.type === ChartType.DX ? Emojis.DX + ' ' : Emojis.STD + ' '}${isUTAGE ? playerScores['UTAGE'][0].utageKind : getDifficultyEmoji(score.difficulty)}`,
                         value: `${Emojis[score.ranking]} ${score.achievement.toFixed(4)}%\n${score.comboType !== -1 ? comboType[score.comboType] + ' ' : ' '}${score.syncType !== -1 ? syncType[score.syncType] + ' ' : ' '}`,
                     };
                 }),
@@ -116,24 +116,28 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
     let components = [];
     if (
-        !song.sheets.some((sheet: any) => sheet.type === 'utage') &&
-        song.sheets.some((s) => s.type === 'std') &&
-        song.sheets.some((s) => s.type === 'dx')
+        !song.sheets.some((s) => s.type !== ChartType.UTAGE) &&
+        song.sheets.some((s) => s.type === ChartType.STD) &&
+        song.sheets.some((s) => s.type === ChartType.DX)
     )
         components.push(toggle_dx_std);
     components.push(myRecord);
 
-    const isUTAGE = song.sheets.some((sheet: any) => sheet.type === 'utage');
+    const isUTAGE = song.sheets.some((sheet: any) => sheet.type === ChartType.UTAGE);
 
-    let type: 'dx' | 'std' | 'utage' = isUTAGE ? 'utage' : !song.sheets.some((s) => s.type === 'std') ? 'dx' : 'std';
+    let type: ChartType = isUTAGE
+        ? ChartType.UTAGE
+        : !song.sheets.some((s) => s.type === ChartType.STD)
+          ? ChartType.DX
+          : ChartType.STD;
 
     detailSelector.components[0].addOptions(
         song.sheets
             .filter((sheet) => sheet.type === type)
             .map((sheet) => {
                 return {
-                    label: `${isUTAGE ? sheet.difficulty : DifficultyDisplayName[getDifficultyIdFromName(sheet.difficulty) as Difficulty]}`,
-                    value: sheet.difficulty,
+                    label: `${isUTAGE ? sheet.difficulty : DifficultyDisplayName[sheet.difficulty]}`,
+                    value: `${sheet.difficulty}`,
                 };
             }),
     );
@@ -149,8 +153,12 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     .map((sheet) => {
                         return {
                             name: `${
-                                isUTAGE ? Emojis.Utage + '' : sheet.type === 'dx' ? Emojis.DX + ' ' : Emojis.STD + ' '
-                            }${getDifficultyEmoji(getDifficultyIdFromName(sheet.difficulty))}`,
+                                isUTAGE
+                                    ? Emojis.Utage + ''
+                                    : sheet.type === ChartType.DX
+                                      ? Emojis.DX + ' '
+                                      : Emojis.STD + ' '
+                            }${getDifficultyEmoji(sheet.difficulty)}`,
                             value: `Lv: ${sheet.level}(${sheet.internalLevel ?? sheet.internalLevelValue.toFixed(1) ?? sheet.level + '.?'})\nNote Designer: ${sheet.noteDesigner}`,
                         };
                     }),
@@ -172,7 +180,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
             case 'toggle_dx_std':
                 if (buttonInteraction.user.id !== interaction.user.id) return;
                 if (isUTAGE) return await buttonInteraction.reply('Utage sheet is not available for DX/STD switch');
-                type = type === 'std' ? 'dx' : 'std';
+                type = type === ChartType.STD ? ChartType.DX : ChartType.STD;
                 await buttonInteraction.update({
                     embeds: [
                         {
@@ -185,10 +193,10 @@ async function execute(interaction: ChatInputCommandInteraction) {
                                         name: `${
                                             isUTAGE
                                                 ? Emojis.Utage + ''
-                                                : sheet.type === 'dx'
+                                                : sheet.type === ChartType.DX
                                                   ? Emojis.DX + ' '
                                                   : Emojis.STD + ' '
-                                        }${getDifficultyEmoji(getDifficultyIdFromName(sheet.difficulty))}`,
+                                        }${getDifficultyEmoji(sheet.difficulty)}`,
                                         value: `Lv: ${sheet.level}(${sheet.internalLevel ?? sheet.internalLevelValue.toFixed(1) ?? sheet.level + '.?'})\nNote Designer: ${sheet.noteDesigner}`,
                                     };
                                 }),
@@ -215,7 +223,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                 await buttonInteraction.reply('Processing...');
 
                 const scoreFilter = (s: ScoreData) =>
-                    s.type === getChartTypeFromName(type) && ((exception as any)[s.title] ?? s.title) === song.title;
+                    s.type === type && ((exception as any)[s.title] ?? s.title) === song.title;
                 if (fs.existsSync(`data/user/${buttonInteraction.user.id}`) && !isUTAGE) {
                     let data = JSON.parse(
                         fs.readFileSync(`data/user/${buttonInteraction.user.id}/latest.json`, 'utf-8'),
@@ -248,9 +256,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         })
                         .map((item: unknown) =>
                             (item as any[]).filter(
-                                (s: any) =>
-                                    s.type === getChartTypeFromName(type) &&
-                                    ((exception as any)[s.title] ?? s.title) === song.title,
+                                (s: any) => s.type === type && ((exception as any)[s.title] ?? s.title) === song.title,
                             ),
                         )
                         .flat();
@@ -454,7 +460,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                 buttonInteraction.deferUpdate();
                 let selectedDifficulty = (buttonInteraction as StringSelectMenuInteraction).values[0];
                 let selectedSheet = song.sheets.find(
-                    (sheet) => sheet.type === type && sheet.difficulty === selectedDifficulty,
+                    (sheet) => sheet.type === type && `${sheet.difficulty}` === selectedDifficulty,
                 );
 
                 if (!selectedSheet)
@@ -464,8 +470,8 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     });
 
                 let title = [
-                    `${song.title} - ${!isUTAGE ? Emojis[selectedSheet.type.toUpperCase() as 'DX' | 'STD'] + ' ' : ''}`,
-                    getDifficultyEmoji(getDifficultyIdFromName(selectedSheet.difficulty)),
+                    `${song.title} - ${!isUTAGE ? Emojis[selectedSheet.type === ChartType.DX ? 'DX' : 'STD'] + ' ' : ''}`,
+                    getDifficultyEmoji(selectedSheet.difficulty),
                 ];
 
                 interaction.editReply({
@@ -473,10 +479,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         {
                             title:
                                 title.join(' ').length >= 256
-                                    ? title[0] +
-                                      DifficultyDisplayName[
-                                          getDifficultyIdFromName(selectedSheet.difficulty) as Difficulty
-                                      ]
+                                    ? title[0] + DifficultyDisplayName[selectedSheet.difficulty]
                                     : title.join(' '),
                             description: [
                                 `Artist: ${song.artist}`,

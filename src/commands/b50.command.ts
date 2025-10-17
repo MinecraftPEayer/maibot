@@ -10,7 +10,7 @@ import {
 import JSONdb from 'simple-json-db';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
 import { calculateB50, convertDXScoreToStar, getDifficultyEmoji } from 'src/lib/Utils';
-import { ComboType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
+import { ChartType, ComboType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
 import { Emojis } from 'src/lib/constant/emojis';
 import { ScoreData } from 'types/SongDatabase';
 import { PlayerInfo } from 'types/main';
@@ -71,7 +71,7 @@ async function sendB50(
                     .map((data) => {
                         return [
                             `**#${B50Data[currentType].indexOf(data) + 1} ${data.title}**`,
-                            `> ${data.type === 'STD' ? Emojis.STD : Emojis.DX} ${getDifficultyEmoji(data.difficulty)} ${data.level} (${data.constant.toFixed(1)})`,
+                            `> ${data.type === ChartType.STD ? Emojis.STD : Emojis.DX} ${getDifficultyEmoji(data.difficulty)} ${data.level} (${data.constant.toFixed(1)})`,
                             `> ${Emojis[data.ranking]}- ${data.achievement.toFixed(4)}% - **${data.rating}**`,
                         ].join('\n');
                     })
@@ -140,7 +140,7 @@ async function sendB50(
                         .map((data) => {
                             return [
                                 `**#${B50Data[currentType].indexOf(data) + 1} ${data.title}**`,
-                                `> ${data.type === 'STD' ? Emojis.STD : Emojis.DX} ${getDifficultyEmoji(data.difficulty)} ${data.level} (${data.constant})`,
+                                `> ${data.type === ChartType.STD ? Emojis.STD : Emojis.DX} ${getDifficultyEmoji(data.difficulty)} ${data.level} (${data.constant})`,
                                 `> ${Emojis[data.ranking]}- ${data.achievement}% - **${data.rating}**`,
                             ].join('\n');
                         })

@@ -11,7 +11,7 @@ import JSONdb from 'simple-json-db';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
 import { calculateB50, convertDXScoreToStar, getRatingBaseImage, initializeFonts, FontStack } from 'src/lib/Utils';
 import fs from 'fs';
-import { ComboType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
+import { ChartType, ComboType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
 import { B50Data, ScoreData } from 'types/SongDatabase';
 import { DifficultyDisplayName } from 'src/lib/constant/CommonConstant';
 import * as StackBlur from 'stackblur-canvas';
@@ -40,11 +40,11 @@ const DifficultyColor = {
 
 let logger: Logger;
 
-function drawChartType(ctx: CanvasRenderingContext2D, x: number, y: number, chartType: 'dx' | 'std') {
+function drawChartType(ctx: CanvasRenderingContext2D, x: number, y: number, chartType: ChartType) {
     let originalFillStyle = ctx.fillStyle,
         originalFont = ctx.font;
     switch (chartType) {
-        case 'dx':
+        case ChartType.DX:
             ctx.fillStyle = '#FFFFFF';
             ctx.beginPath();
             ctx.moveTo(x, y);
@@ -66,7 +66,7 @@ function drawChartType(ctx: CanvasRenderingContext2D, x: number, y: number, char
             }
             ctx.save();
             break;
-        case 'std':
+        case ChartType.STD:
             ctx.fillStyle = '#73ADF8';
             ctx.beginPath();
             ctx.moveTo(x, y);
@@ -165,7 +165,7 @@ async function drawSongBox(
 
         let gradient = ctx.createLinearGradient(X + 18, Y, X + 18 + songBoxDim.width - 18, Y + 24);
         for (let i = 0; i < colorCount; i++) {
-            gradient.addColorStop(i / (colorCount - 1), rainbowColors[i])
+            gradient.addColorStop(i / (colorCount - 1), rainbowColors[i]);
         }
 
         drawCustomRoundRect({
@@ -236,7 +236,7 @@ async function drawSongBox(
         ctx.fillText('+', X + 30, Y + 28 + 2 + 8);
     }
 
-    drawChartType(ctx, X + (120 - 64), Y + 28, score.type.toLowerCase() as 'dx' | 'std');
+    drawChartType(ctx, X + (120 - 64), Y + 28, score.type);
 
     ctx.fillStyle = 'white';
     ctx.font = `12px ${FontStack}`;
@@ -708,7 +708,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     interaction.editReply({
                         components: [],
                     });
-                } catch (error) { }
+                } catch (error) {}
             });
         } else {
             let message = 'Fetching player info...';
