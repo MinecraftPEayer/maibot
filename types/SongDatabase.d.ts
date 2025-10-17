@@ -1,4 +1,4 @@
-import { Difficulty as DifficultyEnum, ComboType, SyncType } from 'src/lib/CommonEnums';
+import { Difficulty, ComboType, SyncType, ChartType } from 'src/lib/CommonEnums';
 
 interface SongDatabase {
     songs: Song[];
@@ -20,105 +20,106 @@ interface SongDatabase {
         color: string;
     }[];
     regions: {
-        region: 'jp' | 'intl' | 'cn';
+        region: 'jp' | 'intl' | 'usa' | 'cn';
         name: string;
     }[];
     updateTime: string;
-    constant: {
-        sort: string;
-        title: string;
-        title_kana: string;
-        artist: string;
-        catcode: string;
-        version: Version;
-        bpm: string;
-        image_url: string;
-        release: string;
-        lev_bas?: string;
-        lev_adv?: string;
-        lev_exp?: string;
-        lev_mas?: string;
-        lev_remas?: string;
-        lev_bas_i?: string;
-        lev_bas_notes?: string;
-        lev_bas_notes_tap?: string;
-        lev_bas_notes_hold?: string;
-        lev_bas_notes_slide?: string;
-        lev_bas_notes_break?: string;
-        lev_adv_i?: string;
-        lev_adv_notes?: string;
-        lev_adv_notes_tap?: string;
-        lev_adv_notes_hold?: string;
-        lev_adv_notes_slide?: string;
-        lev_adv_notes_break?: string;
-        lev_exp_i?: string;
-        lev_exp_notes?: string;
-        lev_exp_notes_tap?: string;
-        lev_exp_notes_hold?: string;
-        lev_exp_notes_slide?: string;
-        lev_exp_notes_break?: string;
-        lev_exp_designer?: string;
-        lev_mas_i?: string;
-        lev_mas_notes?: string;
-        lev_mas_notes_tap?: string;
-        lev_mas_notes_hold?: string;
-        lev_mas_notes_slide?: string;
-        lev_mas_notes_break?: string;
-        lev_mas_designer?: string;
-        lev_remas_i?: string;
-        lev_remas_notes?: string;
-        lev_remas_notes_tap?: string;
-        lev_remas_notes_hold?: string;
-        lev_remas_notes_slide?: string;
-        lev_remas_notes_break?: string;
-        lev_remas_designer?: string;
-        dx_lev_bas?: string;
-        dx_lev_adv?: string;
-        dx_lev_exp?: string;
-        dx_lev_mas?: string;
-        dx_lev_remas?: string;
-        dx_lev_adv?: string;
-        dx_lev_exp?: string;
-        dx_lev_mas?: string;
-        dx_lev_bas_i?: string;
-        dx_lev_bas_notes?: string;
-        dx_lev_bas_notes_tap?: string;
-        dx_lev_bas_notes_hold?: string;
-        dx_lev_bas_notes_slide?: string;
-        dx_lev_bas_notes_break?: string;
-        dx_lev_adv_i?: string;
-        dx_lev_adv_notes?: string;
-        dx_lev_adv_notes_tap?: string;
-        dx_lev_adv_notes_hold?: string;
-        dx_lev_adv_notes_slide?: string;
-        dx_lev_adv_notes_break?: string;
-        dx_lev_exp_i?: string;
-        dx_lev_exp_notes?: string;
-        dx_lev_exp_notes_tap?: string;
-        dx_lev_exp_notes_hold?: string;
-        dx_lev_exp_notes_slide?: string;
-        dx_lev_exp_notes_break?: string;
-        dx_lev_exp_designer?: string;
-        dx_lev_mas_i?: string;
-        dx_lev_mas_notes?: string;
-        dx_lev_mas_notes_tap?: string;
-        dx_lev_mas_notes_hold?: string;
-        dx_lev_mas_notes_slide?: string;
-        dx_lev_mas_notes_break?: string;
-        dx_lev_mas_designer?: string;
-        dx_lev_remas_i?: string;
-        dx_lev_remas_notes?: string;
-        dx_lev_remas_notes_tap?: string;
-        dx_lev_remas_notes_hold?: string;
-        dx_lev_remas_notes_slide?: string;
-        dx_lev_remas_notes_break?: string;
-        dx_lev_remas_designer?: string;
-        wiki_url: string;
-        intl: string;
-        date_added: string;
-        date_intl_added: string;
-    }[];
 }
+
+type ConstantDatabase = {
+    sort: string;
+    title: string;
+    title_kana: string;
+    artist: string;
+    catcode: string;
+    version: Version;
+    bpm: string;
+    image_url: string;
+    release: string;
+    lev_bas?: string;
+    lev_adv?: string;
+    lev_exp?: string;
+    lev_mas?: string;
+    lev_remas?: string;
+    lev_bas_i?: string;
+    lev_bas_notes?: string;
+    lev_bas_notes_tap?: string;
+    lev_bas_notes_hold?: string;
+    lev_bas_notes_slide?: string;
+    lev_bas_notes_break?: string;
+    lev_adv_i?: string;
+    lev_adv_notes?: string;
+    lev_adv_notes_tap?: string;
+    lev_adv_notes_hold?: string;
+    lev_adv_notes_slide?: string;
+    lev_adv_notes_break?: string;
+    lev_exp_i?: string;
+    lev_exp_notes?: string;
+    lev_exp_notes_tap?: string;
+    lev_exp_notes_hold?: string;
+    lev_exp_notes_slide?: string;
+    lev_exp_notes_break?: string;
+    lev_exp_designer?: string;
+    lev_mas_i?: string;
+    lev_mas_notes?: string;
+    lev_mas_notes_tap?: string;
+    lev_mas_notes_hold?: string;
+    lev_mas_notes_slide?: string;
+    lev_mas_notes_break?: string;
+    lev_mas_designer?: string;
+    lev_remas_i?: string;
+    lev_remas_notes?: string;
+    lev_remas_notes_tap?: string;
+    lev_remas_notes_hold?: string;
+    lev_remas_notes_slide?: string;
+    lev_remas_notes_break?: string;
+    lev_remas_designer?: string;
+    dx_lev_bas?: string;
+    dx_lev_adv?: string;
+    dx_lev_exp?: string;
+    dx_lev_mas?: string;
+    dx_lev_remas?: string;
+    dx_lev_adv?: string;
+    dx_lev_exp?: string;
+    dx_lev_mas?: string;
+    dx_lev_bas_i?: string;
+    dx_lev_bas_notes?: string;
+    dx_lev_bas_notes_tap?: string;
+    dx_lev_bas_notes_hold?: string;
+    dx_lev_bas_notes_slide?: string;
+    dx_lev_bas_notes_break?: string;
+    dx_lev_adv_i?: string;
+    dx_lev_adv_notes?: string;
+    dx_lev_adv_notes_tap?: string;
+    dx_lev_adv_notes_hold?: string;
+    dx_lev_adv_notes_slide?: string;
+    dx_lev_adv_notes_break?: string;
+    dx_lev_exp_i?: string;
+    dx_lev_exp_notes?: string;
+    dx_lev_exp_notes_tap?: string;
+    dx_lev_exp_notes_hold?: string;
+    dx_lev_exp_notes_slide?: string;
+    dx_lev_exp_notes_break?: string;
+    dx_lev_exp_designer?: string;
+    dx_lev_mas_i?: string;
+    dx_lev_mas_notes?: string;
+    dx_lev_mas_notes_tap?: string;
+    dx_lev_mas_notes_hold?: string;
+    dx_lev_mas_notes_slide?: string;
+    dx_lev_mas_notes_break?: string;
+    dx_lev_mas_designer?: string;
+    dx_lev_remas_i?: string;
+    dx_lev_remas_notes?: string;
+    dx_lev_remas_notes_tap?: string;
+    dx_lev_remas_notes_hold?: string;
+    dx_lev_remas_notes_slide?: string;
+    dx_lev_remas_notes_break?: string;
+    dx_lev_remas_designer?: string;
+    wiki_url: string;
+    intl: string;
+    date_added: string;
+    date_intl_added: string;
+};
 
 type Song = {
     category: string;
@@ -135,7 +136,7 @@ type Song = {
 };
 
 type Sheet = {
-    type: SheetType;
+    type: ChartType;
     difficulty: Difficulty;
     level: string;
     levelValue: number;
@@ -148,10 +149,6 @@ type Sheet = {
     isSpecial: boolean;
     version: string;
 };
-
-type SheetType = 'dx' | 'std' | 'utage';
-
-type Difficulty = 'basic' | 'advanced' | 'expert' | 'master' | 'remaster' | string;
 
 type NoteCount = {
     tap: number | null;
@@ -200,7 +197,7 @@ type Version =
     | '25500';
 
 type B50Data = {
-    type: 'STD' | 'DX' | 'UTAGE';
+    type: ChartType;
     title: string;
     achievement: number;
     ranking: 'SSS+' | 'SSS' | 'SS+' | 'SS' | 'S+' | 'S' | 'AAA' | 'AA' | 'A' | 'BBB' | 'BB' | 'B' | 'C' | 'D';
@@ -208,7 +205,7 @@ type B50Data = {
     rating: number;
     constant: number;
     level: string;
-    difficulty: DifficultyEnum;
+    difficulty: Difficulty;
     comboType: ComboType;
     syncType: SyncType;
 };
@@ -216,7 +213,7 @@ type B50Data = {
 type ScoreData = {
     title: string;
     type: ChartType;
-    difficulty: DifficultyEnum;
+    difficulty: Difficulty;
     utageKind?: string;
     achievement: number;
     comboType: ComboType;
@@ -227,9 +224,9 @@ type ScoreData = {
 
 export {
     SongDatabase,
+    ConstantDatabase,
     Song,
     Sheet,
-    SheetType,
     Difficulty,
     NoteCount,
     Region,

@@ -56,18 +56,13 @@ function calculateB50(
     B35Data: B50Data[];
 } {
     let database = JSON.parse(fs.readFileSync('tmp/data.json').toString()) as SongDatabase;
-    const diffLabel = database.difficulties.map((diff) => diff.difficulty);
 
     let B15Data: B50Data[] = [],
         B35Data: B50Data[] = [];
     for (const item of scoreData) {
         const song = database.songs.find((song: any) => song.songId === ((exception as any)[item.title] ?? item.title));
         if (song) {
-            let sheet = song.sheets.find(
-                (sht) =>
-                    sht.type.toUpperCase() === ChartTypeName[item.type] &&
-                    sht.difficulty === diffLabel[item.difficulty],
-            );
+            let sheet = song.sheets.find((sht) => sht.type === item.type && sht.difficulty === item.difficulty);
             if (sheet) {
                 const constant = sheet.internalLevelValue,
                     rating = calculateRating(item.achievement, constant),
@@ -76,7 +71,7 @@ function calculateB50(
                     ? B15Data
                     : B35Data
                 ).push({
-                    type: ChartTypeName[item.type],
+                    type: item.type,
                     title: (exception as any)[item.title] ?? item.title,
                     achievement: item.achievement,
                     ranking: convertAchievementToRank(item.achievement),
@@ -126,15 +121,15 @@ function calculateScore(
         if (song) {
             let sheet = song.sheets.find(
                 (sht) =>
-                    sht.type.toUpperCase() === ChartTypeName[item.type] &&
-                    (sht.type === 'utage' || sht.difficulty === diffLabel[item.difficulty]),
+                    sht.type === item.type &&
+                    (sht.type === ChartType.UTAGE || sht.difficulty === diffLabel[item.difficulty]),
             );
             if (sheet) {
                 const constant = sheet.internalLevelValue,
                     rating = calculateRating(item.achievement, constant),
                     imageURL = song.imageName;
                 data.push({
-                    type: ChartTypeName[item.type],
+                    type: item.type,
                     title: (exception as any)[item.title] ?? item.title,
                     achievement: item.achievement,
                     ranking: convertAchievementToRank(item.achievement),
