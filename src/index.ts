@@ -5,6 +5,7 @@ import init from './lib/init';
 import MaimaiDXNetFetcher from './lib/maimaiDXNetFetcher';
 import Logger from 'src/lib/logger';
 import SongDataFetcher from './lib/SongDataFetcher';
+import { MessageFlags } from 'discord.js';
 
 const mainLogger = new Logger('main');
 process.logger = mainLogger;
@@ -92,7 +93,7 @@ client.on('interactionCreate', async (interaction) => {
         if (!command) {
             return interaction.reply({
                 content: 'Command not found.',
-                ephemeral: true,
+                flags: [MessageFlags.Ephemeral],
             });
         }
 
@@ -104,10 +105,6 @@ client.on('interactionCreate', async (interaction) => {
             if (!interaction.isRepliable()) return;
 
             if (interaction.replied) {
-                await interaction.editReply({
-                    content: `There was an error while executing this command.\`\`\`js\n${error}\`\`\``,
-                });
-            } else if (interaction.deferred) {
                 await interaction.editReply({
                     content: `There was an error while executing this command.\`\`\`js\n${error}\`\`\``,
                 });
