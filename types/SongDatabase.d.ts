@@ -148,6 +148,7 @@ type Sheet = {
     regionOverrides: RegionOverrides;
     isSpecial: boolean;
     version: string;
+    utageType?: string;
 };
 
 type NoteCount = {

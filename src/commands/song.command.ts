@@ -17,14 +17,7 @@ import { Emojis } from 'src/lib/constant/emojis';
 import JSONdb from 'simple-json-db';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
 import { ChartType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
-import {
-    calculateRating,
-    calculateScore,
-    convertDXScoreToStar,
-    getChartTypeFromName,
-    getDifficultyEmoji,
-    getDifficultyIdFromName,
-} from 'src/lib/Utils';
+import { calculateRating, calculateScore, convertDXScoreToStar, getDifficultyEmoji } from 'src/lib/Utils';
 import { B50Data, ScoreData, Sheet, Song } from 'types/SongDatabase';
 import { DifficultyDisplayName, DifficultyName } from 'src/lib/constant/CommonConstant';
 import fs from 'fs';
@@ -158,8 +151,8 @@ async function execute(interaction: ChatInputCommandInteraction) {
                                     : sheet.type === ChartType.DX
                                       ? Emojis.DX + ' '
                                       : Emojis.STD + ' '
-                            }${getDifficultyEmoji(sheet.difficulty)}`,
-                            value: `Lv: ${sheet.level}(${sheet.internalLevel ?? sheet.internalLevelValue.toFixed(1) ?? sheet.level + '.?'})\nNote Designer: ${sheet.noteDesigner}`,
+                            }${isUTAGE ? sheet.utageType : getDifficultyEmoji(sheet.difficulty)}`,
+                            value: `${isUTAGE ? `-# ${song.comment}\n` : ''}Lv: ${sheet.level}(${sheet.internalLevel ?? sheet.internalLevelValue.toFixed(1) ?? sheet.level + '.?'})\nNote Designer: ${sheet.noteDesigner}`,
                         };
                     }),
                 thumbnail: {
