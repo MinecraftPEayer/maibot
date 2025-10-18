@@ -15,8 +15,9 @@ async function execute(interaction: ChatInputCommandInteraction) {
     let db = new JSONdb('data/linking.json');
     if (Object.values(db.JSON()).includes(code)) {
         await interaction.editReply('此好友代碼已被綁定');
+        return;
     }
-    console.log(code);
+
     if (friendList.some((friend: any) => friend.idx === code)) {
         if (db.has(interaction.user.id)) {
             await interaction.editReply(
@@ -31,6 +32,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
         await interaction.editReply(
             `你還不是機器人的好友或好友代碼無效，正在發送好友邀請...\n同意好友請求後請重新使用指令`,
         );
+        return;
     }
 }
 

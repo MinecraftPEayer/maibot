@@ -117,6 +117,7 @@ class MaimaiDXNetFetcher {
                     'User-Agent': UserAgent,
                     Cookie: this.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
                 },
+                maxRedirects: 0,
             });
 
             let dom = new JSDOM(resp.data);
