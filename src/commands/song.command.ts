@@ -129,8 +129,8 @@ async function execute(interaction: ChatInputCommandInteraction) {
             .filter((sheet) => sheet.type === type)
             .map((sheet) => {
                 return {
-                    label: `${isUTAGE ? sheet.difficulty : DifficultyDisplayName[sheet.difficulty]}`,
-                    value: `${sheet.difficulty}`,
+                    label: `${isUTAGE ? sheet.utageType : DifficultyDisplayName[sheet.difficulty]}`,
+                    value: `${isUTAGE ? song.utageType : sheet.difficulty}`,
                 };
             }),
     );
