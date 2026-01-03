@@ -506,6 +506,8 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         getDifficultyEmoji(isUTAGE ? selectedSheet.utageType! : selectedSheet.difficulty),
                     ];
 
+                    const totalDXScore = selectedSheet.noteCounts.total ? selectedSheet.noteCounts.total * 3 : null;
+
                     interaction.editReply({
                         embeds: [
                             {
@@ -549,6 +551,18 @@ async function execute(interaction: ChatInputCommandInteraction) {
                                               ].join('\n')
                                             : 'N/A',
                                         inline: true,
+                                    },
+                                    {
+                                        name: 'DX Score',
+                                        value: totalDXScore
+                                            ? [
+                                                  `${Emojis['DXStar_5']}: -${totalDXScore - Math.ceil(totalDXScore * 0.97)} (${Math.ceil(totalDXScore * 0.97)} / ${totalDXScore})`,
+                                                  `${Emojis['DXStar_4']}: -${totalDXScore - Math.ceil(totalDXScore * 0.95)} (${Math.ceil(totalDXScore * 0.95)} / ${totalDXScore})`,
+                                                  `${Emojis['DXStar_3']}: -${totalDXScore - Math.ceil(totalDXScore * 0.93)} (${Math.ceil(totalDXScore * 0.93)} / ${totalDXScore})`,
+                                                  `${Emojis['DXStar_2']}: -${totalDXScore - Math.ceil(totalDXScore * 0.9)} (${Math.ceil(totalDXScore * 0.9)} / ${totalDXScore})`,
+                                                  `${Emojis['DXStar_1']}: -${totalDXScore - Math.ceil(totalDXScore * 0.85)} (${Math.ceil(totalDXScore * 0.85)} / ${totalDXScore})`,
+                                              ].join('\n')
+                                            : 'N/A',
                                     },
                                     {
                                         name: 'Regions',
