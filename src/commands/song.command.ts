@@ -10,6 +10,7 @@ import {
     StringSelectMenuBuilder,
     StringSelectMenuInteraction,
     EmbedBuilder,
+    MessageFlags,
 } from 'discord.js';
 import SongDataFetcher from 'src/lib/SongDataFetcher';
 import exception from 'config/exception.json';
@@ -57,7 +58,7 @@ async function sendScore(
                 },
                 fields: scoreData.map((score) => {
                     return {
-                        name: `${score.difficulty === Difficulty.UTAGE ? Emojis.Utage + '' : score.type === ChartType.DX ? Emojis.DX + ' ' : Emojis.STD + ' '}${isUTAGE ? playerScores['UTAGE'][0].utageKind : getDifficultyEmoji(score.difficulty)}`,
+                        name: `${score.difficulty === Difficulty.UTAGE ? Emojis.Utage + '' : score.type === ChartType.DX ? Emojis.DX + ' ' : Emojis.STD + ' '}${isUTAGE ? '【' + playerScores['UTAGE'][0].utageKind + '】' : getDifficultyEmoji(score.difficulty)}`,
                         value: `${Emojis[score.ranking]} ${score.achievement.toFixed(4)}%\n${score.comboType !== -1 ? comboType[score.comboType] + ' ' : ' '}${score.syncType !== -1 ? syncType[score.syncType] + ' ' : ' '}`,
                     };
                 }),
@@ -130,7 +131,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
             .map((sheet) => {
                 return {
                     label: `${isUTAGE ? sheet.utageType : DifficultyDisplayName[sheet.difficulty]}`,
-                    value: `${isUTAGE ? song.utageType : sheet.difficulty}`,
+                    value: `${isUTAGE ? sheet.utageType : sheet.difficulty}`,
                 };
             }),
     );
@@ -140,7 +141,12 @@ async function execute(interaction: ChatInputCommandInteraction) {
         embeds: [
             {
                 title: song.title,
-                description: `Artist: ${song.artist}\nCategory: ${song.category}\nBPM: ${song.bpm}\nVersion: ${song.version}`,
+                description: [
+                    `Artist: ${song.artist}`,
+                    `Category: ${song.category}`,
+                    `BPM: ${song.bpm ?? 'N/A'}`,
+                    `Version: ${song.version}`,
+                ].join('\n'),
                 fields: song.sheets
                     .filter((sheet) => sheet.type === type)
                     .map((sheet) => {
@@ -152,7 +158,10 @@ async function execute(interaction: ChatInputCommandInteraction) {
                                       ? Emojis.DX + ' '
                                       : Emojis.STD + ' '
                             }${isUTAGE ? sheet.utageType : getDifficultyEmoji(sheet.difficulty)}`,
-                            value: `${isUTAGE ? `-# ${song.comment}\n` : ''}Lv: ${sheet.level}(${sheet.internalLevel ?? sheet.internalLevelValue.toFixed(1) ?? sheet.level + '.?'})\nNote Designer: ${sheet.noteDesigner}`,
+                            value: [
+                                `${isUTAGE ? `-# ${song.comment}\n` : ''}Lv: ${sheet.level}(${sheet.internalLevel ?? sheet.internalLevelValue.toFixed(1) ?? sheet.level + '.?'})`,
+                                `Note Designer: ${sheet.noteDesigner ?? 'N/A'}`,
+                            ].join('\n'),
                         };
                     }),
                 thumbnail: {
@@ -169,364 +178,400 @@ async function execute(interaction: ChatInputCommandInteraction) {
     const collector = owo.createMessageComponentCollector({ max: Infinity });
     let timeout = setTimeout(timeoutFunction, 60000);
     collector.on('collect', async (buttonInteraction: ButtonInteraction | StringSelectMenuInteraction) => {
-        switch (buttonInteraction.customId) {
-            case 'toggle_dx_std':
-                if (buttonInteraction.user.id !== interaction.user.id) return;
-                if (isUTAGE) return await buttonInteraction.reply('Utage sheet is not available for DX/STD switch');
-                type = type === ChartType.STD ? ChartType.DX : ChartType.STD;
-                await buttonInteraction.update({
-                    embeds: [
-                        {
-                            title: song.title,
-                            description: `Artist: ${song.artist}\nCategory: ${song.category}\nBPM: ${song.bpm}\nVersion: ${song.version}`,
-                            fields: song.sheets
-                                .filter((sheet: any) => sheet.type === type)
-                                .map((sheet: Sheet) => {
-                                    return {
-                                        name: `${
-                                            isUTAGE
-                                                ? Emojis.Utage + ''
-                                                : sheet.type === ChartType.DX
-                                                  ? Emojis.DX + ' '
-                                                  : Emojis.STD + ' '
-                                        }${getDifficultyEmoji(sheet.difficulty)}`,
-                                        value: `Lv: ${sheet.level}(${sheet.internalLevel ?? sheet.internalLevelValue.toFixed(1) ?? sheet.level + '.?'})\nNote Designer: ${sheet.noteDesigner}`,
-                                    };
-                                }),
-                            thumbnail: {
-                                url: `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`,
+        try {
+            switch (buttonInteraction.customId) {
+                case 'toggle_dx_std':
+                    if (buttonInteraction.user.id !== interaction.user.id) return;
+                    if (isUTAGE) return await buttonInteraction.reply('Utage sheet is not available for DX/STD switch');
+                    type = type === ChartType.STD ? ChartType.DX : ChartType.STD;
+                    await buttonInteraction.update({
+                        embeds: [
+                            {
+                                title: song.title,
+                                description: [
+                                    `Artist: ${song.artist}`,
+                                    `Category: ${song.category}`,
+                                    `BPM: ${song.bpm ?? 'N/A'}`,
+                                    `Version: ${song.version}`,
+                                ].join('\n'),
+                                fields: song.sheets
+                                    .filter((sheet: any) => sheet.type === type)
+                                    .map((sheet: Sheet) => {
+                                        return {
+                                            name: `${
+                                                isUTAGE
+                                                    ? Emojis.Utage + ''
+                                                    : sheet.type === ChartType.DX
+                                                      ? Emojis.DX + ' '
+                                                      : Emojis.STD + ' '
+                                            }${getDifficultyEmoji(sheet.difficulty)}`,
+                                            value: [
+                                                `Lv: ${sheet.level} (${sheet.internalLevel ?? sheet.internalLevelValue.toFixed(1) ?? sheet.level + '.?'})`,
+                                                `Note Designer: ${sheet.noteDesigner ?? 'N/A'}`,
+                                            ].join('\n'),
+                                        };
+                                    }),
+                                thumbnail: {
+                                    url: `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`,
+                                },
                             },
-                        },
-                    ],
-                    components,
-                });
-                break;
-
-            case 'my_record':
-                let db = new JSONdb('data/linking.json');
-
-                let playerInfo: PlayerInfo;
-
-                let scores: {
-                    [key: string]: ScoreData[];
-                } = {};
-
-                let playerScores: { [key: string]: ScoreData[] } = {};
-
-                await buttonInteraction.reply('Processing...');
-
-                const scoreFilter = (s: ScoreData) =>
-                    s.type === type && ((exception as any)[s.title] ?? s.title) === song.title;
-                if (fs.existsSync(`data/user/${buttonInteraction.user.id}`) && !isUTAGE) {
-                    let data = JSON.parse(
-                        fs.readFileSync(`data/user/${buttonInteraction.user.id}/latest.json`, 'utf-8'),
-                    );
-
-                    playerInfo = {
-                        name: data.playerData.playerName,
-                        rating: data.playerData.rating,
-                        avatar: data.playerData.avatar,
-                        title: data.playerData.title.text,
-                        titleType: data.playerData.title.type,
-                        course: data.playerData.course,
-                        classRank: data.playerData['class'],
-                    };
-
-                    let scores = Object.values(data.allScores)
-                        .map((item: any) => {
-                            return item.map((score: any) => {
-                                return {
-                                    title: score.name,
-                                    type: score.chartType,
-                                    difficulty: score.difficulty || Difficulty.Basic,
-                                    achievement: score.achievement,
-                                    comboType: score.comboType || SyncType.None,
-                                    syncType: score.syncType || SyncType.None,
-                                    dxScore: score.dxScore[0],
-                                    dxStar: convertDXScoreToStar(score.dxScore[0], score.dxScore[1]),
-                                };
-                            });
-                        })
-                        .map((item: unknown) =>
-                            (item as any[]).filter(
-                                (s: any) => s.type === type && ((exception as any)[s.title] ?? s.title) === song.title,
-                            ),
-                        )
-                        .flat();
-
-                    let scoreCalculated = calculateScore(scores).data;
-
-                    let scoreData: {
-                        [key: string]: B50Data[];
-                    } = {};
-                    scoreCalculated.forEach((item) => {
-                        scoreData[DifficultyName[item.difficulty]] = [item];
+                        ],
+                        components,
                     });
+                    break;
 
-                    sendScore(buttonInteraction as ButtonInteraction, song, playerInfo, scoreData, isUTAGE, () => true);
-                } else {
-                    let friendCode = db.get(buttonInteraction.user.id);
-                    if (!friendCode) return await buttonInteraction.editReply('你還沒綁定帳號');
+                case 'my_record':
+                    let db = new JSONdb('data/linking.json');
 
-                    const fetcher = MaimaiDXNetFetcher.getInstance();
+                    let playerInfo: PlayerInfo;
 
-                    let cacheExists = fetcher.playerCacheDataExists(friendCode);
-                    let lastDataDate = fetcher.getLatestCacheDataDate(friendCode);
-                    if (
-                        cacheExists &&
-                        lastDataDate &&
-                        Date.now() - lastDataDate.getTime() <= 24 * 60 * 60 * 1000 &&
-                        !isUTAGE
-                    ) {
-                        let actionRow = new ActionRowBuilder<ButtonBuilder>()
-                            .addComponents(
-                                new ButtonBuilder().setLabel('Yes').setStyle(ButtonStyle.Success).setCustomId('yes'),
-                            )
-                            .addComponents(
-                                new ButtonBuilder().setLabel('No').setStyle(ButtonStyle.Danger).setCustomId('no'),
-                            );
+                    let scores: {
+                        [key: string]: ScoreData[];
+                    } = {};
 
-                        let reply = await buttonInteraction.editReply({
-                            embeds: [
-                                new EmbedBuilder()
-                                    .setTitle('We found cached score data. Would you like to use it or fetch new data?')
-                                    .setDescription(`Time: <t:${(lastDataDate.getTime() / 1000).toFixed()}:F>`),
-                            ],
-                            components: [actionRow],
-                        });
+                    let playerScores: { [key: string]: ScoreData[] } = {};
 
-                        let collector = reply.createMessageComponentCollector({
-                            max: 1,
-                            time: 60000,
-                            filter: (i) => i.user.id === buttonInteraction.user.id,
-                        });
-                        let btnUsed = false;
-                        collector.on('collect', async (btnI) => {
-                            btnUsed = true;
-                            switch (btnI.customId) {
-                                case 'yes':
-                                    let data = fetcher.getPlayerCacheData(friendCode);
-                                    playerInfo = data.playerData;
-                                    scores = data.scoreData;
-                                    await buttonInteraction.editReply({
-                                        content: 'Processing...',
-                                        components: [],
-                                    });
-                                    sendScore(
-                                        buttonInteraction as ButtonInteraction,
-                                        song,
-                                        playerInfo,
-                                        scores,
-                                        isUTAGE,
-                                        scoreFilter,
-                                    );
-                                    break;
-                                case 'no':
-                                    let message = 'Fetching player info...';
-                                    await buttonInteraction.editReply({ content: message, components: [], embeds: [] });
+                    await buttonInteraction.reply('Processing...');
 
-                                    playerInfo = (await fetcher.getPlayer(friendCode)) ?? {
-                                        name: '',
-                                        avatar: '',
-                                        rating: 0,
-                                        title: '',
-                                        titleType: TitleType.Normal,
-                                        course: '',
-                                        classRank: '',
-                                    };
-
-                                    message += [' OK', 'Fetching scores...'].join('\n');
-                                    await buttonInteraction.editReply(message);
-
-                                    scores = {};
-                                    for (const [difficulty, diffName] of Object.entries(DifficultyDisplayName)) {
-                                        if (!diffs.includes(parseInt(difficulty))) continue;
-
-                                        message += `\n> Fetching ${diffName} scores...`;
-                                        await buttonInteraction.editReply(message);
-                                        let scoreData = await fetcher.getScores(
-                                            scoreType,
-                                            friendCode,
-                                            parseInt(difficulty),
-                                        );
-                                        scores[diffName] = scoreData.data;
-                                        message += ' OK';
-                                    }
-
-                                    fetcher.savePlayerCacheData(friendCode, {
-                                        playerData: playerInfo,
-                                        scoreData: scores,
-                                    });
-
-                                    await buttonInteraction.editReply(
-                                        ['Fetching player info... OK', 'Fetching scores... OK', 'Calculating...'].join(
-                                            '\n',
-                                        ),
-                                    );
-
-                                    sendScore(
-                                        buttonInteraction as ButtonInteraction,
-                                        song,
-                                        playerInfo,
-                                        scores,
-                                        isUTAGE,
-                                        scoreFilter,
-                                    );
-                                    break;
-
-                                default:
-                                    btnI.reply({
-                                        content: 'how tf can you get here, go back right now bro',
-                                    });
-                                    break;
-                            }
-                        });
-                        collector.on('end', async () => {
-                            if (btnUsed) return;
-                            try {
-                                interaction.editReply({
-                                    components: [],
-                                });
-                            } catch (error) {}
-                        });
-                    } else {
-                        let message = 'Fetching player info...';
-
-                        await buttonInteraction.editReply(message);
-                        playerInfo = (await DXNetFetcher.getPlayer(friendCode)) || {
-                            name: '',
-                            avatar: '',
-                            rating: 0,
-                            title: '',
-                            titleType: TitleType.Normal,
-                            course: '',
-                            classRank: '',
-                        };
-
-                        if (!isUTAGE) {
-                            message += [' OK', 'Fetching scores...'].join('\n');
-
-                            await buttonInteraction.editReply(message);
-
-                            for (const [difficulty, diffName] of Object.entries(DifficultyDisplayName)) {
-                                if (!diffs.includes(parseInt(difficulty))) continue;
-
-                                message += `\n> Fetching ${diffName} scores...`;
-                                await buttonInteraction.editReply(message);
-                                let scoreData = await MaimaiDXNetFetcher.getInstance().getScores(
-                                    scoreType,
-                                    friendCode,
-                                    parseInt(difficulty),
-                                );
-                                playerScores[diffName] = scoreData.data;
-                                message += ' OK';
-                            }
-                        } else {
-                            message += [' OK', 'Fetching scores...', '> Fetching UTAGE scores...'].join('\n');
-                            playerScores['UTAGE'] = (
-                                await DXNetFetcher.getScores(scoreType, friendCode, Difficulty.UTAGE)
-                            ).data;
-                        }
-                        await buttonInteraction.editReply(
-                            ['Fetching player info... OK', 'Fetching scores... OK', 'Calculating...'].join('\n'),
+                    const scoreFilter = (s: ScoreData) =>
+                        s.type === type && ((exception as any)[s.title] ?? s.title) === song.title;
+                    if (fs.existsSync(`data/user/${buttonInteraction.user.id}`) && !isUTAGE) {
+                        let data = JSON.parse(
+                            fs.readFileSync(`data/user/${buttonInteraction.user.id}/latest.json`, 'utf-8'),
                         );
 
-                        fetcher.savePlayerCacheData(friendCode, {
-                            playerData: playerInfo,
-                            scoreData: scores,
+                        playerInfo = {
+                            name: data.playerData.playerName,
+                            rating: data.playerData.rating,
+                            avatar: data.playerData.avatar,
+                            title: data.playerData.title.text,
+                            titleType: data.playerData.title.type,
+                            course: data.playerData.course,
+                            classRank: data.playerData['class'],
+                        };
+
+                        let scores = Object.values(data.allScores)
+                            .map((item: any) => {
+                                return item.map((score: any) => {
+                                    return {
+                                        title: score.name,
+                                        type: score.chartType,
+                                        difficulty: score.difficulty || Difficulty.Basic,
+                                        achievement: score.achievement,
+                                        comboType: score.comboType || SyncType.None,
+                                        syncType: score.syncType || SyncType.None,
+                                        dxScore: score.dxScore[0],
+                                        dxStar: convertDXScoreToStar(score.dxScore[0], score.dxScore[1]),
+                                    };
+                                });
+                            })
+                            .map((item: unknown) =>
+                                (item as any[]).filter(
+                                    (s: any) =>
+                                        s.type === type && ((exception as any)[s.title] ?? s.title) === song.title,
+                                ),
+                            )
+                            .flat();
+
+                        let scoreCalculated = calculateScore(scores).data;
+
+                        let scoreData: {
+                            [key: string]: B50Data[];
+                        } = {};
+                        scoreCalculated.forEach((item) => {
+                            scoreData[DifficultyName[item.difficulty]] = [item];
                         });
 
                         sendScore(
                             buttonInteraction as ButtonInteraction,
                             song,
                             playerInfo,
-                            playerScores,
+                            scoreData,
                             isUTAGE,
-                            scoreFilter,
+                            () => true,
                         );
+                    } else {
+                        let friendCode = db.get(buttonInteraction.user.id);
+                        if (!friendCode) return await buttonInteraction.editReply('你還沒綁定帳號');
+
+                        const fetcher = MaimaiDXNetFetcher.getInstance();
+
+                        let cacheExists = fetcher.playerCacheDataExists(friendCode);
+                        let lastDataDate = fetcher.getLatestCacheDataDate(friendCode);
+                        if (
+                            cacheExists &&
+                            lastDataDate &&
+                            Date.now() - lastDataDate.getTime() <= 24 * 60 * 60 * 1000 &&
+                            !isUTAGE
+                        ) {
+                            let actionRow = new ActionRowBuilder<ButtonBuilder>()
+                                .addComponents(
+                                    new ButtonBuilder()
+                                        .setLabel('Yes')
+                                        .setStyle(ButtonStyle.Success)
+                                        .setCustomId('yes'),
+                                )
+                                .addComponents(
+                                    new ButtonBuilder().setLabel('No').setStyle(ButtonStyle.Danger).setCustomId('no'),
+                                );
+
+                            let reply = await buttonInteraction.editReply({
+                                embeds: [
+                                    new EmbedBuilder()
+                                        .setTitle(
+                                            'We found cached score data. Would you like to use it or fetch new data?',
+                                        )
+                                        .setDescription(`Time: <t:${(lastDataDate.getTime() / 1000).toFixed()}:F>`),
+                                ],
+                                components: [actionRow],
+                            });
+
+                            let collector = reply.createMessageComponentCollector({
+                                max: 1,
+                                time: 60000,
+                                filter: (i) => i.user.id === buttonInteraction.user.id,
+                            });
+                            let btnUsed = false;
+                            collector.on('collect', async (btnI) => {
+                                btnUsed = true;
+                                switch (btnI.customId) {
+                                    case 'yes':
+                                        let data = fetcher.getPlayerCacheData(friendCode);
+                                        playerInfo = data.playerData;
+                                        scores = data.scoreData;
+                                        await buttonInteraction.editReply({
+                                            content: 'Processing...',
+                                            components: [],
+                                        });
+                                        sendScore(
+                                            buttonInteraction as ButtonInteraction,
+                                            song,
+                                            playerInfo,
+                                            scores,
+                                            isUTAGE,
+                                            scoreFilter,
+                                        );
+                                        break;
+                                    case 'no':
+                                        let message = 'Fetching player info...';
+                                        await buttonInteraction.editReply({
+                                            content: message,
+                                            components: [],
+                                            embeds: [],
+                                        });
+
+                                        playerInfo = (await fetcher.getPlayer(friendCode)) ?? {
+                                            name: '',
+                                            avatar: '',
+                                            rating: 0,
+                                            title: '',
+                                            titleType: TitleType.Normal,
+                                            course: '',
+                                            classRank: '',
+                                        };
+
+                                        message += [' OK', 'Fetching scores...'].join('\n');
+                                        await buttonInteraction.editReply(message);
+
+                                        scores = {};
+                                        for (const [difficulty, diffName] of Object.entries(DifficultyDisplayName)) {
+                                            if (!diffs.includes(parseInt(difficulty))) continue;
+
+                                            message += `\n> Fetching ${diffName} scores...`;
+                                            await buttonInteraction.editReply(message);
+                                            let scoreData = await fetcher.getScores(
+                                                scoreType,
+                                                friendCode,
+                                                parseInt(difficulty),
+                                            );
+                                            scores[diffName] = scoreData.data;
+                                            message += ' OK';
+                                        }
+
+                                        fetcher.savePlayerCacheData(friendCode, {
+                                            playerData: playerInfo,
+                                            scoreData: scores,
+                                        });
+
+                                        await buttonInteraction.editReply(
+                                            [
+                                                'Fetching player info... OK',
+                                                'Fetching scores... OK',
+                                                'Calculating...',
+                                            ].join('\n'),
+                                        );
+
+                                        sendScore(
+                                            buttonInteraction as ButtonInteraction,
+                                            song,
+                                            playerInfo,
+                                            scores,
+                                            isUTAGE,
+                                            scoreFilter,
+                                        );
+                                        break;
+
+                                    default:
+                                        btnI.reply({
+                                            content: 'how tf can you get here, go back right now bro',
+                                        });
+                                        break;
+                                }
+                            });
+                            collector.on('end', async () => {
+                                if (btnUsed) return;
+                                try {
+                                    interaction.editReply({
+                                        components: [],
+                                    });
+                                } catch (error) {}
+                            });
+                        } else {
+                            let message = 'Fetching player info...';
+
+                            await buttonInteraction.editReply(message);
+                            playerInfo = (await DXNetFetcher.getPlayer(friendCode)) || {
+                                name: '',
+                                avatar: '',
+                                rating: 0,
+                                title: '',
+                                titleType: TitleType.Normal,
+                                course: '',
+                                classRank: '',
+                            };
+
+                            if (!isUTAGE) {
+                                message += [' OK', 'Fetching scores...'].join('\n');
+
+                                await buttonInteraction.editReply(message);
+
+                                for (const [difficulty, diffName] of Object.entries(DifficultyDisplayName)) {
+                                    if (!diffs.includes(parseInt(difficulty))) continue;
+
+                                    message += `\n> Fetching ${diffName} scores...`;
+                                    await buttonInteraction.editReply(message);
+                                    let scoreData = await MaimaiDXNetFetcher.getInstance().getScores(
+                                        scoreType,
+                                        friendCode,
+                                        parseInt(difficulty),
+                                    );
+                                    playerScores[diffName] = scoreData.data;
+                                    message += ' OK';
+                                }
+                            } else {
+                                message += [' OK', 'Fetching scores...', '> Fetching UTAGE scores...'].join('\n');
+                                playerScores['UTAGE'] = (
+                                    await DXNetFetcher.getScores(scoreType, friendCode, Difficulty.UTAGE)
+                                ).data;
+                            }
+                            await buttonInteraction.editReply(
+                                ['Fetching player info... OK', 'Fetching scores... OK', 'Calculating...'].join('\n'),
+                            );
+
+                            fetcher.savePlayerCacheData(friendCode, {
+                                playerData: playerInfo,
+                                scoreData: scores,
+                            });
+
+                            sendScore(
+                                buttonInteraction as ButtonInteraction,
+                                song,
+                                playerInfo,
+                                playerScores,
+                                isUTAGE,
+                                scoreFilter,
+                            );
+                        }
                     }
-                }
-                break;
+                    break;
 
-            case 'detail_selector':
-                if (buttonInteraction.user.id !== interaction.user.id) return;
-                buttonInteraction.deferUpdate();
-                let selectedDifficulty = (buttonInteraction as StringSelectMenuInteraction).values[0];
-                let selectedSheet = song.sheets.find(
-                    (sheet) => sheet.type === type && `${sheet.difficulty}` === selectedDifficulty,
-                );
+                case 'detail_selector':
+                    if (buttonInteraction.user.id !== interaction.user.id) return;
+                    let selectedDifficulty = (buttonInteraction as StringSelectMenuInteraction).values[0];
+                    let selectedSheet = song.sheets.find((sheet) =>
+                        isUTAGE
+                            ? sheet.utageType === selectedDifficulty
+                            : sheet.type === type && `${sheet.difficulty}` === selectedDifficulty,
+                    );
 
-                if (!selectedSheet)
-                    return await buttonInteraction.reply({
-                        content: 'Invalid difficulty selected',
-                        ephemeral: true,
-                    });
+                    if (!selectedSheet)
+                        return await buttonInteraction.reply({
+                            content: 'Invalid difficulty selected',
+                            flags: [MessageFlags.Ephemeral],
+                        });
 
-                let title = [
-                    `${song.title} - ${!isUTAGE ? Emojis[selectedSheet.type === ChartType.DX ? 'DX' : 'STD'] + ' ' : ''}`,
-                    getDifficultyEmoji(selectedSheet.difficulty),
-                ];
+                    buttonInteraction.deferUpdate();
+                    let title = [
+                        `${isUTAGE ? song.title.slice(3) : song.title} - ${!isUTAGE ? Emojis[selectedSheet.type === ChartType.DX ? 'DX' : 'STD'] + ' ' : ''}`,
+                        getDifficultyEmoji(isUTAGE ? selectedSheet.utageType! : selectedSheet.difficulty),
+                    ];
 
-                interaction.editReply({
-                    embeds: [
-                        {
-                            title:
-                                title.join(' ').length >= 256
-                                    ? title[0] + DifficultyDisplayName[selectedSheet.difficulty]
-                                    : title.join(' '),
-                            description: [
-                                `Artist: ${song.artist}`,
-                                `Category: ${song.category}`,
-                                `BPM: ${song.bpm}`,
-                                `Version: ${song.version}`,
-                                `Level: ${selectedSheet.level} (${selectedSheet.internalLevelValue.toFixed(1)})`,
-                                `Note Designer: ${selectedSheet.noteDesigner}`,
-                            ].join('\n'),
-                            fields: [
-                                {
-                                    name: `Note Counts`,
-                                    value: [
-                                        `${Emojis.Tap} Tap: ${selectedSheet.noteCounts.tap ?? '-'}`,
-                                        `${Emojis.Hold} Hold: ${selectedSheet.noteCounts.hold ?? '-'}`,
-                                        `${Emojis.Slide} Slide: ${selectedSheet.noteCounts.slide ?? '-'}`,
-                                        `${Emojis.Touch} Touch: ${selectedSheet.noteCounts.touch ?? '-'}`,
-                                        `${Emojis.Break} Break: ${selectedSheet.noteCounts.break ?? '-'}`,
-                                        `Total: ${selectedSheet.noteCounts.total ?? '-'}`,
-                                    ].join('\n'),
-                                    inline: true,
+                    interaction.editReply({
+                        embeds: [
+                            {
+                                title:
+                                    title.join(' ').length >= 256
+                                        ? title[0] + DifficultyDisplayName[selectedSheet.difficulty]
+                                        : title.join(' '),
+                                description: [
+                                    `Artist: ${song.artist}`,
+                                    `Category: ${song.category}`,
+                                    `BPM: ${song.bpm ?? 'N/A'}`,
+                                    `Version: ${song.version}`,
+                                    `Level: ${selectedSheet.level} (${selectedSheet.internalLevelValue.toFixed(1)})`,
+                                    `Note Designer: ${selectedSheet.noteDesigner ?? 'N/A'}`,
+                                ].join('\n'),
+                                fields: [
+                                    {
+                                        name: `Note Counts`,
+                                        value: !Object.values(selectedSheet.noteCounts).some((note) => note !== null)
+                                            ? 'N/A'
+                                            : [
+                                                  `${Emojis.Tap} Tap: ${selectedSheet.noteCounts.tap ?? '-'}`,
+                                                  `${Emojis.Hold} Hold: ${selectedSheet.noteCounts.hold ?? '-'}`,
+                                                  `${Emojis.Slide} Slide: ${selectedSheet.noteCounts.slide ?? '-'}`,
+                                                  `${Emojis.Touch} Touch: ${selectedSheet.noteCounts.touch ?? '-'}`,
+                                                  `${Emojis.Break} Break: ${selectedSheet.noteCounts.break ?? '-'}`,
+                                                  `Total: ${selectedSheet.noteCounts.total ?? '-'}`,
+                                              ].join('\n'),
+                                        inline: true,
+                                    },
+                                    {
+                                        name: 'Rating',
+                                        value: !isUTAGE
+                                            ? [
+                                                  `${Emojis['SSS+']} (100.5): ${calculateRating(100.5, selectedSheet.internalLevelValue)}`,
+                                                  `${Emojis['SSS']} (100.0): ${calculateRating(100.0, selectedSheet.internalLevelValue)}`,
+                                                  `${Emojis['SS+']} (99.5): ${calculateRating(99.5, selectedSheet.internalLevelValue)}`,
+                                                  `${Emojis['SS']} (99.0): ${calculateRating(99.0, selectedSheet.internalLevelValue)}`,
+                                                  `${Emojis['S+']} (98.0): ${calculateRating(98.0, selectedSheet.internalLevelValue)}`,
+                                                  `${Emojis['S']} (97.0): ${calculateRating(97.0, selectedSheet.internalLevelValue)}`,
+                                              ].join('\n')
+                                            : 'N/A',
+                                        inline: true,
+                                    },
+                                    {
+                                        name: 'Regions',
+                                        value: Object.entries(selectedSheet.regions)
+                                            .map((region) => `${region[0].toUpperCase()}: ${region[1] ? '✅' : '❌'}`)
+                                            .join(', '),
+                                    },
+                                ],
+                                thumbnail: {
+                                    url: `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`,
                                 },
-                                {
-                                    name: 'Rating',
-                                    value: !isUTAGE
-                                        ? [
-                                              `${Emojis['SSS+']} (100.5): ${calculateRating(100.5, selectedSheet.internalLevelValue)}`,
-                                              `${Emojis['SSS']} (100.0): ${calculateRating(100.0, selectedSheet.internalLevelValue)}`,
-                                              `${Emojis['SS+']} (99.5): ${calculateRating(99.5, selectedSheet.internalLevelValue)}`,
-                                              `${Emojis['SS']} (99.0): ${calculateRating(99.0, selectedSheet.internalLevelValue)}`,
-                                              `${Emojis['S+']} (98.0): ${calculateRating(98.0, selectedSheet.internalLevelValue)}`,
-                                              `${Emojis['S']} (97.0): ${calculateRating(97.0, selectedSheet.internalLevelValue)}`,
-                                          ].join('\n')
-                                        : 'N/A',
-                                    inline: true,
-                                },
-                                {
-                                    name: 'Regions',
-                                    value: Object.entries(selectedSheet.regions)
-                                        .map((region) => `${region[0].toUpperCase()}: ${region[1] ? '✅' : '❌'}`)
-                                        .join(', '),
-                                },
-                            ],
-                            thumbnail: {
-                                url: `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`,
                             },
-                        },
-                    ],
-                    components: [detailSelector],
-                });
-        }
+                        ],
+                        components: [detailSelector],
+                    });
+                    break;
+            }
 
-        clearTimeout(timeout);
-        timeout = setTimeout(timeoutFunction, 60000);
+            clearTimeout(timeout);
+            timeout = setTimeout(timeoutFunction, 60000);
+        } catch (error) {
+            console.error(error);
+        }
     });
 
     collector.on('end', async () => {
