@@ -1,4 +1,5 @@
 {
+    "timezone": 8,
     "api": {
         "port": 3000,
         "https": {

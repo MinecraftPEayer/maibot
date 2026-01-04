@@ -1,10 +1,12 @@
+import { timezone } from 'config/config.json';
+
 class Logger {
     constructor(private prefix: any) {
         this.prefix = prefix;
     }
 
     private parseTime() {
-        let time = new Date(Date.now() + 8 * 60 * 60 * 1000);
+        let time = new Date(Date.now() + timezone * 60 * 60 * 1000);
         return `${String(time.getUTCHours()).padStart(2, '0')}:${String(time.getUTCMinutes()).padStart(2, '0')}:${String(time.getUTCSeconds()).padStart(2, '0')}`;
     }
 
