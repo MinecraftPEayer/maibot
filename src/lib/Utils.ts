@@ -1,8 +1,10 @@
 import fs from 'fs';
+import util from 'util';
 import { B50Data, SongDatabase } from 'types/SongDatabase';
 import exception from 'config/exception.json';
+import { timezone } from 'config/config.json';
 import { ChartType, ComboType, Difficulty, SyncType } from './CommonEnums';
-import { RatingBaseImageName, RankFactor, ChartTypeName } from './constant/CommonConstant';
+import { RatingBaseImageName, RankFactor } from './constant/CommonConstant';
 import { Emojis } from './constant/emojis';
 import { registerFont } from 'canvas';
 
@@ -244,6 +246,22 @@ function initializeFonts() {
     });
 }
 
+function writeErrorToFile(error: any) {
+    const time = new Date(Date.now() + timezone * 1000 * 60 * 60);
+    let nowTime = [
+        time.getUTCFullYear(),
+        (time.getUTCMonth() + 1).toString().padStart(2, '0'),
+        time.getUTCDate().toString().padStart(2, '0'),
+        time.getUTCHours().toString().padStart(2, '0'),
+        time.getUTCMinutes().toString().padStart(2, '0'),
+        time.getUTCSeconds().toString().padStart(2, '0'),
+    ];
+    const fileName = `tmp/error_${nowTime[0]}${nowTime[1]}${nowTime[2]}_${nowTime[3]}${nowTime[4]}${nowTime[5]}.log`;
+    const errorContent = `${util.inspect(error, { depth: null })}`;
+
+    fs.writeFileSync(fileName, errorContent);
+}
+
 const FontStack = '"SEGAMaruGothic", "Noto Sans", "Noto Sans JP", sans-serif';
 
 export {
@@ -257,5 +275,6 @@ export {
     getDifficultyIdFromName,
     getChartTypeFromName,
     initializeFonts,
+    writeErrorToFile,
     FontStack,
 };

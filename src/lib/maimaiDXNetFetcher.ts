@@ -5,6 +5,7 @@ import axios from 'axios';
 import { ChartType, ComboType, Difficulty, Genres, ScoreType, SyncType, TitleType } from './CommonEnums';
 import { DifficultyDisplayName, DifficultyName } from './constant/CommonConstant';
 import Logger from './logger';
+import { writeErrorToFile } from './Utils';
 
 const UserAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36';
@@ -101,6 +102,7 @@ class MaimaiDXNetFetcher {
             this.logger.log('Logged in successfully');
         } catch (error) {
             Promise.reject('Error fetching user info');
+            writeErrorToFile(error);
         }
     }
 
@@ -147,6 +149,7 @@ class MaimaiDXNetFetcher {
             return output;
         } catch (error) {
             this.logger.error('Error fetching friend list:', error);
+            writeErrorToFile(error);
         }
     }
 
@@ -175,6 +178,7 @@ class MaimaiDXNetFetcher {
             );
         } catch (error) {
             this.logger.error('Error adding friend:', error);
+            writeErrorToFile(error);
             return null;
         }
     }
@@ -252,6 +256,7 @@ class MaimaiDXNetFetcher {
             };
         } catch (error) {
             this.logger.error('Error getting player:', error);
+            writeErrorToFile(error);
             return null;
         }
     }
