@@ -8,3 +8,4 @@ certificate.crt
 commit_hash.txt
 
 src/utils/api/routes/debug
+config/config.json

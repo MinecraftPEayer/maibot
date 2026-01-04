@@ -3,8 +3,8 @@
         "port": 3000,
         "https": {
             "enabled": false,
-            "cert_path": "certificate.crt",
-            "key_path": "private.key"
+            "cert_path": "",
+            "key_path": ""
         },
         "debug_route": {
             "enabled": false
