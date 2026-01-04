@@ -6,6 +6,7 @@ import MaimaiDXNetFetcher from './lib/maimaiDXNetFetcher';
 import Logger from 'src/lib/logger';
 import SongDataFetcher from './lib/SongDataFetcher';
 import { MessageFlags } from 'discord.js';
+import config from 'config/config.json';
 
 const mainLogger = new Logger('main');
 process.logger = mainLogger;
@@ -55,12 +56,14 @@ client.on('ready', async () => {
         client.logger.error('[CommandRegister] Failed to register application commands.', error);
     }
 
-    try {
-        await rest.put(Routes.applicationGuildCommands(client.user!.id, '1120284154957930588'), {
-            body: commands,
-        });
-    } catch (error) {
-        client.logger.error('[CommandRegister] Failed to register guild commands.', error);
+    if (config.dev.devServerID) {
+        try {
+            await rest.put(Routes.applicationGuildCommands(client.user!.id, config.dev.devServerID), {
+                body: commands,
+            });
+        } catch (error) {
+            client.logger.error('[CommandRegister] Failed to register guild commands.', error);
+        }
     }
     await fetcher.login();
 

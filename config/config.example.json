@@ -9,5 +9,8 @@
         "debug_route": {
             "enabled": false
         }
+    },
+    "dev": {
+        "devServerID": ""
     }
 }
