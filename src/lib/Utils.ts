@@ -115,16 +115,14 @@ function calculateScore(
     data: B50Data[];
 } {
     let database = JSON.parse(fs.readFileSync('tmp/data.json').toString()) as SongDatabase;
-    const diffLabel = database.difficulties.map((diff) => diff.difficulty);
 
     let data: B50Data[] = [];
     for (const item of scoreData) {
         const song = database.songs.find((song: any) => song.songId === ((exception as any)[item.title] ?? item.title));
+
         if (song) {
             let sheet = song.sheets.find(
-                (sht) =>
-                    sht.type === item.type &&
-                    (sht.type === ChartType.UTAGE || sht.difficulty === diffLabel[item.difficulty]),
+                (sht) => sht.type === item.type && (sht.type === ChartType.UTAGE || sht.difficulty === item.difficulty),
             );
             if (sheet) {
                 const constant = sheet.internalLevelValue,
