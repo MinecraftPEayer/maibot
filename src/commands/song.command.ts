@@ -506,7 +506,43 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         getDifficultyEmoji(isUTAGE ? selectedSheet.utageType! : selectedSheet.difficulty),
                     ];
 
-                    const totalDXScore = selectedSheet.noteCounts.total ? selectedSheet.noteCounts.total * 3 : null;
+                    const noteCounts = selectedSheet.noteCounts;
+                    const totalBaseScore =
+                        noteCounts.tap! * 500 +
+                        noteCounts.hold! * 1000 +
+                        noteCounts.slide! * 1500 +
+                        noteCounts.touch! * 500 +
+                        noteCounts.break! * 2500;
+                    let greatCount = {
+                        SSSp: 0,
+                        SSS: 0,
+                        SSp: 0,
+                        SS: 0,
+                        Sp: 0,
+                        S: 0,
+                    };
+
+                    const rankThresholds = {
+                        SSSp: 0.5,
+                        SSS: 1.0,
+                        SSp: 1.5,
+                        SS: 2.0,
+                        Sp: 3.0,
+                        S: 4.0,
+                    };
+
+                    for (let rank in greatCount) {
+                        let count = 0;
+                        while (
+                            ((count * 100) / totalBaseScore) * 100 <
+                            rankThresholds[rank as keyof typeof rankThresholds]
+                        ) {
+                            count++;
+                        }
+                        greatCount[rank as keyof typeof greatCount] = count - 1;
+                    }
+
+                    const totalDXScore = noteCounts.total ? noteCounts.total * 3 : null;
 
                     interaction.editReply({
                         embeds: [
@@ -526,15 +562,15 @@ async function execute(interaction: ChatInputCommandInteraction) {
                                 fields: [
                                     {
                                         name: `Note Counts`,
-                                        value: !Object.values(selectedSheet.noteCounts).some((note) => note !== null)
+                                        value: !Object.values(noteCounts).some((note) => note !== null)
                                             ? 'N/A'
                                             : [
-                                                  `${Emojis.Tap} Tap: ${selectedSheet.noteCounts.tap ?? '-'}`,
-                                                  `${Emojis.Hold} Hold: ${selectedSheet.noteCounts.hold ?? '-'}`,
-                                                  `${Emojis.Slide} Slide: ${selectedSheet.noteCounts.slide ?? '-'}`,
-                                                  `${Emojis.Touch} Touch: ${selectedSheet.noteCounts.touch ?? '-'}`,
-                                                  `${Emojis.Break} Break: ${selectedSheet.noteCounts.break ?? '-'}`,
-                                                  `Total: ${selectedSheet.noteCounts.total ?? '-'}`,
+                                                  `${Emojis.Tap} Tap: ${noteCounts.tap ?? '-'}`,
+                                                  `${Emojis.Hold} Hold: ${noteCounts.hold ?? '-'}`,
+                                                  `${Emojis.Slide} Slide: ${noteCounts.slide ?? '-'}`,
+                                                  `${Emojis.Touch} Touch: ${noteCounts.touch ?? '-'}`,
+                                                  `${Emojis.Break} Break: ${noteCounts.break ?? '-'}`,
+                                                  `Total: ${noteCounts.total ?? '-'}`,
                                               ].join('\n'),
                                         inline: true,
                                     },
@@ -542,12 +578,12 @@ async function execute(interaction: ChatInputCommandInteraction) {
                                         name: 'Rating',
                                         value: !isUTAGE
                                             ? [
-                                                  `${Emojis['SSS+']} (100.5): ${calculateRating(100.5, selectedSheet.internalLevelValue)}`,
-                                                  `${Emojis['SSS']} (100.0): ${calculateRating(100.0, selectedSheet.internalLevelValue)}`,
-                                                  `${Emojis['SS+']} (99.5): ${calculateRating(99.5, selectedSheet.internalLevelValue)}`,
-                                                  `${Emojis['SS']} (99.0): ${calculateRating(99.0, selectedSheet.internalLevelValue)}`,
-                                                  `${Emojis['S+']} (98.0): ${calculateRating(98.0, selectedSheet.internalLevelValue)}`,
-                                                  `${Emojis['S']} (97.0): ${calculateRating(97.0, selectedSheet.internalLevelValue)}`,
+                                                  `${Emojis['SSS+']} (100.5): ${calculateRating(100.5, selectedSheet.internalLevelValue)} (${greatCount.SSSp} Greats)`,
+                                                  `${Emojis['SSS']} (100.0): ${calculateRating(100.0, selectedSheet.internalLevelValue)} (${greatCount.SSS} Greats)`,
+                                                  `${Emojis['SS+']} (99.5): ${calculateRating(99.5, selectedSheet.internalLevelValue)} (${greatCount.SSp} Greats)`,
+                                                  `${Emojis['SS']} (99.0): ${calculateRating(99.0, selectedSheet.internalLevelValue)} (${greatCount.SS} Greats)`,
+                                                  `${Emojis['S+']} (98.0): ${calculateRating(98.0, selectedSheet.internalLevelValue)} (${greatCount.Sp} Greats)`,
+                                                  `${Emojis['S']} (97.0): ${calculateRating(97.0, selectedSheet.internalLevelValue)} (${greatCount.S} Greats)`,
                                               ].join('\n')
                                             : 'N/A',
                                         inline: true,
