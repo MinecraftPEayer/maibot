@@ -160,7 +160,7 @@ async function drawSongBox(
     });
 
     if (score.rating >= 300) {
-        const rainbowColors = ['#FF0000', '#FF7F00', '#FFFF00', '#00FF00', '#0000FF', '#4B0082', '#9400D3'];
+        const rainbowColors = ['#FF0000', '#FF7F00', '#FFFF00', '#00FF00', '#00f7ff', '#4B0082', '#9400D3'];
         const colorCount = rainbowColors.length;
 
         let gradient = ctx.createLinearGradient(X + 18, Y, X + 18 + songBoxDim.width - 18, Y + 24);
@@ -381,6 +381,25 @@ async function drawAndSendChart(
     ctx.fillText(text, 178 + 128 - measuredText.width / 2, 141 + 16);
     ctx.strokeText(text, 178 + 128 - measuredText.width / 2, 141 + 16);
 
+    let B35Total = 0;
+    B35Data.forEach((b35) => (B35Total += b35.rating));
+    let B15Total = 0;
+    B15Data.forEach((b15) => (B15Total += b15.rating));
+
+    ctx.font = `12px ${FontStack}`;
+    ctx.fillStyle = 'white';
+    ctx.fillText('REAL', 471, 119 + 12);
+    ctx.fillText('CALC', 470, 152 + 12);
+    
+    ctx.font = `32px ${FontStack}`;
+    ctx.fillText(playerData.rating.toString(), 507, 101 + 32);
+    ctx.fillText(String(B35Total + B15Total), 507, 134 + 32);
+
+    if (playerData.rating !== B35Total + B15Total) {
+        ctx.font = `16px ${FontStack}`;
+        ctx.fillText(`(${playerData.rating > (B35Total + B15Total) ? '-' : '+'}${playerData.rating - (B35Total + B15Total)})`, 612, 149 + 16);
+    }
+
     drawRoundRect({
         ctx,
         x: 64,
@@ -420,8 +439,6 @@ async function drawAndSendChart(
     ctx.font = `8px ${FontStack}`;
     ctx.fillText('B35', B35BaseX + 116, B35BaseY - 8 - 2);
     ctx.font = `20px ${FontStack}`;
-    let B35Total = 0;
-    B35Data.forEach((b35) => (B35Total += b35.rating));
     ctx.fillText(B35Total.toString(), B35BaseX + 134, B35BaseY - 8 - 2);
 
     ctx.font = `8px ${FontStack}`;
@@ -479,8 +496,6 @@ async function drawAndSendChart(
     ctx.font = `8px ${FontStack}`;
     ctx.fillText('B15', B15BaseX + 116, B15BaseY - 8 - 2);
     ctx.font = `20px ${FontStack}`;
-    let B15Total = 0;
-    B15Data.forEach((b15) => (B15Total += b15.rating));
     ctx.fillText(B15Total.toString(), B15BaseX + 134, B15BaseY - 8 - 2);
 
     ctx.font = `8px ${FontStack}`;
