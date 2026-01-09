@@ -26,7 +26,7 @@ const WIDTH = 1920,
 const scoreType = ScoreType.Achievement;
 const diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
 
-const DrawChart: {
+const DrawGraph: {
     [name: string]: (canvas: Canvas, ...args: any[]) => Promise<void>;
 } = {
     B15: async (
@@ -221,12 +221,12 @@ const DrawChart: {
     },
 };
 
-async function drawAndSendChart(
+async function drawAndSendGraph(
     interaction: ChatInputCommandInteraction,
     updateTime: Date,
     playerData: PlayerInfo,
     scores: { [key: string]: ScoreData[] },
-    chartType: keyof typeof DrawChart,
+    graphType: keyof typeof DrawGraph,
 ) {
     initializeFonts();
     const { B15Data, B35Data } = calculateB50(Object.values(scores).flat());
@@ -336,7 +336,7 @@ async function drawAndSendChart(
     ctx.fillText(text, 178 + 128 - measuredText.width / 2, 141 + 16);
     ctx.strokeText(text, 178 + 128 - measuredText.width / 2, 141 + 16);
 
-    await DrawChart[chartType](canvas, {
+    await DrawGraph[graphType](canvas, {
         B35: B35Data,
         B15: B15Data,
     });
@@ -353,21 +353,21 @@ async function drawAndSendChart(
 }
 
 const data = new SlashCommandBuilder()
-    .setName('analyze')
-    .setDescription('Analyzing something')
+    .setName('graph')
+    .setDescription('Draw some graph')
     .addStringOption((option) =>
         option
             .setName('type')
-            .setDescription('Chart type you want to draw')
-            .addChoices(Object.keys(DrawChart).map((key) => ({ name: key, value: key })))
+            .setDescription('Graph type you want to draw')
+            .addChoices(Object.keys(DrawGraph).map((key) => ({ name: key, value: key })))
             .setRequired(true),
     )
-    .addUserOption((option) => option.setName('user').setDescription('The user to analyze').setRequired(false));
+    .addUserOption((option) => option.setName('user').setDescription('The user to draw').setRequired(false));
 
 async function execute(interaction: ChatInputCommandInteraction) {
     logger = interaction.client.logger;
     const user = interaction.options.getUser('user') || interaction.user;
-    const type = interaction.options.getString('type') as keyof typeof DrawChart;
+    const type = interaction.options.getString('type') as keyof typeof DrawGraph;
     const db = new JSONdb(`data/linking.json`);
 
     const fetcher = MaimaiDXNetFetcher.getInstance();
@@ -420,7 +420,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
             content: 'Processing...',
         });
 
-        await drawAndSendChart(interaction, updateTime, playerInfo, scores, type);
+        await drawAndSendGraph(interaction, updateTime, playerInfo, scores, type);
     } else {
         if (user && !db.has(user.id)) {
             return await interaction.reply(`${user.username} 還沒綁定帳號`);
@@ -465,7 +465,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                             components: [],
                             embeds: [],
                         });
-                        drawAndSendChart(interaction, data.date, playerInfo, scores, type);
+                        drawAndSendGraph(interaction, data.date, playerInfo, scores, type);
                         break;
                     case 'no':
                         let message = 'Fetching player info...';
@@ -509,7 +509,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                             ['Fetching player info... OK', 'Fetching scores... OK', 'Calculating...'].join('\n'),
                         );
 
-                        drawAndSendChart(interaction, new Date(), playerInfo, scores, type);
+                        drawAndSendGraph(interaction, new Date(), playerInfo, scores, type);
                         break;
 
                     default:
@@ -564,7 +564,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                 ['Fetching player info... OK', 'Fetching scores... OK', 'Calculating...'].join('\n'),
             );
 
-            await drawAndSendChart(interaction, new Date(), playerInfo, scores, type);
+            await drawAndSendGraph(interaction, new Date(), playerInfo, scores, type);
         }
     }
 }
