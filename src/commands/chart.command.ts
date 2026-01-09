@@ -160,7 +160,7 @@ async function drawSongBox(
     });
 
     if (score.rating >= 300) {
-        const rainbowColors = ['#FF0000', '#FF7F00', '#FFFF00', '#00FF00', '#00f7ff', '#4B0082', '#9400D3'];
+        const rainbowColors = ['#FF0000', '#F6FF00', '#7BFF0F', '#00EEFF', '#8B3EF7'];
         const colorCount = rainbowColors.length;
 
         let gradient = ctx.createLinearGradient(X + 18, Y, X + 18 + songBoxDim.width - 18, Y + 24);
