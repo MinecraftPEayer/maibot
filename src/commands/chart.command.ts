@@ -27,6 +27,21 @@ const TitleTypeName = {
     [TitleType.Rainbow]: 'Rainbow',
 };
 
+const SyncTypeImageName = {
+    [SyncType.SYNC]: 'SYNC',
+    [SyncType.FS]: 'FS',
+    [SyncType.FSp]: 'FSp',
+    [SyncType.FDX]: 'FDX',
+    [SyncType.FDXp]: 'FDXp',
+}
+
+const ComboTypeImageName = {
+    [ComboType.FC]: 'FC',
+    [ComboType.FCp]: 'FCp',
+    [ComboType.AP]: 'AP',
+    [ComboType.APp]: 'APp',
+}
+
 let diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
 
 const DifficultyColor = {
@@ -96,6 +111,7 @@ async function drawSongBox(
     song: B50Data,
     songBoxDim: { width: number; height: number },
     index: number,
+    drawSyncAndCombo?: boolean
 ) {
     const score = song,
         X = x,
@@ -245,6 +261,16 @@ async function drawSongBox(
     const RankImg = await loadImage(`assets/ranking/${score.ranking.toLowerCase().replace(/[+]/g, 'plus')}.png`);
     ctx.drawImage(RankImg, X + 6, Y + songBoxDim.height - 16 - 20 - 2, 45, 20);
 
+    if (drawSyncAndCombo) {
+        let toDraw = []
+        if (score.comboType !== ComboType.None) toDraw.push(ComboTypeImageName[score.comboType]);
+        if (score.syncType !== SyncType.None) toDraw.push(SyncTypeImageName[score.syncType]);
+        for (let i = 0; i < toDraw.length; i++) {
+            const iconImg = await loadImage(`assets/icons/${toDraw[i]}.png`);
+            ctx.drawImage(iconImg, X + 49 + 16 * i, Y + 118, 16, 16);
+        }
+    }
+
     ctx.font = `28px ${FontStack}`;
     ctx.save();
     ctx.lineWidth = 0.5;
@@ -263,6 +289,7 @@ async function drawAndSendChart(
     scores: {
         [key: string]: ScoreData[];
     },
+    drawIcons?: boolean
 ) {
     initializeFonts();
     logger.log('Drawing chart for player:', playerData?.name);
@@ -431,7 +458,7 @@ async function drawAndSendChart(
             const index = i * 7 + j;
             const score = B35Data[index];
 
-            await drawSongBox(ctx, X, Y, score, songBoxDim, index);
+            await drawSongBox(ctx, X, Y, score, songBoxDim, index, drawIcons);
         }
     }
 
@@ -488,7 +515,7 @@ async function drawAndSendChart(
             const index = i * 3 + j;
             const score = B15Data[index];
 
-            await drawSongBox(ctx, X, Y, score, songBoxDim, index);
+            await drawSongBox(ctx, X, Y, score, songBoxDim, index, drawIcons);
         }
     }
 
@@ -541,7 +568,8 @@ async function drawAndSendChart(
 const data = new SlashCommandBuilder()
     .setName('chart')
     .setDescription('生成Rating Chart')
-    .addUserOption((option) => option.setName('user').setDescription('要查詢的玩家').setRequired(false));
+    .addUserOption((option) => option.setName('user').setDescription('要查詢的玩家').setRequired(false))
+    .addBooleanOption((option) => option.setName('draw_icons').setDescription('是否繪製SYNC/FC/AP圖標 (預設為否)').setRequired(false));
 
 const scoreType = ScoreType.Achievement;
 
@@ -565,6 +593,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
     logger = interaction.client.logger;
     let db = new JSONdb('data/linking.json');
     let optionUser = interaction.options.getUser('user');
+    let optionDrawIcons = interaction.options.getBoolean('draw_icons') ?? false;
 
     const fetcher = MaimaiDXNetFetcher.getInstance();
 
@@ -618,7 +647,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
             content: 'Processing...',
         });
 
-        drawAndSendChart(interaction, updateTime, playerInfo, scores);
+        drawAndSendChart(interaction, updateTime, playerInfo, scores, optionDrawIcons);
     } else {
         if (optionUser && !db.has(optionUser.id)) {
             return await interaction.reply(`${optionUser.username} 還沒綁定帳號`);
@@ -663,7 +692,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                             components: [],
                             embeds: [],
                         });
-                        drawAndSendChart(interaction, data.date, playerInfo, scores);
+                        drawAndSendChart(interaction, data.date, playerInfo, scores, optionDrawIcons);
                         break;
                     case 'no':
                         let message = 'Fetching player info...';
@@ -707,7 +736,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                             ['Fetching player info... OK', 'Fetching scores... OK', 'Calculating...'].join('\n'),
                         );
 
-                        drawAndSendChart(interaction, new Date(), playerInfo, scores);
+                        drawAndSendChart(interaction, new Date(), playerInfo, scores, optionDrawIcons);
                         break;
 
                     default:
@@ -762,7 +791,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                 ['Fetching player info... OK', 'Fetching scores... OK', 'Calculating...'].join('\n'),
             );
 
-            await drawAndSendChart(interaction, new Date(), playerInfo, scores);
+            await drawAndSendChart(interaction, new Date(), playerInfo, scores, optionDrawIcons);
         }
     }
 }
