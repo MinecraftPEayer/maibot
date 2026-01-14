@@ -31,7 +31,8 @@ const fetcher = MaimaiDXNetFetcher.getInstance();
 client.on('ready', async () => {
     client.logger.log(`Logged in as ${client.user?.tag}`);
 
-    SongDataFetcher.getInstance();
+    const dataFetcher = SongDataFetcher.getInstance();
+    await dataFetcher.fetchData();
 
     const files = fs.readdirSync('./src/commands').filter((file) => file.endsWith('.command.ts'));
 
