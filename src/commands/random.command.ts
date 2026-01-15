@@ -201,7 +201,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
     );
 
     const owo = await interaction.reply({
-        content: outOfRange ? `You requested ${optCount} songs, but only ${filtered.length} are available. Showing ${count} songs instead.` : undefined,
+        content: (outOfRange ? `You requested ${optCount} songs, but only ${filtered.length} are available. Showing ${count} songs instead.\n` : '') + `Page ${page + 1} / ${Math.ceil(count / itemPerPage)}`,
         embeds: getPageEmbed(page),
         components: count > itemPerPage ? [paginationActionRow] : [],
     });
@@ -224,6 +224,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
         paginationActionRow.components[1].setDisabled(page === Math.ceil(count / itemPerPage) - 1);
 
         await i.update({
+            content: `Page ${page + 1} / ${Math.ceil(count / itemPerPage)}`,
             embeds: getPageEmbed(page),
             components: [paginationActionRow],
         });
