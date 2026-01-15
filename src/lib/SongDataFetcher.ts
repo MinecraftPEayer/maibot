@@ -1,6 +1,16 @@
 import axios from 'axios';
 import fs from 'fs';
-import { ConstantDatabase, Sheet, Song, SongDatabase } from 'types/SongDatabase';
+import {
+    ConstantDatabase,
+    RegionOverrides,
+    Sheet,
+    Song,
+    SongDatabase,
+    SongDatabaseCategories,
+    SongDatabaseDifficulties,
+    SongDatabaseRegions,
+    SongDatabaseVersions,
+} from 'types/SongDatabase';
 import { ChartType, Difficulty } from './CommonEnums';
 import exception from 'config/exception.json';
 
@@ -15,6 +25,7 @@ type SourceSong = {
     isLocked: boolean;
     comment: string | null;
     sheets: SourceSheet[];
+    category: string;
 };
 
 type SourceSheet = {
@@ -22,15 +33,26 @@ type SourceSheet = {
     difficulty: 'basic' | 'advanced' | 'expert' | 'master' | 'remaster' | string;
     level: string;
     levelValue: number;
+    internalLevel: string | null;
     internalLevelValue: number;
-    noteCount: {
+    noteCounts: {
         tap: number | null;
         hold: number | null;
         slide: number | null;
+        touch: number | null;
         break: number | null;
+        total: number | null;
     };
-    syncType: string;
-    comboType: string;
+    noteDesigner: string;
+    regions: {
+        jp: boolean;
+        intl: boolean;
+        usa: boolean;
+        cn: boolean;
+    };
+    regionOverrides: RegionOverrides;
+    isSpecial: boolean;
+    version: string;
 };
 
 const diffText = {
@@ -61,9 +83,13 @@ class SongDataFetcher {
     private static instance: SongDataFetcher;
     private filePath: string;
 
+    static genres: string[];
+    static difficulties: SongDatabaseDifficulties[];
+    static versions: SongDatabaseVersions[];
+    static regions: SongDatabaseRegions[];
+
     private constructor() {
         this.filePath = 'tmp/data.json';
-        this.fetchData();
     }
 
     public static getInstance(): SongDataFetcher {
@@ -73,7 +99,7 @@ class SongDataFetcher {
         return SongDataFetcher.instance;
     }
 
-    private async fetchData(): Promise<void> {
+    async fetchData(): Promise<void> {
         try {
             const response = await axios.get('https://dp4p6x0xfi5o9.cloudfront.net/maimai/data.json');
             if (response.status === 200) {
@@ -85,7 +111,7 @@ class SongDataFetcher {
                     'https://raw.githubusercontent.com/zvuc/otoge-db/refs/heads/master/maimai/data/music-ex.json',
                 );
 
-                const outputData: { [key: string]: any } = {
+                const outputData: SongDatabase = {
                     ...data,
                 };
 
@@ -187,7 +213,7 @@ class SongDataFetcher {
                             return {
                                 ...sheet,
                                 type: type,
-                                difficulty: diff,
+                                difficulty: diff ?? Difficulty.Basic,
                                 utageType: utageType,
                             };
                         });
@@ -198,6 +224,15 @@ class SongDataFetcher {
                         });
                     });
                 }
+
+                SongDataFetcher.genres = outputData.categories.map(
+                    (category: { category: string }) => category.category,
+                );
+
+                SongDataFetcher.versions = outputData.versions;
+                SongDataFetcher.difficulties = outputData.difficulties;
+                SongDataFetcher.regions = outputData.regions;
+
                 fs.writeFileSync(this.filePath, JSON.stringify(outputData));
             }
         } catch (error) {
@@ -238,6 +273,11 @@ class SongDataFetcher {
             throw new Error('Song not found');
         }
         return song;
+    }
+
+    getRawData(): SongDatabase {
+        let data = this.getData();
+        return data;
     }
 }
 

@@ -2,29 +2,42 @@ import { Difficulty, ComboType, SyncType, ChartType } from 'src/lib/CommonEnums'
 
 interface SongDatabase {
     songs: Song[];
-    categories: { category: string }[];
-    versions: {
-        version: string;
-        abbr: string;
-    }[];
-    types: {
-        type: SheetType;
-        name: string;
-        abbr: string;
-        iconUrl?: string;
-        iconHeight?: number;
-    };
-    difficulties: {
-        difficulty: Difficulty;
-        name: string;
-        color: string;
-    }[];
-    regions: {
-        region: 'jp' | 'intl' | 'usa' | 'cn';
-        name: string;
-    }[];
+    categories: SongDatabaseCategories[];
+    versions: SongDatabaseVersions[];
+    types: SongDatabaseTypes[];
+    difficulties: SongDatabaseDifficulties[];
+    regions: SongDatabaseRegions[];
     updateTime: string;
 }
+
+type SongDatabaseCategories = {
+    category: string;
+};
+
+type SongDatabaseVersions = {
+    version: string;
+    abbr: string;
+    iconUrl?: string;
+};
+
+type SongDatabaseTypes = {
+    type: SheetType;
+    name: string;
+    abbr: string;
+    iconUrl?: string;
+    iconHeight?: number;
+};
+
+type SongDatabaseDifficulties = {
+    difficulty: string;
+    name: string;
+    color: string;
+};
+
+type SongDatabaseRegions = {
+    region: 'jp' | 'intl' | 'usa' | 'cn';
+    name: string;
+};
 
 type ConstantDatabase = {
     sort: string;
@@ -163,6 +176,7 @@ type NoteCount = {
 type Region = {
     jp: boolean;
     intl: boolean;
+    usa: boolean;
     cn: boolean;
 };
 
@@ -225,6 +239,11 @@ type ScoreData = {
 
 export {
     SongDatabase,
+    SongDatabaseCategories,
+    SongDatabaseVersions,
+    SongDatabaseTypes,
+    SongDatabaseDifficulties,
+    SongDatabaseRegions,
     ConstantDatabase,
     Song,
     Sheet,
