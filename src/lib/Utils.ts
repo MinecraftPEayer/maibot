@@ -69,10 +69,8 @@ function calculateB50(
                 const constant = sheet.internalLevelValue,
                     rating = calculateRating(item.achievement, constant),
                     imageURL = song.imageName;
-                ((sheet.regionOverrides.intl.version ?? sheet.version ?? song.version) === 'PRiSM PLUS'
-                    ? B15Data
-                    : B35Data
-                ).push({
+                const version = (sheet.regionOverrides.intl.version as string) ?? sheet.version ?? song.version;
+                (['PRiSM PLUS', 'CiRCLE'].includes(version) ? B15Data : B35Data).push({
                     type: item.type,
                     title: (exception as any)[item.title] ?? item.title,
                     achievement: item.achievement,
