@@ -33,14 +33,14 @@ const SyncTypeImageName = {
     [SyncType.FSp]: 'FSp',
     [SyncType.FDX]: 'FDX',
     [SyncType.FDXp]: 'FDXp',
-}
+};
 
 const ComboTypeImageName = {
     [ComboType.FC]: 'FC',
     [ComboType.FCp]: 'FCp',
     [ComboType.AP]: 'AP',
     [ComboType.APp]: 'APp',
-}
+};
 
 let diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
 
@@ -111,7 +111,7 @@ async function drawSongBox(
     song: B50Data,
     songBoxDim: { width: number; height: number },
     index: number,
-    drawSyncAndCombo?: boolean
+    drawSyncAndCombo?: boolean,
 ) {
     const score = song,
         X = x,
@@ -262,7 +262,7 @@ async function drawSongBox(
     ctx.drawImage(RankImg, X + 6, Y + songBoxDim.height - 16 - 20 - 2, 45, 20);
 
     if (drawSyncAndCombo) {
-        let toDraw = []
+        let toDraw = [];
         if (score.comboType !== ComboType.None) toDraw.push(ComboTypeImageName[score.comboType]);
         if (score.syncType !== SyncType.None) toDraw.push(SyncTypeImageName[score.syncType]);
         for (let i = 0; i < toDraw.length; i++) {
@@ -289,7 +289,7 @@ async function drawAndSendChart(
     scores: {
         [key: string]: ScoreData[];
     },
-    drawIcons?: boolean
+    drawIcons?: boolean,
 ) {
     initializeFonts();
     logger.log('Drawing chart for player:', playerData?.name);
@@ -323,7 +323,7 @@ async function drawAndSendChart(
     });
 
     const logoImg = await loadImage('assets/logo.png');
-    ctx.drawImage(logoImg, 1558, 64, 298, 108);
+    ctx.drawImage(logoImg, 1627, 64, 229, 109);
 
     drawRoundRect({
         ctx,
@@ -417,14 +417,18 @@ async function drawAndSendChart(
     ctx.fillStyle = 'white';
     ctx.fillText('REAL', 471, 119 + 12);
     ctx.fillText('CALC', 470, 152 + 12);
-    
+
     ctx.font = `32px ${FontStack}`;
     ctx.fillText(playerData.rating.toString(), 507, 101 + 32);
     ctx.fillText(String(B35Total + B15Total), 507, 134 + 32);
 
     if (playerData.rating !== B35Total + B15Total) {
         ctx.font = `16px ${FontStack}`;
-        ctx.fillText(`(${playerData.rating > (B35Total + B15Total) ? '-' : '+'}${playerData.rating - (B35Total + B15Total)})`, 612, 149 + 16);
+        ctx.fillText(
+            `(${playerData.rating > B35Total + B15Total ? '-' : '+'}${playerData.rating - (B35Total + B15Total)})`,
+            612,
+            149 + 16,
+        );
     }
 
     drawRoundRect({
@@ -569,7 +573,9 @@ const data = new SlashCommandBuilder()
     .setName('chart')
     .setDescription('生成Rating Chart')
     .addUserOption((option) => option.setName('user').setDescription('要查詢的玩家').setRequired(false))
-    .addBooleanOption((option) => option.setName('draw_icons').setDescription('是否繪製SYNC/FC/AP圖標 (預設為否)').setRequired(false));
+    .addBooleanOption((option) =>
+        option.setName('draw_icons').setDescription('是否繪製SYNC/FC/AP圖標 (預設為否)').setRequired(false),
+    );
 
 const scoreType = ScoreType.Achievement;
 
