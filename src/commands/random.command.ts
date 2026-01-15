@@ -233,6 +233,12 @@ async function execute(interaction: ChatInputCommandInteraction) {
             collector.emit('end');
         }, 60000);
     });
+
+    collector.on('end', async () => {
+        await owo.edit({
+            components: [],
+        });
+    })
 }
 
 async function autocomplete(interaction: AutocompleteInteraction) {
