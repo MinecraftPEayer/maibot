@@ -47,39 +47,12 @@ const Levels = [
 const data = new SlashCommandBuilder()
     .setName('random')
     .setDescription('抽歌時間')
-    .addStringOption((option) =>
-        option.setName('version').setDescription('Song Version').setAutocomplete(true).setRequired(false),
-    )
     .addIntegerOption((option) =>
         option
             .setName('count')
             .setDescription('Number of songs to draw (default: 1, max: 25)')
             .setMinValue(1)
             .setMaxValue(25)
-            .setRequired(false),
-    )
-    .addStringOption((option) =>
-        option
-            .setName('region')
-            .setDescription('Game Region')
-            .addChoices(
-                ...Regions.map((region) => ({
-                    name: region.name,
-                    value: region.region,
-                })),
-            )
-            .setRequired(false),
-    )
-    .addStringOption((option) =>
-        option
-            .setName('genre')
-            .setDescription('Song Genre (disabled if chart type is U·TA·GE)')
-            .addChoices(
-                ...Genres.map((genre) => ({
-                    name: genre,
-                    value: genre,
-                })),
-            )
             .setRequired(false),
     )
     .addStringOption((option) =>
@@ -102,6 +75,18 @@ const data = new SlashCommandBuilder()
                 ...Levels.map((level) => ({
                     name: level,
                     value: level,
+                })),
+            )
+            .setRequired(false),
+    )
+    .addStringOption((option) =>
+        option
+            .setName('genre')
+            .setDescription('Song Genre (disabled if chart type is U·TA·GE)')
+            .addChoices(
+                ...Genres.map((genre) => ({
+                    name: genre,
+                    value: genre,
                 })),
             )
             .setRequired(false),
@@ -135,6 +120,21 @@ const data = new SlashCommandBuilder()
                     name: '宴会場 (U·TA·GE)',
                     value: 'utage',
                 },
+            )
+            .setRequired(false),
+    )
+    .addStringOption((option) =>
+        option.setName('version').setDescription('Song Version').setAutocomplete(true).setRequired(false),
+    )
+    .addStringOption((option) =>
+        option
+            .setName('region')
+            .setDescription('Game Region')
+            .addChoices(
+                ...Regions.map((region) => ({
+                    name: region.name,
+                    value: region.region,
+                })),
             )
             .setRequired(false),
     );
