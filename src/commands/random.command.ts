@@ -1,5 +1,8 @@
 import {
+    ActionRowBuilder,
     AutocompleteInteraction,
+    ButtonBuilder,
+    ButtonStyle,
     ChatInputCommandInteraction,
     EmbedBuilder,
     Emoji,
@@ -46,6 +49,14 @@ const data = new SlashCommandBuilder()
     .setDescription('抽歌時間')
     .addStringOption((option) =>
         option.setName('version').setDescription('Song Version').setAutocomplete(true).setRequired(false),
+    )
+    .addIntegerOption((option) =>
+        option
+            .setName('count')
+            .setDescription('Number of songs to draw (default: 1, max: 25)')
+            .setMinValue(1)
+            .setMaxValue(25)
+            .setRequired(false),
     )
     .addStringOption((option) =>
         option
@@ -126,18 +137,9 @@ const data = new SlashCommandBuilder()
                 },
             )
             .setRequired(false),
-    )
-    .addIntegerOption((option) =>
-        option
-            .setName('count')
-            .setDescription('Number of songs to draw (default: 1, max: 10)')
-            .setMinValue(1)
-            .setMaxValue(10)
-            .setRequired(false),
     );
 
 async function execute(interaction: ChatInputCommandInteraction) {
-    const count = interaction.options.getInteger('count') ?? 1;
     const filter = {
         version: interaction.options.getString('version') ?? undefined,
         region: interaction.options.getString('region') ?? undefined,
@@ -174,26 +176,63 @@ async function execute(interaction: ChatInputCommandInteraction) {
         return;
     }
 
+    const optCount = interaction.options.getInteger('count');
+    const outOfRange = (optCount ?? 1) > filtered.length;
+    const count = (optCount ?? 1) > filtered.length ? filtered.length : (optCount ?? 1);
+    const randomized = filtered.sort(() => 0.5 - Math.random()).slice(0, count);
+
     let page = 0;
     let itemPerPage = 5;
 
-    let embeds = filtered.slice(itemPerPage * page, itemPerPage * (page + 1)).map(({ song, sheet }) =>
-        new EmbedBuilder()
-            .setAuthor({ name: song.artist })
-            .setTitle(song.title)
-            .setDescription(
-                `${Emojis[['STD', 'DX', 'Utage'][sheet.type] as keyof typeof Emojis]} ${Emojis[['Basic', 'Advanced', 'Expert', 'Master', 'ReMaster', , , , , , 'Utage'][sheet.difficulty] as keyof typeof Emojis]} ${sheet.level}`,
-            )
-            .setThumbnail(`https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`),
+    const getPageEmbed = (page: number) =>
+        randomized.slice(itemPerPage * page, itemPerPage * (page + 1)).map(({ song, sheet }) =>
+            new EmbedBuilder()
+                .setAuthor({ name: song.artist })
+                .setTitle(song.title)
+                .setDescription(
+                    `${Emojis[['STD', 'DX', 'Utage'][sheet.type] as keyof typeof Emojis]} ${Emojis[['Basic', 'Advanced', 'Expert', 'Master', 'ReMaster', , , , , , 'Utage'][sheet.difficulty] as keyof typeof Emojis]} ${sheet.level}`,
+                )
+                .setThumbnail(`https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`),
+        );
+
+    const paginationActionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder().setCustomId('prev_page').setEmoji('⬅️').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('next_page').setEmoji('➡️').setStyle(ButtonStyle.Secondary),
     );
 
-    await interaction.reply({
-        embeds,
+    const owo = await interaction.reply({
+        content: outOfRange ? `You requested ${optCount} songs, but only ${filtered.length} are available. Showing ${count} songs instead.` : undefined,
+        embeds: getPageEmbed(page),
+        components: count > itemPerPage ? [paginationActionRow] : [],
     });
 
-    /**
-     * @todo pagination
-     */
+    const collector = owo.createMessageComponentCollector({
+        filter: (i) => i.user.id === interaction.user.id,
+    });
+
+    let timeout = setTimeout(() => {
+        collector.emit('end');
+    }, 60000);
+
+    collector.on('collect', async (i) => {
+        if (i.customId === 'prev_page') {
+            if (page > 0) page--;
+        } else if (i.customId === 'next_page') {
+            if (page !== Math.ceil(count / itemPerPage) - 1) page++;
+        }
+        paginationActionRow.components[0].setDisabled(page === 0);
+        paginationActionRow.components[1].setDisabled(page === Math.ceil(count / itemPerPage) - 1);
+
+        await i.update({
+            embeds: getPageEmbed(page),
+            components: [paginationActionRow],
+        });
+
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+            collector.emit('end');
+        }, 60000);
+    });
 }
 
 async function autocomplete(interaction: AutocompleteInteraction) {
