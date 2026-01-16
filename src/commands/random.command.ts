@@ -11,7 +11,7 @@ import {
 import fs from 'fs';
 import { Emojis } from 'src/lib/constant/emojis';
 import SongDataFetcher from 'src/lib/SongDataFetcher';
-import { getChartTypeFromName, getDifficultyIdFromName } from 'src/lib/Utils';
+import { getChartTypeFromName, getDifficultyIdFromName, randomSong } from 'src/lib/Utils';
 import { Sheet, Song } from 'types/SongDatabase';
 
 const Difficulties = SongDataFetcher.difficulties;
@@ -154,22 +154,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
         filter.version = undefined;
     }
 
-    const rawData = SongDataFetcher.getInstance().getRawData();
-    const filtered: { song: Song; sheet: Sheet }[] = [];
-    rawData.songs.forEach((song) => {
-        if (filter.genre && song.category !== filter.genre) return;
-        if (filter.version && song.version !== filter.version) return;
-
-        song.sheets.forEach((sheet) => {
-            if (filter.type && sheet.type !== getChartTypeFromName(filter.type)) return;
-            if (filter.difficulty && sheet.difficulty !== getDifficultyIdFromName(filter.difficulty)) return;
-
-            if (filter.maxLevel && Levels.indexOf(sheet.level) > Levels.indexOf(filter.maxLevel)) return;
-            if (filter.minLevel && Levels.indexOf(sheet.level) < Levels.indexOf(filter.minLevel)) return;
-
-            filtered.push({ song, sheet });
-        });
-    });
+    const { filtered, randomized } = randomSong( (interaction.options.getInteger('count') ?? 1), filter);
 
     if (filtered.length === 0) {
         await interaction.reply('No songs found with the given filters.');
@@ -179,7 +164,6 @@ async function execute(interaction: ChatInputCommandInteraction) {
     const optCount = interaction.options.getInteger('count');
     const outOfRange = (optCount ?? 1) > filtered.length;
     const count = (optCount ?? 1) > filtered.length ? filtered.length : (optCount ?? 1);
-    const randomized = filtered.sort(() => 0.5 - Math.random()).slice(0, count);
 
     let page = 0;
     let itemPerPage = 5;

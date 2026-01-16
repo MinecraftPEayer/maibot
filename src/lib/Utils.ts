@@ -1,12 +1,13 @@
 import fs from 'fs';
 import util from 'util';
-import { B50Data, SongDatabase } from 'types/SongDatabase';
+import { B50Data, Sheet, Song, SongDatabase } from 'types/SongDatabase';
 import exception from 'config/exception.json';
 import { timezone } from 'config/config.json';
 import { ChartType, ComboType, Difficulty, SyncType } from './CommonEnums';
 import { RatingBaseImageName, RankFactor } from './constant/CommonConstant';
 import { Emojis } from './constant/emojis';
 import { registerFont } from 'canvas';
+import SongDataFetcher from './SongDataFetcher';
 
 function convertAchievementToRank(achievement: number) {
     if (achievement >= 100.5) return 'SSS+';
@@ -260,6 +261,66 @@ function writeErrorToFile(error: any) {
     fs.writeFileSync(fileName, errorContent);
 }
 
+const Difficulties = SongDataFetcher.difficulties;
+const Genres = SongDataFetcher.genres;
+const Versions = SongDataFetcher.versions;
+const Regions = SongDataFetcher.regions;
+const Levels = [
+    '1',
+    '2',
+    '3',
+    '4',
+    '5',
+    '6',
+    '7',
+    '7+',
+    '8',
+    '8+',
+    '9',
+    '9+',
+    '10',
+    '10+',
+    '11',
+    '11+',
+    '12',
+    '12+',
+    '13',
+    '13+',
+    '14',
+    '14+',
+    '15',
+];
+
+function randomSong(count: number, filter: {
+    maxLevel?: string;
+    minLevel?: string;
+    version?: string;
+    region?: string;
+    genre?: string;
+    difficulty?: string;
+    type?: string;
+}) {
+    const rawData = SongDataFetcher.getInstance().getRawData();
+    const filtered: { song: Song; sheet: Sheet }[] = [];
+    rawData.songs.forEach((song) => {
+        if (filter.genre && song.category !== filter.genre) return;
+        if (filter.version && song.version !== filter.version) return;
+
+        song.sheets.forEach((sheet) => {
+            if (filter.type && sheet.type !== getChartTypeFromName(filter.type)) return;
+            if (filter.difficulty && sheet.difficulty !== getDifficultyIdFromName(filter.difficulty)) return;
+
+            if (filter.maxLevel && Levels.indexOf(sheet.level) > Levels.indexOf(filter.maxLevel)) return;
+            if (filter.minLevel && Levels.indexOf(sheet.level) < Levels.indexOf(filter.minLevel)) return;
+
+            filtered.push({ song, sheet });
+        });
+    });
+
+    const randomized = filtered.sort(() => 0.5 - Math.random()).slice(0, count);
+    return { filtered, randomized };
+}
+
 const FontStack = '"SEGAMaruGothic", "Noto Sans", "Noto Sans JP", sans-serif';
 
 export {
@@ -272,6 +333,7 @@ export {
     getRatingBaseImage,
     getDifficultyIdFromName,
     getChartTypeFromName,
+    randomSong,
     initializeFonts,
     writeErrorToFile,
     FontStack,
