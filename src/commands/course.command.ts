@@ -10,7 +10,21 @@ import {
 import { ChartType } from 'src/lib/CommonEnums';
 import { Emojis } from 'src/lib/constant/emojis';
 import SongDataFetcher from 'src/lib/SongDataFetcher';
-import { getChartTypeFromName, getDifficultyEmoji, getDifficultyIdFromName } from 'src/lib/Utils';
+import { getChartTypeFromName, getDifficultyEmoji, getDifficultyIdFromName, randomSong } from 'src/lib/Utils';
+
+// [min, max]
+const RandomCourseLevelRange = {
+    '【EXPERT 初級】': [7.0, 9.6],
+    '【EXPERT 中級】': [9.7, 11.6],
+    '【EXPERT 上級】': [11.7, 12.6],
+    '【EXPERT 超上級】': [12.7, 13.9],
+    '【MASTER 初級】': [10.0, 11.9],
+    '【MASTER 中級】': [12.0, 13.2],
+    '【MASTER 上級】': [13.3, 14.4],
+    '【MASTER 超上級】': [14.5, 14.9],
+};
+
+type RandomCourseType = keyof typeof RandomCourseLevelRange;
 
 const data = new SlashCommandBuilder()
     .setName('course')
@@ -22,6 +36,7 @@ const data = new SlashCommandBuilder()
 async function execute(interaction: ChatInputCommandInteraction) {
     const gallery = await SongDataFetcher.getInstance().getCourseData();
     const optionType = interaction.options.getString('type', true);
+    const isRandomDan = optionType === 'random-dan';
     if (!gallery.map((item: any) => item.id).includes(optionType))
         return interaction.reply({ content: 'Invalid course type selected.', ephemeral: true });
 
@@ -50,35 +65,70 @@ async function execute(interaction: ChatInputCommandInteraction) {
     collector.on('collect', async (selectInteraction: StringSelectMenuInteraction) => {
         const selectedSection = course.sections.find((section: any) => section.title === selectInteraction.values[0]);
 
-        await selectInteraction.update({
-            content: [`**${course.title} - ${selectedSection.title}**`, selectedSection.description].join('\n'),
-            embeds: selectedSection.sheets
-                .map((sheet: string) => sheet.split('|'))
-                .map((sheet: string[], index: number) => {
-                    const song = SongDataFetcher.getInstance().getSongByName(sheet[0]);
-                    const chartType = getChartTypeFromName(sheet[1]);
-                    const difficulty = getDifficultyIdFromName(sheet[2]);
+        if (isRandomDan) {
+            const specificFilter = selectedSection.sheets[0].split('|');
+            const filter = {
+                difficulty: specificFilter[2] === 'master' ? ['master', 'remaster'] : specificFilter[2],
+                minConstant: RandomCourseLevelRange[selectedSection.title as RandomCourseType][0],
+                maxConstant: RandomCourseLevelRange[selectedSection.title as RandomCourseType][1],
+            };
 
-                    const sheetData = song.sheets.find((s) => s.type === chartType && s.difficulty === difficulty);
+            const { filtered, randomized } = randomSong(selectedSection.sheets.length, filter);
 
+            await selectInteraction.update({
+                content: [`**${course.title} - ${selectedSection.title}**`, selectedSection.description].join('\n'),
+                embeds: randomized.map((sheet, index: number) => {
                     return new EmbedBuilder()
-                        .setTitle(song.title)
-                        .setAuthor({ name: `${song.artist}` })
+                        .setTitle(sheet.song.title)
+                        .setAuthor({ name: `${sheet.song.artist}` })
                         .setColor(
                             parseInt(
-                                SongDataFetcher.difficulties.find((d) => d.difficulty === sheet[2])?.color.slice(1) ||
-                                    '000000',
+                                SongDataFetcher.difficulties
+                                    .find((d) => getDifficultyIdFromName(d.difficulty) === sheet.sheet.difficulty)
+                                    ?.color.slice(1) || '000000',
                                 16,
                             ),
                         )
-                        .setThumbnail(`https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`)
+                        .setThumbnail(`https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${sheet.song.imageName}`)
                         .setDescription(
                             [
-                                `${Emojis[chartType === ChartType.DX ? 'DX' : 'STD']} ${getDifficultyEmoji(difficulty)} ${sheetData?.level || 'N/A'} ${sheetData?.internalLevelValue ? `(${sheetData.internalLevelValue.toFixed(1)})` : ''}\n-# Note Designer: ${sheetData?.noteDesigner ? sheetData.noteDesigner : 'N/A'}\n-# Version: ${sheetData?.version ? sheetData.version : 'N/A'}\n${selectedSection.sheetDescriptions ? `\n${selectedSection.sheetDescriptions[index]}` : ''}`,
+                                `${Emojis[sheet.sheet.type === ChartType.DX ? 'DX' : 'STD']} ${getDifficultyEmoji(sheet.sheet.difficulty)} ${sheet.sheet.level || 'N/A'} ${sheet.sheet.internalLevelValue ? `(${sheet.sheet.internalLevelValue.toFixed(1)})` : ''}\n-# Note Designer: ${sheet.sheet.noteDesigner ? sheet.sheet.noteDesigner : 'N/A'}\n-# Version: ${sheet.sheet.version ? sheet.sheet.version : 'N/A'}\n${selectedSection.sheetDescriptions ? `\n${selectedSection.sheetDescriptions[index]}` : ''}`,
                             ].join('\n'),
                         );
                 }),
-        });
+            });
+        } else {
+            await selectInteraction.update({
+                content: [`**${course.title} - ${selectedSection.title}**`, selectedSection.description].join('\n'),
+                embeds: selectedSection.sheets
+                    .map((sheet: string) => sheet.split('|'))
+                    .map((sheet: string[], index: number) => {
+                        const song = SongDataFetcher.getInstance().getSongByName(sheet[0]);
+                        const chartType = getChartTypeFromName(sheet[1]);
+                        const difficulty = getDifficultyIdFromName(sheet[2]);
+
+                        const sheetData = song.sheets.find((s) => s.type === chartType && s.difficulty === difficulty);
+
+                        return new EmbedBuilder()
+                            .setTitle(song.title)
+                            .setAuthor({ name: `${song.artist}` })
+                            .setColor(
+                                parseInt(
+                                    SongDataFetcher.difficulties
+                                        .find((d) => d.difficulty === sheet[2])
+                                        ?.color.slice(1) || '000000',
+                                    16,
+                                ),
+                            )
+                            .setThumbnail(`https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`)
+                            .setDescription(
+                                [
+                                    `${Emojis[chartType === ChartType.DX ? 'DX' : 'STD']} ${getDifficultyEmoji(difficulty)} ${sheetData?.level || 'N/A'} ${sheetData?.internalLevelValue ? `(${sheetData.internalLevelValue.toFixed(1)})` : ''}\n-# Note Designer: ${sheetData?.noteDesigner ? sheetData.noteDesigner : 'N/A'}\n-# Version: ${sheetData?.version ? sheetData.version : 'N/A'}\n${selectedSection.sheetDescriptions ? `\n${selectedSection.sheetDescriptions[index]}` : ''}`,
+                                ].join('\n'),
+                            );
+                    }),
+            });
+        }
 
         clearTimeout(timeout);
         timeout = setTimeout(() => {

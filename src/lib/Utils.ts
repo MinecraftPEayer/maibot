@@ -4,6 +4,7 @@ import { B50Data, Sheet, Song, SongDatabase } from 'types/SongDatabase';
 import exception from 'config/exception.json';
 import { timezone } from 'config/config.json';
 import { ChartType, ComboType, Difficulty, SyncType } from './CommonEnums';
+import longSongs from 'config/longSong.json';
 import { RatingBaseImageName, RankFactor } from './constant/CommonConstant';
 import { Emojis } from './constant/emojis';
 import { registerFont } from 'canvas';
@@ -291,15 +292,30 @@ const Levels = [
     '15',
 ];
 
-function randomSong(count: number, filter: {
-    maxLevel?: string;
-    minLevel?: string;
-    version?: string;
-    region?: string;
-    genre?: string;
-    difficulty?: string;
-    type?: string;
-}) {
+const DifficultyName = {
+    [Difficulty.Basic]: 'basic',
+    [Difficulty.Advanced]: 'advanced',
+    [Difficulty.Expert]: 'expert',
+    [Difficulty.Master]: 'master',
+    [Difficulty.ReMaster]: 'remaster',
+    [Difficulty.UTAGE]: 'utage',
+};
+
+function randomSong(
+    count: number,
+    filter: {
+        maxLevel?: string;
+        minLevel?: string;
+        version?: string;
+        region?: string;
+        genre?: string;
+        difficulty?: string | string[];
+        type?: string;
+        minConstant?: number;
+        maxConstant?: number;
+        allowLong?: boolean;
+    },
+) {
     const rawData = SongDataFetcher.getInstance().getRawData();
     const filtered: { song: Song; sheet: Sheet }[] = [];
     rawData.songs.forEach((song) => {
@@ -308,10 +324,27 @@ function randomSong(count: number, filter: {
 
         song.sheets.forEach((sheet) => {
             if (filter.type && sheet.type !== getChartTypeFromName(filter.type)) return;
-            if (filter.difficulty && sheet.difficulty !== getDifficultyIdFromName(filter.difficulty)) return;
+
+            if (
+                typeof filter.difficulty === 'string' &&
+                filter.difficulty &&
+                sheet.difficulty !== getDifficultyIdFromName(filter.difficulty)
+            )
+                return;
+            if (
+                typeof filter.difficulty === 'object' &&
+                filter.difficulty.length > 0 &&
+                !filter.difficulty.includes(DifficultyName[sheet.difficulty])
+            )
+                return;
 
             if (filter.maxLevel && Levels.indexOf(sheet.level) > Levels.indexOf(filter.maxLevel)) return;
             if (filter.minLevel && Levels.indexOf(sheet.level) < Levels.indexOf(filter.minLevel)) return;
+
+            if (filter.minConstant && sheet.internalLevelValue < filter.minConstant) return;
+            if (filter.maxConstant && sheet.internalLevelValue > filter.maxConstant) return;
+
+            if (!filter.allowLong && longSongs.includes(song.title)) return;
 
             filtered.push({ song, sheet });
         });
