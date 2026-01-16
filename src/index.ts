@@ -33,6 +33,7 @@ client.on('ready', async () => {
 
     const dataFetcher = SongDataFetcher.getInstance();
     await dataFetcher.fetchData();
+    await dataFetcher.fetchCourseData();
 
     const files = fs.readdirSync('./src/commands').filter((file) => file.endsWith('.command.ts'));
 
