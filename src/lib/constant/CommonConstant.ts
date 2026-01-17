@@ -67,3 +67,12 @@ export const TitleTypeName = {
     [TitleType.Gold]: 'Gold',
     [TitleType.Rainbow]: 'Rainbow',
 };
+
+export const DifficultyColor = {
+    [Difficulty.Basic]: ['#45c124', '#daf3d0'],
+    [Difficulty.Advanced]: ['#ffba01', '#f3ecae'],
+    [Difficulty.Expert]: ['#ff7b7b', '#f8e7e7'],
+    [Difficulty.Master]: ['#9f51dc', '#efe7fa'],
+    [Difficulty.ReMaster]: ['#dbaaff', '#501e89'],
+    [Difficulty.UTAGE]: ['#ff6ffd', '#f8e8f6'],
+};

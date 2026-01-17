@@ -11,6 +11,7 @@ import {
     SongDatabaseRegions,
     SongDatabaseVersions,
 } from 'types/SongDatabase';
+import yaml from 'js-yaml'
 import { ChartType, Difficulty } from './CommonEnums';
 import exception from 'config/exception.json';
 
@@ -238,6 +239,24 @@ class SongDataFetcher {
         } catch (error) {
             console.error('Error fetching song data:', error);
         }
+    }
+
+    async fetchCourseData() {
+        try {
+            const response = await axios.get('https://dp4p6x0xfi5o9.cloudfront.net/maimai/gallery.yaml');
+            if (response.status === 200) {
+                fs.writeFileSync('tmp/course.yaml', response.data);
+                const yamlProcessed = yaml.load(response.data);
+                fs.writeFileSync('tmp/course.json', JSON.stringify(yamlProcessed));
+            }
+        } catch (error) {
+            console.error('Error fetching course data:', error);
+        }
+    }
+
+    async getCourseData(): Promise<any> {
+        let data = fs.readFileSync('tmp/course.json', 'utf-8');
+        return JSON.parse(data);
     }
 
     private getData(): any {
