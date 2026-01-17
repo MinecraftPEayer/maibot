@@ -11,6 +11,7 @@ import { ChartType } from 'src/lib/CommonEnums';
 import { Emojis } from 'src/lib/constant/emojis';
 import SongDataFetcher from 'src/lib/SongDataFetcher';
 import { getChartTypeFromName, getDifficultyEmoji, getDifficultyIdFromName, randomSong } from 'src/lib/Utils';
+import { DifficultyColor } from 'src/lib/constant/CommonConstant';
 
 // [min, max]
 const RandomCourseLevelRange = {
@@ -81,14 +82,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     return new EmbedBuilder()
                         .setTitle(sheet.song.title)
                         .setAuthor({ name: `${sheet.song.artist}` })
-                        .setColor(
-                            parseInt(
-                                SongDataFetcher.difficulties
-                                    .find((d) => getDifficultyIdFromName(d.difficulty) === sheet.sheet.difficulty)
-                                    ?.color.slice(1) || '000000',
-                                16,
-                            ),
-                        )
+                        .setColor(parseInt(DifficultyColor[sheet.sheet.difficulty][0].slice(1) || '000000', 16))
                         .setThumbnail(`https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${sheet.song.imageName}`)
                         .setDescription(
                             [
@@ -141,16 +135,28 @@ async function execute(interaction: ChatInputCommandInteraction) {
     });
 }
 
+const courseAliases: {
+    [key: string]: string[];
+} = {
+    'random-dan': ['random', '隨機'],
+};
+
 async function autocomplete(interaction: AutocompleteInteraction) {
     const focusedValue = interaction.options.getFocused();
 
-    return (await SongDataFetcher.getInstance().getCourseData())
-        .filter((item: any) => !item.isHidden && item.title.includes(focusedValue))
-        .slice(0, 25)
+    const returnValue = (await SongDataFetcher.getInstance().getCourseData())
+        .filter(
+            (item: any) =>
+                !item.isHidden &&
+                (item.title.includes(focusedValue) ||
+                    (courseAliases[item.id] && courseAliases[item.id].some((alias) => alias.includes(focusedValue)))),
+        )
         .map((item: any) => ({
             name: item.title,
             value: item.id,
         }));
+
+    return returnValue.slice(0, 25);
 }
 
 export { data, execute, autocomplete };
