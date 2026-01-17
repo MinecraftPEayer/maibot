@@ -79,6 +79,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
             await selectInteraction.update({
                 content: [`**${course.title} - ${selectedSection.title}**`, selectedSection.description].join('\n'),
                 embeds: randomized.map((sheet, index: number) => {
+                    const version = sheet.sheet.version ? sheet.sheet.version : sheet.song.version;
                     return new EmbedBuilder()
                         .setTitle(sheet.song.title)
                         .setAuthor({ name: `${sheet.song.artist}` })
@@ -86,7 +87,10 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         .setThumbnail(`https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${sheet.song.imageName}`)
                         .setDescription(
                             [
-                                `${Emojis[sheet.sheet.type === ChartType.DX ? 'DX' : 'STD']} ${getDifficultyEmoji(sheet.sheet.difficulty)} ${sheet.sheet.level || 'N/A'} ${sheet.sheet.internalLevelValue ? `(${sheet.sheet.internalLevelValue.toFixed(1)})` : ''}\n-# Note Designer: ${sheet.sheet.noteDesigner ? sheet.sheet.noteDesigner : 'N/A'}\n-# Version: ${sheet.sheet.version ? sheet.sheet.version : 'N/A'}\n${selectedSection.sheetDescriptions ? `\n${selectedSection.sheetDescriptions[index]}` : ''}`,
+                                `${Emojis[sheet.sheet.type === ChartType.DX ? 'DX' : 'STD']} ${getDifficultyEmoji(sheet.sheet.difficulty)} ${sheet.sheet.level || 'N/A'} ${sheet.sheet.internalLevelValue ? `(${sheet.sheet.internalLevelValue.toFixed(1)})` : ''}`,
+                                `-# Note Designer: ${sheet.sheet.noteDesigner ? sheet.sheet.noteDesigner : 'N/A'}`,
+                                `${version ? version : 'N/A'}`,
+                                `${selectedSection.sheetDescriptions ? `\n${selectedSection.sheetDescriptions[index]}` : ''}`,
                             ].join('\n'),
                         );
                 }),
@@ -102,6 +106,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         const difficulty = getDifficultyIdFromName(sheet[2]);
 
                         const sheetData = song.sheets.find((s) => s.type === chartType && s.difficulty === difficulty);
+                        const version = sheetData?.version ? sheetData.version : song.version;
 
                         return new EmbedBuilder()
                             .setTitle(song.title)
@@ -117,7 +122,10 @@ async function execute(interaction: ChatInputCommandInteraction) {
                             .setThumbnail(`https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`)
                             .setDescription(
                                 [
-                                    `${Emojis[chartType === ChartType.DX ? 'DX' : 'STD']} ${getDifficultyEmoji(difficulty)} ${sheetData?.level || 'N/A'} ${sheetData?.internalLevelValue ? `(${sheetData.internalLevelValue.toFixed(1)})` : ''}\n-# Note Designer: ${sheetData?.noteDesigner ? sheetData.noteDesigner : 'N/A'}\n-# Version: ${sheetData?.version ? sheetData.version : 'N/A'}\n${selectedSection.sheetDescriptions ? `\n${selectedSection.sheetDescriptions[index]}` : ''}`,
+                                    `${Emojis[sheetData?.type === ChartType.DX ? 'DX' : 'STD']} ${getDifficultyEmoji(sheetData?.difficulty ?? difficulty)} ${sheetData?.level || 'N/A'} ${sheetData?.internalLevelValue ? `(${sheetData.internalLevelValue.toFixed(1)})` : ''}`,
+                                    `-# Note Designer: ${sheetData?.noteDesigner ? sheetData.noteDesigner : 'N/A'}`,
+                                    `${version ? version : 'N/A'}`,
+                                    `${selectedSection.sheetDescriptions ? `## ${selectedSection.sheetDescriptions[index]}` : ''}`,
                                 ].join('\n'),
                             );
                     }),
