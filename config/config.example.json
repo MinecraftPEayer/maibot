@@ -13,5 +13,6 @@
     },
     "dev": {
         "devServerID": ""
-    }
+    },
+    "astrodx_decrypt_key": ""
 }
