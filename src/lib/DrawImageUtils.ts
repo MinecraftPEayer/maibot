@@ -2,7 +2,8 @@ import fs from 'fs';
 import axios from 'axios';
 import { logger } from 'process';
 import sharp from 'sharp';
-import { CanvasRenderingContext2D, CanvasGradient } from 'canvas';
+import { CanvasRenderingContext2D, CanvasGradient, Image, createCanvas } from 'canvas';
+import * as StackBlur from 'stackblur-canvas';
 
 async function getImageBuffer(imageURL: string, cache?: boolean): Promise<Buffer> {
     if (cache === undefined) cache = false;
@@ -86,4 +87,17 @@ function drawCustomRoundRect(options: {
     ctx.fillStyle = originalFillStyle;
 }
 
-export { getImageBuffer, drawRoundRect, drawCustomRoundRect };
+async function createBlurredBackground(width: number, height: number, backgroundImage: Image): Promise<void> {
+    const bgCanvas = createCanvas(width - 60, height - 60);
+    const bgCtx = bgCanvas.getContext('2d');
+    bgCtx.drawImage(backgroundImage, -30, -30, width, height);
+    StackBlur.canvasRGBA(bgCanvas as unknown as HTMLCanvasElement, 0, 0, width - 60, height - 60, 20);
+    const out = fs.createWriteStream('tmp/bg_blurred.png');
+    const stream = bgCanvas.createPNGStream();
+    stream.pipe(out);
+    await new Promise<void>((resolve) => {
+        out.on('finish', resolve);
+    });
+}
+
+export { getImageBuffer, drawRoundRect, drawCustomRoundRect, createBlurredBackground };

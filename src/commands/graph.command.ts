@@ -12,7 +12,7 @@ import { PlayerInfo } from 'types/main';
 import { B50Data, ScoreData } from 'types/SongDatabase';
 import fs from 'fs';
 import { calculateB50, convertDXScoreToStar, FontStack, getRatingBaseImage, initializeFonts } from 'src/lib/Utils';
-import { getImageBuffer, drawRoundRect } from 'src/lib/DrawImageUtils';
+import { getImageBuffer, drawRoundRect, createBlurredBackground } from 'src/lib/DrawImageUtils';
 import { Canvas, createCanvas, loadImage } from 'canvas';
 import { DifficultyDisplayName, TitleTypeName } from 'src/lib/constant/CommonConstant';
 import Chart from 'chart.js/auto';
@@ -239,6 +239,18 @@ async function drawAndSendGraph(
     const bgImg = await loadImage('assets/background.png');
 
     ctx.drawImage(bgImg, 0, 0, WIDTH, HEIGHT);
+
+    if (!fs.existsSync('tmp/bg_blurred.png')) {
+        await createBlurredBackground(WIDTH, HEIGHT, bgImg);
+    }
+
+    const bgBlur = await loadImage('tmp/bg_blurred.png');
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(30, 30, WIDTH - 60, HEIGHT - 60, 54);
+    ctx.clip();
+    ctx.drawImage(bgBlur, 30, 30, WIDTH - 60, HEIGHT - 60);
+    ctx.restore();
 
     drawRoundRect({
         ctx,

@@ -6,7 +6,7 @@ import {
     EmbedBuilder,
     ButtonStyle,
 } from 'discord.js';
-import { createCanvas, loadImage, registerFont, CanvasRenderingContext2D, Canvas } from 'canvas';
+import { createCanvas, loadImage, registerFont, CanvasRenderingContext2D, Canvas, Image } from 'canvas';
 import JSONdb from 'simple-json-db';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
 import { calculateB50, convertDXScoreToStar, getRatingBaseImage, initializeFonts, FontStack } from 'src/lib/Utils';
@@ -17,7 +17,7 @@ import { DifficultyDisplayName, DifficultyColor } from 'src/lib/constant/CommonC
 import * as StackBlur from 'stackblur-canvas';
 import Logger from 'src/lib/logger';
 import { PlayerInfo } from 'types/main';
-import { getImageBuffer, drawRoundRect, drawCustomRoundRect } from 'src/lib/DrawImageUtils';
+import { getImageBuffer, drawRoundRect, drawCustomRoundRect, createBlurredBackground } from 'src/lib/DrawImageUtils';
 
 const TitleTypeName = {
     [TitleType.Normal]: 'Normal',
@@ -302,6 +302,18 @@ async function drawAndSendChart(
     const bgImg = await loadImage('assets/background.png');
 
     ctx.drawImage(bgImg, 0, 0, WIDTH, HEIGHT);
+
+    if (!fs.existsSync('tmp/bg_blurred.png')) {
+        await createBlurredBackground(WIDTH, HEIGHT, bgImg);
+    }
+
+    const bgBlur = await loadImage('tmp/bg_blurred.png');
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(30, 30, WIDTH - 60, HEIGHT - 60, 54);
+    ctx.clip();
+    ctx.drawImage(bgBlur, 30, 30, WIDTH - 60, HEIGHT - 60);
+    ctx.restore();
 
     drawRoundRect({
         ctx,
