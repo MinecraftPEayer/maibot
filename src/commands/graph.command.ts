@@ -263,7 +263,7 @@ async function drawAndSendGraph(
     });
 
     const logoImg = await loadImage('assets/logo.png');
-    ctx.drawImage(logoImg, 1558, 64, 298, 108);
+    ctx.drawImage(logoImg, 1627, 64, 229, 109);
 
     drawRoundRect({
         ctx,
