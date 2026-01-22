@@ -27,12 +27,14 @@ function convertAchievementToRank(achievement: number) {
     return 'D';
 }
 
-function calculateRating(achievement: number, constant: number) {
-    return Math.floor(
-        ((achievement > 100.5 ? 100.5 : achievement) / 100) *
-            RankFactor[convertAchievementToRank(achievement)] *
-            constant *
-            100,
+function calculateRating(achievement: number, constant: number, allPerfect: boolean = false): number {
+    return (
+        Math.floor(
+            ((achievement > 100.5 ? 100.5 : achievement) / 100) *
+                RankFactor[convertAchievementToRank(achievement)] *
+                constant *
+                100,
+        ) + (allPerfect ? 1 : 0)
     );
 }
 
@@ -69,7 +71,7 @@ function calculateB50(
             let sheet = song.sheets.find((sht) => sht.type === item.type && sht.difficulty === item.difficulty);
             if (sheet) {
                 const constant = sheet.internalLevelValue,
-                    rating = calculateRating(item.achievement, constant),
+                    rating = calculateRating(item.achievement, constant, item.comboType >= ComboType.AP),
                     imageURL = song.imageName;
                 const version = (sheet.regionOverrides.intl.version as string) ?? sheet.version ?? song.version;
                 (['PRiSM PLUS', 'CiRCLE'].includes(version) ? B15Data : B35Data).push({
@@ -126,7 +128,7 @@ function calculateScore(
             );
             if (sheet) {
                 const constant = sheet.internalLevelValue,
-                    rating = calculateRating(item.achievement, constant),
+                    rating = calculateRating(item.achievement, constant, item.comboType >= ComboType.AP),
                     imageURL = song.imageName;
                 data.push({
                     type: item.type,
