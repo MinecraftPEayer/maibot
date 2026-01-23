@@ -106,17 +106,21 @@ client.on('interactionCreate', async (interaction) => {
             await command.execute(interaction);
             client.logger.log(`${interaction.user.username} - /${interaction.commandName}`);
         } catch (error) {
-            client.logger.error(`Error executing command ${interaction.commandName}:`, error);
-            if (!interaction.isRepliable()) return;
+            try {
+                client.logger.error(`Error executing command ${interaction.commandName}:`, error);
+                if (!interaction.isRepliable()) return;
 
-            if (interaction.replied) {
-                await interaction.editReply({
-                    content: `There was an error while executing this command.\`\`\`js\n${error}\`\`\``,
-                });
-            } else {
-                await interaction.reply({
-                    content: `There was an error while executing this command.\`\`\`js\n${error}\`\`\``,
-                });
+                if (interaction.replied) {
+                    await interaction.editReply({
+                        content: `Something went wrong while executing this commmand.`,
+                    });
+                } else {
+                    await interaction.reply({
+                        content: `Something went wrong while executing this commmand.`,
+                    });
+                }
+            } catch (replyError) {
+                client.logger.error(`Error sending error message for command ${interaction.commandName}:`, replyError);
             }
         }
     }
