@@ -11,7 +11,7 @@ import {
     SongDatabaseRegions,
     SongDatabaseVersions,
 } from 'types/SongDatabase';
-import yaml from 'js-yaml'
+import yaml from 'js-yaml';
 import { ChartType, Difficulty } from './CommonEnums';
 import exception from 'config/exception.json';
 
@@ -270,7 +270,7 @@ class SongDataFetcher {
             .filter((item: any) => item.title.toLowerCase().includes(query.toLowerCase()))
             .map((item: any) => {
                 return {
-                    name: item.songId,
+                    name: item.songId.length > 100 ? item.songId.slice(0, 97) + '...' : item.songId,
                     value: String(data.songs.indexOf(item)),
                 };
             })
