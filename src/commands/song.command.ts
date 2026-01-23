@@ -94,7 +94,9 @@ async function execute(interaction: ChatInputCommandInteraction) {
         new ButtonBuilder().setCustomId('my_record').setLabel('My Record').setStyle(ButtonStyle.Success),
     );
 
-    let song = SongDataFetcher.getInstance().getSong(parseInt(songId || '0'));
+    let song =
+        SongDataFetcher.getInstance().getSong(parseInt(songId || '0')) ??
+        SongDataFetcher.getInstance().getSongByName(songId || '');
 
     if (!song) {
         return await interaction.reply({
