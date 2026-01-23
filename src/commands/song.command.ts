@@ -112,7 +112,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
     let components = [];
     if (
-        !song.sheets.some((s) => s.type !== ChartType.UTAGE) &&
+        !song.sheets.some((s) => s.type === ChartType.UTAGE) &&
         song.sheets.some((s) => s.type === ChartType.STD) &&
         song.sheets.some((s) => s.type === ChartType.DX)
     )
