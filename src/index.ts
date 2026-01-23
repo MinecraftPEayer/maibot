@@ -28,7 +28,7 @@ let commands = [];
 
 const fetcher = MaimaiDXNetFetcher.getInstance();
 
-client.on('ready', async () => {
+client.on('clientReady', async () => {
     client.logger.log(`Logged in as ${client.user?.tag}`);
 
     const dataFetcher = SongDataFetcher.getInstance();
