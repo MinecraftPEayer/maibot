@@ -315,6 +315,7 @@ function randomSong(
         maxConstant?: number;
         allowLong?: boolean;
     },
+    canDuplicate: boolean = false,
 ) {
     const rawData = SongDataFetcher.getInstance().getRawData();
     const filtered: { song: Song; sheet: Sheet }[] = [];
@@ -350,7 +351,16 @@ function randomSong(
         });
     });
 
-    const randomized = filtered.sort(() => 0.5 - Math.random()).slice(0, count);
+    const randomMax = filtered.length;
+    const randomizedIndex: number[] = [];
+    for (let i = 0; i < Math.min(count, randomMax); i++) {
+        let rand = Math.floor(Math.random() * randomMax);
+        while (!canDuplicate && randomizedIndex.includes(rand)) {
+            rand = Math.floor(Math.random() * randomMax);
+        }
+        randomizedIndex.push(rand);
+    }
+    const randomized = randomizedIndex.map((index) => filtered[index]);
     return { filtered, randomized };
 }
 
