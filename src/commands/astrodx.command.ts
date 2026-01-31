@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import crypto from 'crypto';
+import zlib from 'zlib';
 import { astrodx_decrypt_key } from 'config/config.json';
 
 const data = new SlashCommandBuilder()
@@ -26,26 +27,57 @@ async function execute(interaction: any) {
             const base64Data = await response.text();
             const encryptedBuffer = Buffer.from(base64Data, 'base64');
 
-            const decipher = crypto.createDecipheriv('aes-256-ecb', astrodx_decrypt_key, null);
-            let decrypted = decipher.update(encryptedBuffer);
-            decrypted = Buffer.concat([decrypted, decipher.final()]);
+            let result: string | null = null;
 
-            const result = decrypted.toString('utf8');
+            try {
+                const decipher = crypto.createDecipheriv('aes-256-ecb', astrodx_decrypt_key, null);
+                let decrypted = decipher.update(encryptedBuffer);
+                decrypted = Buffer.concat([decrypted, decipher.final()]);
+                result = decrypted.toString('utf8');
+                JSON.parse(result);
+            } catch (e) {
+                result = null;
+            }
+
+            if (!result) {
+                try {
+                    const decompressed = zlib.inflateSync(encryptedBuffer);
+                    result = decompressed.toString('utf8');
+                    JSON.parse(result);
+                } catch (e) {
+                    result = null;
+                }
+            }
+
+            if (!result) {
+                try {
+                    const decompressedRaw = zlib.inflateRawSync(encryptedBuffer);
+                    result = decompressedRaw.toString('utf8');
+                    JSON.parse(result);
+                } catch (e) {
+                    result = null;
+                }
+            }
+
+            if (!result) {
+                throw new Error('All decryption/decompression methods failed.');
+            }
 
             const formatted = JSON.stringify(JSON.parse(result), null, 4);
 
             await interaction.reply({
-                content: 'Decrypted file:',
                 files: [
                     {
                         attachment: Buffer.from(formatted, 'utf8'),
-                        name: 'decrypted.json',
+                        name: 'processed.json',
                     },
                 ],
             });
         } catch (error) {
-            console.error('Error decrypting file:', error);
-            return interaction.reply({ content: 'Failed to decrypt the file.', ephemeral: true });
+            return interaction.reply({
+                content: 'Failed to decrypt file.',
+                ephemeral: true,
+            });
         }
     }
 }
