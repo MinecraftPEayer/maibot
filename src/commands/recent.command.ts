@@ -120,7 +120,7 @@ const execute = async (interaction: ChatInputCommandInteraction) => {
                 );
                 let trackInfoNoteTable = new MediaGalleryBuilder().addItems({
                     media: {
-                        url: `https://maibot.minecraftpeayer.me/img/dynamic/noteTable?tap=${track.noteDetail['tap'].join(',')}&hold=${track.noteDetail['hold'].join(',')}&slide=${track.noteDetail['slide'].join(',')}&touch=${track.noteDetail['touch'].join(',')}&break=${track.noteDetail['break'].join(',')}&`,
+                        url: `https://maibot.minecraftpeayer.com/img/dynamic/noteTable?tap=${track.noteDetail['tap'].join(',')}&hold=${track.noteDetail['hold'].join(',')}&slide=${track.noteDetail['slide'].join(',')}&touch=${track.noteDetail['touch'].join(',')}&break=${track.noteDetail['break'].join(',')}&`,
                         width: 128,
                     },
                 });

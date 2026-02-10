@@ -339,13 +339,13 @@ async function drawAndSendChart(
     });
 
     const avatarImg = await loadImage(
-        await getImageBuffer(`https://chart.minecraftpeayer.me/api/proxy/img?url=${playerData.avatar}`),
+        await getImageBuffer(`https://chart.minecraftpeayer.com/api/proxy/img?url=${playerData.avatar}`),
     );
     ctx.drawImage(avatarImg, 72, 72, 92, 92);
 
     const ratingImg = await loadImage(
         await getImageBuffer(
-            `https://chart.minecraftpeayer.me/api/proxy/img?url=https://maimaidx-eng.com/maimai-mobile/img/rating_base_${getRatingBaseImage(playerData.rating)}.png`,
+            `https://chart.minecraftpeayer.com/api/proxy/img?url=https://maimaidx-eng.com/maimai-mobile/img/rating_base_${getRatingBaseImage(playerData.rating)}.png`,
         ),
     );
     ctx.drawImage(ratingImg, 172, 70, 104, 30);
@@ -365,7 +365,7 @@ async function drawAndSendChart(
     ctx.fillText(ratingArray[4], baseX + 43.5, 90);
 
     const classImg = await loadImage(
-        await getImageBuffer(`https://chart.minecraftpeayer.me/api/proxy/img?url=${playerData.classRank}`),
+        await getImageBuffer(`https://chart.minecraftpeayer.com/api/proxy/img?url=${playerData.classRank}`),
     );
     ctx.drawImage(classImg, 276, 68, 58, 32);
 
@@ -383,13 +383,13 @@ async function drawAndSendChart(
     ctx.fillText(playerData.name, 180, 106 + 20);
 
     const courseImg = await loadImage(
-        await getImageBuffer(`https://chart.minecraftpeayer.me/api/proxy/img?url=${playerData.course}`),
+        await getImageBuffer(`https://chart.minecraftpeayer.com/api/proxy/img?url=${playerData.course}`),
     );
     ctx.drawImage(courseImg, 341, 104, 71, 28);
 
     const titleBackImg = await loadImage(
         await getImageBuffer(
-            `https://chart.minecraftpeayer.me/api/proxy/img?url=https://maimaidx-eng.com/maimai-mobile/img/trophy_${TitleTypeName[playerData.titleType].toLowerCase()}.png`,
+            `https://chart.minecraftpeayer.com/api/proxy/img?url=https://maimaidx-eng.com/maimai-mobile/img/trophy_${TitleTypeName[playerData.titleType].toLowerCase()}.png`,
         ),
     );
 
