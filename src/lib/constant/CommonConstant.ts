@@ -62,7 +62,11 @@ export const RankFactor = {
     BB: 0.112,
     B: 0.096,
     C: 0.08,
-    D: 0.05,
+    D_40: 0.64,
+    D_30: 0.48,
+    D_20: 0.32,
+    D_10: 0.16,
+    D_0: 0,
 };
 
 export const TitleTypeName = {

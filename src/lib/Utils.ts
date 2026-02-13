@@ -46,7 +46,11 @@ function getRankFactor(achievement: number): number {
     if (achievement >= 70) return RankFactor['BB'];
     if (achievement >= 60) return RankFactor['B'];
     if (achievement >= 50) return RankFactor['C'];
-    return RankFactor['D'];
+    if (achievement >= 40) return RankFactor['D_40'];
+    if (achievement >= 30) return RankFactor['D_30'];
+    if (achievement >= 20) return RankFactor['D_20'];
+    if (achievement >= 10) return RankFactor['D_10'];
+    return RankFactor['D_0'];
 }
 
 function calculateRating(achievement: number, constant: number, allPerfect: boolean = false): number {
