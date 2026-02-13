@@ -27,14 +27,32 @@ function convertAchievementToRank(achievement: number) {
     return 'D';
 }
 
+function getRankFactor(achievement: number): number {
+    if (achievement >= 100.5) return RankFactor['SSS+'];
+    if (achievement === 100.4999) return RankFactor['SSS_4999'];
+    if (achievement >= 100.0) return RankFactor['SSS'];
+    if (achievement === 99.9999) return RankFactor['SS+_9999'];
+    if (achievement >= 99.5) return RankFactor['SS+'];
+    if (achievement >= 99.0) return RankFactor['SS'];
+    if (achievement === 98.9999) return RankFactor['S+_9999'];
+    if (achievement >= 98) return RankFactor['S+'];
+    if (achievement >= 97) return RankFactor['S'];
+    if (achievement === 94.9999) return RankFactor['AAA_9999'];
+    if (achievement >= 94) return RankFactor['AAA'];
+    if (achievement >= 90) return RankFactor['AA'];
+    if (achievement >= 80) return RankFactor['A'];
+    if (achievement === 75.9999) return RankFactor['BBB_9999'];
+    if (achievement >= 75) return RankFactor['BBB'];
+    if (achievement >= 70) return RankFactor['BB'];
+    if (achievement >= 60) return RankFactor['B'];
+    if (achievement >= 50) return RankFactor['C'];
+    return RankFactor['D'];
+}
+
 function calculateRating(achievement: number, constant: number, allPerfect: boolean = false): number {
     return (
-        Math.floor(
-            ((achievement > 100.5 ? 100.5 : achievement) / 100) *
-                RankFactor[convertAchievementToRank(achievement)] *
-                constant *
-                100,
-        ) + (allPerfect ? 1 : 0)
+        Math.floor(((achievement > 100.5 ? 100.5 : achievement) / 100) * getRankFactor(achievement) * constant * 100) +
+        (allPerfect ? 1 : 0)
     );
 }
 
