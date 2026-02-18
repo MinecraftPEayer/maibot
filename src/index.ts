@@ -20,8 +20,8 @@ process.on('uncaughtException', (error) => {
         sendMessageToWebhook({
             embeds: [
                 {
-                    title: 'UncaughtExpection',
-                    description: `\`\`\`js\n${inspect(error)}\`\`\``,
+                    title: 'UncaughtException',
+                    description: `\`\`\`js\n${inspect(error).slice(0, 4000)}\`\`\``,
                     color: 0xff0000,
                 },
             ],
@@ -82,8 +82,6 @@ client.on('clientReady', async () => {
     await fetcher.login();
 
     (await import('src/utils/api/index')).default();
-
-    throw new Error('Test');
 });
 
 client.on('interactionCreate', async (interaction) => {
@@ -125,7 +123,7 @@ client.on('interactionCreate', async (interaction) => {
                     embeds: [
                         {
                             title: 'CommandExecutionError',
-                            description: `\`\`\`js\n${inspect(error)}\`\`\``,
+                            description: `\`\`\`js\n${inspect(error).slice(0, 4000)}\`\`\``,
                             color: 0xff0000,
                         },
                     ],
@@ -147,7 +145,7 @@ client.on('interactionCreate', async (interaction) => {
                     embeds: [
                         {
                             title: 'CommandExecutionError',
-                            description: `\`\`\`js\n${inspect(replyError)}\`\`\``,
+                            description: `\`\`\`js\n${inspect(replyError).slice(0, 4000)}\`\`\``,
                             color: 0xff0000,
                         },
                     ],
