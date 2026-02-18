@@ -14,5 +14,6 @@
     "dev": {
         "devServerID": ""
     },
-    "astrodx_decrypt_key": ""
+    "astrodx_decrypt_key": "",
+    "error_log_webhook_url": ""
 }

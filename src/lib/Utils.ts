@@ -9,6 +9,8 @@ import { RatingBaseImageName, RankFactor } from './constant/CommonConstant';
 import { Emojis } from './constant/emojis';
 import { registerFont } from 'canvas';
 import SongDataFetcher from './SongDataFetcher';
+import axios from 'axios';
+import config from 'config/config.json';
 
 function convertAchievementToRank(achievement: number) {
     if (achievement >= 100.5) return 'SSS+';
@@ -48,8 +50,8 @@ function getRankFactor(achievement: number): number {
     if (achievement >= 50) return RankFactor['C'];
     if (achievement >= 40) return RankFactor['D_40'];
     if (achievement >= 30) return RankFactor['D_30'];
-    if (achievement >= 20) return RankFactor['D_20'];
     if (achievement >= 10) return RankFactor['D_10'];
+    if (achievement >= 20) return RankFactor['D_20'];
     return RankFactor['D_0'];
 }
 
@@ -386,6 +388,10 @@ function randomSong(
     return { filtered, randomized };
 }
 
+async function sendMessageToWebhook(messagePayload: any) {
+    await axios.post(config.error_log_webhook_url, messagePayload);
+}
+
 const FontStack = '"SEGAMaruGothic", "Noto Sans", "Noto Sans JP", sans-serif';
 
 export {
@@ -401,5 +407,6 @@ export {
     randomSong,
     initializeFonts,
     writeErrorToFile,
+    sendMessageToWebhook,
     FontStack,
 };

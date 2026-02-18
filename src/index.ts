@@ -7,6 +7,8 @@ import Logger from 'src/lib/logger';
 import SongDataFetcher from './lib/SongDataFetcher';
 import { MessageFlags } from 'discord.js';
 import config from 'config/config.json';
+import { inspect } from 'util';
+import { sendMessageToWebhook } from './lib/Utils';
 
 const mainLogger = new Logger('main');
 process.logger = mainLogger;
@@ -14,6 +16,16 @@ process.logger = mainLogger;
 init();
 
 process.on('uncaughtException', (error) => {
+    if (config.error_log_webhook_url)
+        sendMessageToWebhook({
+            embeds: [
+                {
+                    title: 'UncaughtExpection',
+                    description: `\`\`\`js\n${inspect(error)}\`\`\``,
+                    color: 0xff0000,
+                },
+            ],
+        });
     mainLogger.error(`[UncaughtException]`, error);
 });
 
@@ -70,6 +82,8 @@ client.on('clientReady', async () => {
     await fetcher.login();
 
     (await import('src/utils/api/index')).default();
+
+    throw new Error('Test');
 });
 
 client.on('interactionCreate', async (interaction) => {
@@ -107,6 +121,15 @@ client.on('interactionCreate', async (interaction) => {
             client.logger.log(`${interaction.user.username} - /${interaction.commandName}`);
         } catch (error) {
             try {
+                sendMessageToWebhook({
+                    embeds: [
+                        {
+                            title: 'CommandExecutionError',
+                            description: `\`\`\`js\n${inspect(error)}\`\`\``,
+                            color: 0xff0000,
+                        },
+                    ],
+                });
                 client.logger.error(`Error executing command ${interaction.commandName}:`, error);
                 if (!interaction.isRepliable()) return;
 
@@ -120,6 +143,15 @@ client.on('interactionCreate', async (interaction) => {
                     });
                 }
             } catch (replyError) {
+                sendMessageToWebhook({
+                    embeds: [
+                        {
+                            title: 'CommandExecutionError',
+                            description: `\`\`\`js\n${inspect(replyError)}\`\`\``,
+                            color: 0xff0000,
+                        },
+                    ],
+                });
                 client.logger.error(`Error sending error message for command ${interaction.commandName}:`, replyError);
             }
         }
