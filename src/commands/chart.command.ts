@@ -12,7 +12,7 @@ import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
 import { calculateB50, convertDXScoreToStar, getRatingBaseImage, initializeFonts, FontStack } from 'src/lib/Utils';
 import fs from 'fs';
 import { ChartType, ComboType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
-import { B50Data, ScoreData } from 'types/SongDatabase';
+import { B50Data, Rank, ScoreData } from 'types/SongDatabase';
 import { DifficultyDisplayName, DifficultyColor } from 'src/lib/constant/CommonConstant';
 import * as StackBlur from 'stackblur-canvas';
 import Logger from 'src/lib/logger';
@@ -93,6 +93,95 @@ function drawChartType(ctx: CanvasRenderingContext2D, x: number, y: number, char
     }
     ctx.font = originalFont;
     ctx.fillStyle = originalFillStyle;
+}
+
+/**
+ *
+ * @param ctx CanvasRenderingContext2D
+ * @param x Base position X
+ * @param y Base position Y
+ * @param options Render option
+ *
+ * @returns Rendered Box Width
+ */
+async function drawRankCountBox(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    options: {
+        row: number;
+        column: number;
+        boxConfig: {
+            imagePath: string;
+            count: number;
+        }[];
+        radius: {
+            topLeft: number;
+            topRight: number;
+            bottomLeft: number;
+            bottomRight: number;
+        };
+    },
+): Promise<number> {
+    if (options.boxConfig.length !== options.row * options.column)
+        throw new Error('boxConfig length does not match row * column');
+
+    const offset = {
+        x: 0,
+        y: 0,
+    };
+
+    const TotalWidth = options.column * 57 + (options.column - 1) * 2;
+
+    for (let i = 0; i < options.row; i++) {
+        for (let j = 0; j < options.column; j++) {
+            const box = options.boxConfig[i * options.column + j];
+            if (!box) continue;
+            drawCustomRoundRect({
+                ctx,
+                x: x + offset.x + j * (57 + 2), // gap 2px
+                y: y + offset.y + i * (53 + 2), // gap 2px
+                width: 57,
+                height: 26.5,
+                radius: {
+                    topLeft: i === 0 && j === 0 ? options.radius.topLeft : 2,
+                    topRight: i === 0 && j === options.column - 1 ? options.radius.topRight : 2,
+                    bottomLeft: 0,
+                    bottomRight: 0,
+                },
+                fillStyle: 'rgba(255, 255, 255, 0.75)',
+            });
+
+            drawCustomRoundRect({
+                ctx,
+                x: x + offset.x + j * (57 + 2), // gap 2px
+                y: y + offset.y + i * (53 + 2) + 26.5, // gap 2px
+                width: 57,
+                height: 26.5,
+                radius: {
+                    topLeft: 0,
+                    topRight: 0,
+                    bottomLeft: i === options.row - 1 && j === 0 ? options.radius.bottomLeft : 2,
+                    bottomRight: i === options.row - 1 && j === options.column - 1 ? options.radius.bottomRight : 2,
+                },
+                fillStyle: 'rgba(183, 183, 183, 0.45)',
+            });
+
+            const iconImg = await loadImage(box.imagePath);
+            ctx.drawImage(iconImg, x + offset.x + j * (57 + 2) + 7.71, y + offset.y + i * (53 + 2) + 4, 41.57, 18.5);
+            ctx.font = `16px ${FontStack}`;
+            ctx.fillStyle = '#FFFFFF';
+            ctx.textAlign = 'center';
+            ctx.fillText(
+                box.count.toString(),
+                x + offset.x + j * (57 + 2) + 28.5,
+                y + offset.y + i * (53 + 2) + 26.5 + 17.25,
+            );
+            ctx.textAlign = 'left';
+        }
+    }
+
+    return TotalWidth;
 }
 
 async function drawSongBox(
@@ -286,6 +375,34 @@ async function drawAndSendChart(
     logger.log('Drawing chart for player:', playerData?.name);
     const { B15Data, B35Data } = calculateB50(Object.values(scores).flat());
 
+    const B15RankMapped = B15Data.map((score) => score.ranking);
+    const B35RankMapped = B35Data.map((score) => score.ranking);
+
+    const B15RankCounts = B15RankMapped.reduce(
+        (acc, rank) => {
+            acc[rank] = (acc[rank] || 0) + 1;
+            return acc;
+        },
+        {} as Record<Rank, number>,
+    );
+
+    const B35RankCounts = B35RankMapped.reduce(
+        (acc, rank) => {
+            acc[rank] = (acc[rank] || 0) + 1;
+            return acc;
+        },
+        {} as Record<Rank, number>,
+    );
+
+    const RankCategories: Rank[][] = [
+        ['SSS+', 'SSS', 'SS+', 'SS', 'S+', 'S'],
+        ['AAA', 'AA', 'A', 'BBB', 'BB', 'B'],
+        ['C', 'D'],
+    ];
+    const containCategory = RankCategories.map((category: Rank[]) =>
+        category.some((rank) => B15RankMapped.includes(rank) || B35RankMapped.includes(rank)),
+    );
+
     await interaction.editReply(['Fetching player info... OK', 'Fetching scores... OK', 'Drawing...'].join('\n'));
 
     const canvas = createCanvas(WIDTH, HEIGHT);
@@ -432,6 +549,134 @@ async function drawAndSendChart(
             612,
             149 + 16,
         );
+    }
+
+    let renderRadius = [];
+    let RankCountBoxBaseX = 669,
+        RankCountBoxBaseY = 64;
+    if (containCategory[0]) {
+        let toPush = [8];
+        if (containCategory[1] || containCategory[2]) toPush.push(4);
+        else toPush.push(8);
+        renderRadius.push(toPush);
+
+        const boxWidth = await drawRankCountBox(ctx, RankCountBoxBaseX, RankCountBoxBaseY, {
+            row: 2,
+            column: 3,
+            radius: {
+                topLeft: renderRadius[0][0],
+                topRight: renderRadius[0][1],
+                bottomLeft: renderRadius[0][0],
+                bottomRight: renderRadius[0][1],
+            },
+            boxConfig: [
+                {
+                    imagePath: 'assets/rank_center/sssplus.png',
+                    count: (B35RankCounts['SSS+'] || 0) + (B15RankCounts['SSS+'] || 0),
+                },
+                {
+                    imagePath: 'assets/rank_center/sss.png',
+                    count: (B35RankCounts['SSS'] || 0) + (B15RankCounts['SSS'] || 0),
+                },
+                {
+                    imagePath: 'assets/rank_center/ssplus.png',
+                    count: (B35RankCounts['SS+'] || 0) + (B15RankCounts['SS+'] || 0),
+                },
+                {
+                    imagePath: 'assets/rank_center/ss.png',
+                    count: (B35RankCounts['SS'] || 0) + (B15RankCounts['SS'] || 0),
+                },
+                {
+                    imagePath: 'assets/rank_center/splus.png',
+                    count: (B35RankCounts['S+'] || 0) + (B15RankCounts['S+'] || 0),
+                },
+                {
+                    imagePath: 'assets/rank_center/s.png',
+                    count: (B35RankCounts['S'] || 0) + (B15RankCounts['S'] || 0),
+                },
+            ],
+        });
+
+        RankCountBoxBaseX += boxWidth + 4;
+    }
+
+    if (containCategory[1]) {
+        let toPush = [];
+        if (containCategory[0]) toPush.push(4);
+        else toPush.push(8);
+        if (containCategory[2]) toPush.push(4);
+        else toPush.push(8);
+        renderRadius.push(toPush);
+
+        const boxWidth = await drawRankCountBox(ctx, RankCountBoxBaseX, RankCountBoxBaseY, {
+            row: 2,
+            column: 3,
+            radius: {
+            topLeft: renderRadius[1][0],
+            topRight: renderRadius[1][1],
+            bottomLeft: renderRadius[1][0],
+            bottomRight: renderRadius[1][1],
+            },
+            boxConfig: [
+            {
+                imagePath: 'assets/rank_center/aaa.png',
+                count: (B35RankCounts['AAA'] || 0) + (B15RankCounts['AAA'] || 0),
+            },
+            {
+                imagePath: 'assets/rank_center/aa.png',
+                count: (B35RankCounts['AA'] || 0) + (B15RankCounts['AA'] || 0),
+            },
+            {
+                imagePath: 'assets/rank_center/a.png',
+                count: (B35RankCounts['A'] || 0) + (B15RankCounts['A'] || 0),
+            },
+            {
+                imagePath: 'assets/rank_center/bbb.png',
+                count: (B35RankCounts['BBB'] || 0) + (B15RankCounts['BBB'] || 0),
+            },
+            {
+                imagePath: 'assets/rank_center/bb.png',
+                count: (B35RankCounts['BB'] || 0) + (B15RankCounts['BB'] || 0),
+            },
+            {
+                imagePath: 'assets/rank_center/b.png',
+                count: (B35RankCounts['B'] || 0) + (B15RankCounts['B'] || 0),
+            },
+            ],
+        });
+
+        RankCountBoxBaseX += boxWidth + 4;
+    }
+
+    if (containCategory[2]) {
+        let toPush = [];
+        if (containCategory[1]) toPush.push(4);
+        else toPush.push(8);
+        toPush.push(8);
+        renderRadius.push(toPush);
+
+        const boxWidth = await drawRankCountBox(ctx, RankCountBoxBaseX, RankCountBoxBaseY, {
+            row: 2,
+            column: 1,
+            radius: {
+            topLeft: renderRadius[renderRadius.length - 1][0],
+            topRight: renderRadius[renderRadius.length - 1][1],
+            bottomLeft: renderRadius[renderRadius.length - 1][0],
+            bottomRight: renderRadius[renderRadius.length - 1][1],
+            },
+            boxConfig: [
+            {
+                imagePath: 'assets/rank_center/c.png',
+                count: (B35RankCounts['C'] || 0) + (B15RankCounts['C'] || 0),
+            },
+            {
+                imagePath: 'assets/rank_center/d.png',
+                count: (B35RankCounts['D'] || 0) + (B15RankCounts['D'] || 0),
+            },
+            ],
+        });
+
+        RankCountBoxBaseX += boxWidth + 4;
     }
 
     drawRoundRect({

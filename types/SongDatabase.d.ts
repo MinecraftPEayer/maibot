@@ -211,11 +211,13 @@ type Version =
     | '25000'
     | '25500';
 
+type Rank = 'SSS+' | 'SSS' | 'SS+' | 'SS' | 'S+' | 'S' | 'AAA' | 'AA' | 'A' | 'BBB' | 'BB' | 'B' | 'C' | 'D';
+
 type B50Data = {
     type: ChartType;
     title: string;
     achievement: number;
-    ranking: 'SSS+' | 'SSS' | 'SS+' | 'SS' | 'S+' | 'S' | 'AAA' | 'AA' | 'A' | 'BBB' | 'BB' | 'B' | 'C' | 'D';
+    ranking: Rank;
     backgroundImg: string;
     rating: number;
     constant: number;
@@ -252,6 +254,7 @@ export {
     Region,
     RegionOverrides,
     Version,
+    Rank,
     B50Data,
     ScoreData,
 };
