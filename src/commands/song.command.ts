@@ -94,9 +94,22 @@ async function execute(interaction: ChatInputCommandInteraction) {
         new ButtonBuilder().setCustomId('my_record').setLabel('My Record').setStyle(ButtonStyle.Success),
     );
 
-    let song =
-        SongDataFetcher.getInstance().getSong(parseInt(songId || '0')) ??
-        SongDataFetcher.getInstance().getSongByName(songId || '');
+    let song;
+    try {
+        song =
+            SongDataFetcher.getInstance().getSong(parseInt(songId || '0')) ??
+            SongDataFetcher.getInstance().getSongByName(songId || '');
+    } catch (error) {
+        return await interaction.reply({
+            embeds: [
+                {
+                    title: '❌ Song Not Found',
+                    description: 'The song you requested could not be found.',
+                    color: Colors.Red,
+                },
+            ],
+        });
+    }
 
     if (!song) {
         return await interaction.reply({
