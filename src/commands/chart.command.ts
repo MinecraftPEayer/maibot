@@ -445,13 +445,18 @@ async function drawAndSendChart(
     const logoImg = await loadImage('assets/logo.png');
     ctx.drawImage(logoImg, 1627, 64, 229, 109);
 
-    drawRoundRect({
+    drawCustomRoundRect({
         ctx,
         x: 64,
         y: 64,
         width: 390,
         height: 108,
-        radius: 8,
+        radius: {
+            topLeft: 8,
+            topRight: 2,
+            bottomLeft: 8,
+            bottomRight: 2,
+        },
         fillStyle: 'rgba(183, 183, 183, 0.45)',
     });
 
@@ -527,6 +532,21 @@ async function drawAndSendChart(
     let measuredText = ctx.measureText(text);
     ctx.fillText(text, 178 + 128 - measuredText.width / 2, 141 + 16);
     ctx.strokeText(text, 178 + 128 - measuredText.width / 2, 141 + 16);
+
+    drawCustomRoundRect({
+        ctx,
+        x: 456,
+        y: 64,
+        width: 205,
+        height: 108,
+        radius: {
+            topLeft: 2,
+            topRight: 8,
+            bottomLeft: 2,
+            bottomRight: 8,
+        },
+        fillStyle: 'rgba(183, 183, 183, 0.45)',
+    });
 
     let B35Total = 0;
     B35Data.forEach((b35) => (B35Total += b35.rating));
@@ -612,36 +632,36 @@ async function drawAndSendChart(
             row: 2,
             column: 3,
             radius: {
-            topLeft: renderRadius[1][0],
-            topRight: renderRadius[1][1],
-            bottomLeft: renderRadius[1][0],
-            bottomRight: renderRadius[1][1],
+                topLeft: renderRadius[1][0],
+                topRight: renderRadius[1][1],
+                bottomLeft: renderRadius[1][0],
+                bottomRight: renderRadius[1][1],
             },
             boxConfig: [
-            {
-                imagePath: 'assets/rank_center/aaa.png',
-                count: (B35RankCounts['AAA'] || 0) + (B15RankCounts['AAA'] || 0),
-            },
-            {
-                imagePath: 'assets/rank_center/aa.png',
-                count: (B35RankCounts['AA'] || 0) + (B15RankCounts['AA'] || 0),
-            },
-            {
-                imagePath: 'assets/rank_center/a.png',
-                count: (B35RankCounts['A'] || 0) + (B15RankCounts['A'] || 0),
-            },
-            {
-                imagePath: 'assets/rank_center/bbb.png',
-                count: (B35RankCounts['BBB'] || 0) + (B15RankCounts['BBB'] || 0),
-            },
-            {
-                imagePath: 'assets/rank_center/bb.png',
-                count: (B35RankCounts['BB'] || 0) + (B15RankCounts['BB'] || 0),
-            },
-            {
-                imagePath: 'assets/rank_center/b.png',
-                count: (B35RankCounts['B'] || 0) + (B15RankCounts['B'] || 0),
-            },
+                {
+                    imagePath: 'assets/rank_center/aaa.png',
+                    count: (B35RankCounts['AAA'] || 0) + (B15RankCounts['AAA'] || 0),
+                },
+                {
+                    imagePath: 'assets/rank_center/aa.png',
+                    count: (B35RankCounts['AA'] || 0) + (B15RankCounts['AA'] || 0),
+                },
+                {
+                    imagePath: 'assets/rank_center/a.png',
+                    count: (B35RankCounts['A'] || 0) + (B15RankCounts['A'] || 0),
+                },
+                {
+                    imagePath: 'assets/rank_center/bbb.png',
+                    count: (B35RankCounts['BBB'] || 0) + (B15RankCounts['BBB'] || 0),
+                },
+                {
+                    imagePath: 'assets/rank_center/bb.png',
+                    count: (B35RankCounts['BB'] || 0) + (B15RankCounts['BB'] || 0),
+                },
+                {
+                    imagePath: 'assets/rank_center/b.png',
+                    count: (B35RankCounts['B'] || 0) + (B15RankCounts['B'] || 0),
+                },
             ],
         });
 
@@ -659,20 +679,20 @@ async function drawAndSendChart(
             row: 2,
             column: 1,
             radius: {
-            topLeft: renderRadius[renderRadius.length - 1][0],
-            topRight: renderRadius[renderRadius.length - 1][1],
-            bottomLeft: renderRadius[renderRadius.length - 1][0],
-            bottomRight: renderRadius[renderRadius.length - 1][1],
+                topLeft: renderRadius[renderRadius.length - 1][0],
+                topRight: renderRadius[renderRadius.length - 1][1],
+                bottomLeft: renderRadius[renderRadius.length - 1][0],
+                bottomRight: renderRadius[renderRadius.length - 1][1],
             },
             boxConfig: [
-            {
-                imagePath: 'assets/rank_center/c.png',
-                count: (B35RankCounts['C'] || 0) + (B15RankCounts['C'] || 0),
-            },
-            {
-                imagePath: 'assets/rank_center/d.png',
-                count: (B35RankCounts['D'] || 0) + (B15RankCounts['D'] || 0),
-            },
+                {
+                    imagePath: 'assets/rank_center/c.png',
+                    count: (B35RankCounts['C'] || 0) + (B15RankCounts['C'] || 0),
+                },
+                {
+                    imagePath: 'assets/rank_center/d.png',
+                    count: (B35RankCounts['D'] || 0) + (B15RankCounts['D'] || 0),
+                },
             ],
         });
 
