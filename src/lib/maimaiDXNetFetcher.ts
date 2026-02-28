@@ -1,11 +1,12 @@
 import cookieParser, { Cookie } from 'set-cookie-parser';
-import { JSDOM } from 'jsdom';
-import fs, { stat } from 'fs';
+import * as cheerio from 'cheerio';
+import fs from 'fs';
 import axios from 'axios';
 import { ChartType, ComboType, Difficulty, Genres, ScoreType, SyncType, TitleType } from './CommonEnums';
 import { DifficultyDisplayName, DifficultyName } from './constant/CommonConstant';
 import Logger from './logger';
 import { writeErrorToFile } from './Utils';
+import { ScoreData } from 'types/SongDatabase';
 
 const UserAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36';
@@ -123,9 +124,9 @@ class MaimaiDXNetFetcher {
                 validateStatus: (status) => status === 200 || status === 302,
             });
 
-            let dom = new JSDOM(resp.data);
+            let $ = cheerio.load(resp.data);
 
-            if (dom.window.document.title === 'maimai DX NET－Error－' || resp.status === 302 || resp.data === '') {
+            if ($('title').text() === 'maimai DX NET－Error－' || resp.status === 302 || resp.data === '') {
                 await this.login();
                 resp = await axios.get('https://maimaidx-eng.com/maimai-mobile/friend', {
                     headers: {
@@ -134,17 +135,21 @@ class MaimaiDXNetFetcher {
                     },
                 });
 
-                dom = new JSDOM(resp.data);
+                $ = cheerio.load(resp.data);
             }
 
-            let list = dom.window.document.querySelectorAll('.see_through_block');
-            let output = [];
-            for (let element of list) {
-                let name = element.querySelector('.name_block')?.textContent;
-                let rating = element.querySelector('.rating_block')?.textContent;
-                let idx = element.querySelector('input[name="idx"]')?.getAttribute('value');
+            let output: {
+                name: string | undefined;
+                rating: string | undefined;
+                idx: string | undefined;
+            }[] = [];
+            $('.see_through_block').each((i, el) => {
+                const element = $(el);
+                let name = element.find('.name_block')?.text();
+                let rating = element.find('.rating_block')?.text();
+                let idx = element.find('input[name="idx"]')?.attr('value');
                 output.push({ name, rating, idx });
-            }
+            });
 
             this.logger.log('Fetched friend list successfully');
             return output;
@@ -212,9 +217,10 @@ class MaimaiDXNetFetcher {
                 },
             );
             let data = resp.data;
-            let dom = new JSDOM(data);
 
-            if (dom.window.document.title === 'maimai DX NET－Error－' || resp.status === 302 || resp.data === '') {
+            let $ = cheerio.load(data);
+
+            if ($('title').text() === 'maimai DX NET－Error－' || resp.status === 302 || resp.data === '') {
                 await this.login();
                 resp = await axios.get(
                     `https://maimaidx-eng.com/maimai-mobile/friend/friendDetail/?idx=${friendCode}`,
@@ -226,24 +232,26 @@ class MaimaiDXNetFetcher {
                     },
                 );
 
-                dom = new JSDOM(resp.data);
+                $ = cheerio.load(resp.data);
             }
-            let name = dom.window.document.querySelector('.name_block')?.textContent ?? '';
-            let rating = parseInt(dom.window.document.querySelector('.rating_block')?.textContent ?? '0');
-            let avatar = dom.window.document.querySelector('.basic_block > img')?.getAttribute('src') ?? '';
+            let name = $('.name_block').text() ?? '';
+            let rating = parseInt($('.rating_block').text() ?? '0');
+            let avatar = $('.basic_block > img').attr('src') ?? '';
 
             let title =
-                dom.window.document.querySelector('.trophy_inner_block')?.textContent.replace(/[\t\n]/g, '') ?? '';
+                $('.trophy_inner_block')
+                    .text()
+                    .replace(/[\t\n]/g, '') ?? '';
             let titleType;
-            if (dom.window.document.querySelector('.trophy_Normal')) titleType = TitleType.Normal;
-            else if (dom.window.document.querySelector('.trophy_Bronze')) titleType = TitleType.Bronze;
-            else if (dom.window.document.querySelector('.trophy_Silver')) titleType = TitleType.Silver;
-            else if (dom.window.document.querySelector('.trophy_Gold')) titleType = TitleType.Gold;
-            else if (dom.window.document.querySelector('.trophy_Rainbow')) titleType = TitleType.Rainbow;
+            if ($('.trophy_Normal').length > 0) titleType = TitleType.Normal;
+            else if ($('.trophy_Bronze').length > 0) titleType = TitleType.Bronze;
+            else if ($('.trophy_Silver').length > 0) titleType = TitleType.Silver;
+            else if ($('.trophy_Gold').length > 0) titleType = TitleType.Gold;
+            else if ($('.trophy_Rainbow').length > 0) titleType = TitleType.Rainbow;
             else titleType = TitleType.Normal;
 
-            let course = dom.window.document.querySelectorAll('.h_35.f_l')[0]?.getAttribute('src') ?? '';
-            let classRank = dom.window.document.querySelectorAll('.h_35.f_l')[1]?.getAttribute('src') ?? '';
+            let course = $('.h_35.f_l').eq(0).attr('src') ?? '';
+            let classRank = $('.h_35.f_l').eq(1).attr('src') ?? '';
 
             this.logger.log(`Fetched player info (code: ${friendCode}) successfully: ${name}`);
             return {
@@ -267,17 +275,7 @@ class MaimaiDXNetFetcher {
         friendCode: string,
         difficulty: Difficulty,
     ): Promise<{
-        data: {
-            title: string;
-            type: ChartType;
-            difficulty: Difficulty;
-            utageKind?: string;
-            achievement: number;
-            comboType: ComboType;
-            syncType: SyncType;
-            dxScore?: number;
-            dxStar?: number;
-        }[];
+        data: ScoreData[];
     }> {
         this.logger.log(`Fetching ${DifficultyDisplayName[difficulty]} scores for player:`, friendCode);
 
@@ -290,11 +288,11 @@ class MaimaiDXNetFetcher {
                 },
             },
         );
-        let output = [];
+        let output: ScoreData[] = [];
         let data = resp.data;
-        let dom = new JSDOM(data);
+        let $ = cheerio.load(data);
 
-        if (dom.window.document.title === 'maimai DX NET－Error－' || resp.status === 302 || resp.data === '') {
+        if ($('title').text() === 'maimai DX NET－Error－' || resp.status === 302 || resp.data === '') {
             await this.login();
             resp = await axios.get(
                 `https://maimaidx-eng.com/maimai-mobile/friend/friendGenreVs/battleStart/?scoreType=${scoreType}&genre=${Genres.ALL}&diff=${difficulty}&idx=${friendCode}`,
@@ -306,30 +304,31 @@ class MaimaiDXNetFetcher {
                 },
             );
 
-            dom = new JSDOM(resp.data);
+            $ = cheerio.load(resp.data);
         }
-        if (dom.window.document.title === 'maimai DX NET－Error－') {
+        if ($('title').text() === 'maimai DX NET－Error－') {
             let time = Date.now();
             fs.writeFileSync(`tmp/dxnet_error_${time}.html`, data);
             this.logger.error(`Error while fetching scores, response was saved to tmp/dxnet_error_${time}.html`);
         }
 
-        let allScore = dom.window.document.querySelectorAll(`.music_${DifficultyName[difficulty]}_score_back`);
-        for (let score of allScore) {
+        let allScore = $(`.music_${DifficultyName[difficulty]}_score_back`);
+        allScore.each((i, score) => {
+            const $score = $(score);
             let kind;
-            if (difficulty === Difficulty.UTAGE)
-                kind = score.querySelector('.music_kind_icon_utage_text')?.textContent ?? undefined;
+            if (difficulty === Difficulty.UTAGE) kind = $score.find('.music_kind_icon_utage_text').text() ?? undefined;
 
             let achievement, dxStar, dxScore;
             if (scoreType === ScoreType.Achievement) {
-                achievement = score.querySelectorAll(`.p_r.${DifficultyName[difficulty]}_score_label.w_120.f_b`)[1];
+                achievement = $score.find(`.p_r.${DifficultyName[difficulty]}_score_label.w_120.f_b`).eq(1);
             } else {
-                dxScore = score.querySelectorAll(`.p_r.${DifficultyName[difficulty]}_score_label.w_120.f_b`)[1];
+                dxScore = $score.find(`.p_r.${DifficultyName[difficulty]}_score_label.w_120.f_b`).eq(1);
                 switch (
-                    score
-                        .querySelectorAll(`.p_r.${DifficultyName[difficulty]}_score_label.w_120.f_b`)[1]
-                        .querySelector('img')
-                        ?.getAttribute('src')
+                    $score
+                        .find(`.p_r.${DifficultyName[difficulty]}_score_label.w_120.f_b`)
+                        .eq(1)
+                        .find('img')
+                        .attr('src')
                         ?.split('/')
                         .pop()
                         ?.replace('.png', '')
@@ -355,8 +354,8 @@ class MaimaiDXNetFetcher {
                 }
             }
             let status = [];
-            let icons = score.querySelectorAll('.t_r.f_0')[0].querySelectorAll('img');
-            switch (icons[1]?.getAttribute('src')?.split('?')[0].split('/').pop()?.replace('.png', '')) {
+            let icons = $score.find('.t_r.f_0').eq(0).find('img');
+            switch (icons.eq(1).attr('src')?.split('?')[0].split('/').pop()?.replace('.png', '')) {
                 case 'music_icon_fc':
                     status.push(ComboType.FC);
                     break;
@@ -373,7 +372,7 @@ class MaimaiDXNetFetcher {
                     status.push(-1);
                     break;
             }
-            switch (icons[0]?.getAttribute('src')?.split('?')[0].split('/').pop()?.replace('.png', '')) {
+            switch (icons.eq(0).attr('src')?.split('?')[0].split('/').pop()?.replace('.png', '')) {
                 case 'music_icon_fs':
                     status.push(SyncType.FS);
                     break;
@@ -390,18 +389,18 @@ class MaimaiDXNetFetcher {
                     status.push(-1);
                     break;
             }
-            if (scoreType === ScoreType.Achievement && achievement?.textContent?.includes('―')) continue;
-            if (scoreType === ScoreType.DXScore && dxScore?.textContent?.includes('―')) continue;
+            if (scoreType === ScoreType.Achievement && achievement?.text()?.includes('―')) return;
+            if (scoreType === ScoreType.DXScore && dxScore?.text()?.includes('―')) return;
 
-            let type_block = score
-                .querySelector('.music_kind_icon')
-                ?.getAttribute('src')
+            let type_block = $score
+                .find('.music_kind_icon')
+                .attr('src')
                 ?.split('?')[0]
                 .split('/')
                 .pop()
                 ?.replace('.png', '');
             output.push({
-                title: score.querySelector('.music_name_block')?.textContent ?? '',
+                title: $score.find('.music_name_block').text() ?? '',
                 type:
                     type_block === 'music_dx'
                         ? ChartType.DX
@@ -410,13 +409,13 @@ class MaimaiDXNetFetcher {
                           : ChartType.UTAGE,
                 difficulty: difficulty,
                 utageKind: kind,
-                achievement: parseFloat(achievement?.textContent ?? '0%'),
+                achievement: parseFloat(achievement?.text() ?? '0%'),
                 comboType: status[0],
                 syncType: status[1],
-                dxScore: parseInt(dxScore?.textContent?.replace(/,/g, '') ?? '0'),
+                dxScore: parseInt(dxScore?.text()?.replace(/,/g, '') ?? '0'),
                 dxStar: dxStar,
             });
-        }
+        });
 
         return { data: output };
     }
