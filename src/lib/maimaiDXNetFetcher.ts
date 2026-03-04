@@ -235,7 +235,7 @@ class MaimaiDXNetFetcher {
                 $ = cheerio.load(resp.data);
             }
             let name = $('.name_block').text() ?? '';
-            let rating = parseInt($('.rating_block').text() ?? '0');
+            let rating = parseInt($('.rating_block').first().text() ?? '0');
             let avatar = $('.basic_block > img').attr('src') ?? '';
 
             let title =
