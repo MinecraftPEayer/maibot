@@ -11,7 +11,7 @@ export default async () => {
 
     app.use(express.json());
 
-    const noAuthPaths = ['/img/dynamic/noteTable'];
+    const noAuthPaths = ['/img/dynamic/noteTable', '/api/status'];
 
     let dynamicLoadingList: string[] = [];
 
@@ -78,12 +78,12 @@ export default async () => {
 
     (config.api.https.enabled
         ? createServer(
-            {
-                cert: fs.readFileSync(config.api.https.cert_path),
-                key: fs.readFileSync(config.api.https.key_path),
-            },
-            app,
-        )
+              {
+                  cert: fs.readFileSync(config.api.https.cert_path),
+                  key: fs.readFileSync(config.api.https.key_path),
+              },
+              app,
+          )
         : app
     ).listen(config.api.port || 3000, () => {
         logger.log(`API server is running on port ${config.api.port || 3000}`);
