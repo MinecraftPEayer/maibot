@@ -20,7 +20,7 @@ import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
 import { ChartType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
 import { calculateRating, calculateScore, convertDXScoreToStar, getDifficultyEmoji } from 'src/lib/Utils';
 import { B50Data, ScoreData, Sheet, Song } from 'types/SongDatabase';
-import { DifficultyDisplayName, DifficultyName } from 'src/lib/constant/CommonConstant';
+import { DifficultyColor, DifficultyDisplayName, DifficultyName } from 'src/lib/constant/CommonConstant';
 import fs from 'fs';
 import { PlayerInfo } from 'types/main';
 
@@ -574,6 +574,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                                     `Level: ${selectedSheet.level} (${selectedSheet.internalLevelValue.toFixed(1)})`,
                                     `Note Designer: ${selectedSheet.noteDesigner ?? 'N/A'}`,
                                 ].join('\n'),
+                                color: parseInt(DifficultyColor[selectedSheet.difficulty][0].slice(1), 16),
                                 fields: [
                                     {
                                         name: `Note Counts`,
