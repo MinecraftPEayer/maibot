@@ -59,6 +59,8 @@ class PlayerDataService {
 
         if (fs.existsSync(`./data/user/${userId}/latest.json`)) {
             // Bookmarklet data exists
+            await interaction.reply('Processing...')
+
             const latestData = JSON.parse(fs.readFileSync(`./data/user/${userId}/latest.json`, 'utf-8'));
 
             const scores: Record<string, any> = {};
