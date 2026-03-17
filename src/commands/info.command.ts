@@ -1,3 +1,6 @@
+// won't use PlayerDataService
+// because this won't use local cache
+
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 import JSONdb from 'simple-json-db';
 import { Emojis } from 'src/lib/constant/emojis';

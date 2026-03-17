@@ -7,6 +7,7 @@ import { DifficultyDisplayName, DifficultyName } from './constant/CommonConstant
 import Logger from './logger';
 import { writeErrorToFile } from './Utils';
 import { ScoreData } from 'types/SongDatabase';
+import JSONdb from 'simple-json-db';
 
 const UserAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36';
@@ -508,6 +509,12 @@ class MaimaiDXNetFetcher {
             scoreData: data.data.scoreData,
             date: new Date(parseInt(data.date.replace(/[,]/g, ''))),
         };
+    }
+
+    getFriendCodeByDiscordId(userId: string): string | null {
+        const db = new JSONdb('data/linking.json');
+        const friendCode = db.get(userId);
+        return friendCode ?? null;
     }
 }
 

@@ -18,6 +18,7 @@ import * as StackBlur from 'stackblur-canvas';
 import Logger from 'src/lib/logger';
 import { PlayerInfo } from 'types/main';
 import { getImageBuffer, drawRoundRect, drawCustomRoundRect, createBlurredBackground } from 'src/lib/DrawImageUtils';
+import PlayerDataService from 'src/lib/PlayerDataService';
 
 const TitleTypeName = {
     [TitleType.Normal]: 'Normal',
@@ -402,8 +403,6 @@ async function drawAndSendChart(
     const containCategory = RankCategories.map((category: Rank[]) =>
         category.some((rank) => B15RankMapped.includes(rank) || B35RankMapped.includes(rank)),
     );
-
-    await interaction.editReply(['Fetching player info... OK', 'Fetching scores... OK', 'Drawing...'].join('\n'));
 
     const canvas = createCanvas(WIDTH, HEIGHT);
     if (!canvas) return;
@@ -847,11 +846,6 @@ const data = new SlashCommandBuilder()
 
 const scoreType = ScoreType.Achievement;
 
-async function drawRank(ctx: CanvasRenderingContext2D, ranking: string, posX: number, posY: number) {
-    let image = await loadImage(`assets/ranking/${ranking.toLowerCase().replace(/[+]/g, 'plus')}.png`);
-    ctx.drawImage(image, 0, 0, 200, 89, posX - 2, posY - 12, 54, 24);
-}
-
 function drawBoldText(ctx: CanvasRenderingContext2D, text: string, posX: number, posY: number, lineWidth?: number) {
     let originalStrokeStyle = ctx.strokeStyle,
         originalLineWidth = ctx.lineWidth;
@@ -870,204 +864,17 @@ async function execute(interaction: ChatInputCommandInteraction) {
     let optionDrawIcons = interaction.options.getBoolean('draw_icons') ?? false;
 
     const fetcher = MaimaiDXNetFetcher.getInstance();
-
-    let scores = {} as {
-        [key: string]: ScoreData[];
-    };
-
-    let playerInfo: PlayerInfo = {
-        name: ' ',
-        avatar: 'https://maimaidx-eng.com/maimai-mobile/img/Icon/34f0363f4ce86d07.png',
-        rating: 0,
-        title: ' ',
-        titleType: TitleType.Normal,
-        course: 'https://maimaidx-eng.com/maimai-mobile/img/course/course_rank_00T7GHJvGe.png',
-        classRank: 'https://maimaidx-eng.com/maimai-mobile/img/class/class_rank_s_00ZqZmdpb8.png',
-    };
-
-    if (fs.existsSync(`data/user/${optionUser?.id ? optionUser.id : interaction.user.id}/latest.json`)) {
-        let latestData = JSON.parse(
-            fs.readFileSync(`data/user/${optionUser?.id ? optionUser.id : interaction.user.id}/latest.json`, 'utf8'),
-        );
-
-        for (let key in latestData.allScores) {
-            scores[key] = latestData.allScores[key].map((score: any) => {
-                return {
-                    title: score.name,
-                    type: score.chartType,
-                    difficulty: score.difficulty || Difficulty.Basic,
-                    achievement: parseFloat(score.achievement),
-                    comboType: score.comboType || ComboType.None,
-                    syncType: score.syncType || SyncType.None,
-                    dxScore: parseInt(score.dxScore[0]),
-                    dxStar: convertDXScoreToStar(score.dxScore[0], score.dxScore[1]),
-                };
-            });
-        }
-
-        playerInfo = {
-            name: latestData.playerData.playerName,
-            rating: latestData.playerData.rating,
-            avatar: latestData.playerData.avatar,
-            title: latestData.playerData.title.text,
-            titleType: latestData.playerData.title.type,
-            course: latestData.playerData.course,
-            classRank: latestData.playerData['class'],
-        };
-
-        let updateTime = new Date(latestData.date ? latestData.date : Date.now());
-
-        await interaction.reply({
-            content: 'Processing...',
-        });
-
-        drawAndSendChart(interaction, updateTime, playerInfo, scores, optionDrawIcons);
-    } else {
-        if (optionUser && !db.has(optionUser.id)) {
-            return await interaction.reply(`${optionUser.username} 還沒綁定帳號`);
-        }
-        if (!db.has(interaction.user.id)) return await interaction.reply('你還沒綁定帳號');
-
-        let id = optionUser ? optionUser.id : interaction.user.id;
-
-        let friendCode = db.get(id);
-
-        let cacheExists = fetcher.playerCacheDataExists(friendCode);
-        let lastDataDate = fetcher.getLatestCacheDataDate(friendCode);
-        if (cacheExists && lastDataDate && Date.now() - lastDataDate.getTime() <= 24 * 60 * 60 * 1000) {
-            let actionRow = new ActionRowBuilder<ButtonBuilder>()
-                .addComponents(new ButtonBuilder().setLabel('Yes').setStyle(ButtonStyle.Success).setCustomId('yes'))
-                .addComponents(new ButtonBuilder().setLabel('No').setStyle(ButtonStyle.Danger).setCustomId('no'));
-
-            let reply = await interaction.reply({
-                embeds: [
-                    new EmbedBuilder()
-                        .setTitle('We found cached score data. Would you like to use it or fetch new data?')
-                        .setDescription(`Time: <t:${(lastDataDate.getTime() / 1000).toFixed()}:F>`),
-                ],
-                components: [actionRow],
-            });
-
-            let collector = reply.createMessageComponentCollector({
-                max: 1,
-                time: 60000,
-                filter: (i) => i.user.id === interaction.user.id,
-            });
-            let btnUsed = false;
-            collector.on('collect', async (btnI) => {
-                btnUsed = true;
-                switch (btnI.customId) {
-                    case 'yes':
-                        let data = fetcher.getPlayerCacheData(friendCode);
-                        playerInfo = data.playerData;
-                        scores = data.scoreData;
-                        await interaction.editReply({
-                            content: 'Processing...',
-                            components: [],
-                            embeds: [],
-                        });
-                        drawAndSendChart(interaction, data.date, playerInfo, scores, optionDrawIcons);
-                        break;
-                    case 'no':
-                        let message = 'Fetching player info...';
-                        await interaction.editReply({ content: message, components: [], embeds: [] });
-
-                        playerInfo = (await fetcher.getPlayer(friendCode)) ?? {
-                            name: '',
-                            avatar: '',
-                            rating: 0,
-                            title: '',
-                            titleType: TitleType.Normal,
-                            course: '',
-                            classRank: '',
-                        };
-
-                        message += [' OK', 'Fetching scores...'].join('\n');
-                        await interaction.editReply(message);
-
-                        scores = {};
-                        let delay = 1000;
-                        const fetchFunction = async (difficulty: string, diffName: string, delay: number) => {
-                            await new Promise((resolve) => setTimeout(resolve, delay));
-                            let scoreData = await fetcher.getScores(scoreType, friendCode, parseInt(difficulty));
-                            scores[diffName] = scoreData.data;
-                        };
-
-                        await Promise.all(
-                            Object.entries(DifficultyDisplayName)
-                                .filter(([Difficulty, diffName]) => diffName !== 'UTAGE')
-                                .map(([difficulty, diffName], index) =>
-                                    fetchFunction(difficulty, diffName, delay * index),
-                                ),
-                        );
-
-                        fetcher.savePlayerCacheData(friendCode, {
-                            playerData: playerInfo,
-                            scoreData: scores,
-                        });
-
-                        await interaction.editReply(
-                            ['Fetching player info... OK', 'Fetching scores... OK', 'Calculating...'].join('\n'),
-                        );
-
-                        drawAndSendChart(interaction, new Date(), playerInfo, scores, optionDrawIcons);
-                        break;
-
-                    default:
-                        btnI.reply({
-                            content: 'how tf can you get here, go back right now bro',
-                        });
-                        break;
-                }
-            });
-            collector.on('end', async () => {
-                if (btnUsed) return;
-                try {
-                    interaction.editReply({
-                        components: [],
-                    });
-                } catch (error) {}
-            });
-        } else {
-            let message = 'Fetching player info...';
-            await interaction.reply({ content: message });
-
-            playerInfo = (await fetcher.getPlayer(friendCode)) ?? {
-                name: '',
-                avatar: '',
-                rating: 0,
-                title: '',
-                titleType: TitleType.Normal,
-                course: '',
-                classRank: '',
-            };
-
-            message += [' OK', 'Fetching scores...'].join('\n');
-            await interaction.editReply(message);
-
-            scores = {};
-            for (const [difficulty, diffName] of Object.entries(DifficultyDisplayName)) {
-                if (!diffs.includes(parseInt(difficulty))) continue;
-
-                message += `\n> Fetching ${diffName} scores...`;
-                await interaction.editReply(message);
-                let scoreData = await fetcher.getScores(scoreType, friendCode, parseInt(difficulty));
-                scores[diffName] = scoreData.data;
-                message += ' OK';
-            }
-
-            fetcher.savePlayerCacheData(friendCode, {
-                playerData: playerInfo,
-                scoreData: scores,
-            });
-
-            await interaction.editReply(
-                ['Fetching player info... OK', 'Fetching scores... OK', 'Calculating...'].join('\n'),
-            );
-
-            await drawAndSendChart(interaction, new Date(), playerInfo, scores, optionDrawIcons);
-        }
+    if (optionUser && !db.has(optionUser.id)) {
+        return await interaction.reply(`${optionUser.username} 還沒綁定帳號`);
     }
+    if (!db.has(interaction.user.id)) return await interaction.reply('你還沒綁定帳號');
+
+    let id = optionUser ? optionUser.id : interaction.user.id;
+
+    const { playerData, scoreData } = await PlayerDataService.getInstance().getPlayerData(interaction, id);
+
+    await interaction.editReply({ content: 'All done!\nDrawing...', embeds: [], components: [] });
+    await drawAndSendChart(interaction, new Date(), playerData, scoreData, optionDrawIcons);
 }
 
 export { data, execute };

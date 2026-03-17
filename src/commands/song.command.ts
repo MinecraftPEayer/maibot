@@ -23,6 +23,7 @@ import { B50Data, ScoreData, Sheet, Song } from 'types/SongDatabase';
 import { DifficultyColor, DifficultyDisplayName, DifficultyName } from 'src/lib/constant/CommonConstant';
 import fs from 'fs';
 import { PlayerInfo } from 'types/main';
+import PlayerDataService from 'src/lib/PlayerDataService';
 
 const diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
 
@@ -236,268 +237,22 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     break;
 
                 case 'my_record':
-                    let db = new JSONdb('data/linking.json');
-
-                    let playerInfo: PlayerInfo;
-
-                    let scores: {
-                        [key: string]: ScoreData[];
-                    } = {};
-
-                    let playerScores: { [key: string]: ScoreData[] } = {};
-
-                    await buttonInteraction.reply('Processing...');
-
                     const scoreFilter = (s: ScoreData) =>
                         s.type === type && ((exception as any)[s.title] ?? s.title) === song.title;
-                    if (fs.existsSync(`data/user/${buttonInteraction.user.id}`) && !isUTAGE) {
-                        let data = JSON.parse(
-                            fs.readFileSync(`data/user/${buttonInteraction.user.id}/latest.json`, 'utf-8'),
-                        );
 
-                        playerInfo = {
-                            name: data.playerData.playerName,
-                            rating: data.playerData.rating,
-                            avatar: data.playerData.avatar,
-                            title: data.playerData.title.text,
-                            titleType: data.playerData.title.type,
-                            course: data.playerData.course,
-                            classRank: data.playerData['class'],
-                        };
+                    const { playerData, scoreData } = await PlayerDataService.getInstance().getPlayerData(
+                        buttonInteraction as ButtonInteraction,
+                        buttonInteraction.user.id,
+                    );
 
-                        let scores = Object.values(data.allScores)
-                            .map((item: any) => {
-                                return item.map((score: any) => {
-                                    return {
-                                        title: score.name,
-                                        type: score.chartType,
-                                        difficulty: score.difficulty || Difficulty.Basic,
-                                        achievement: score.achievement,
-                                        comboType: score.comboType || SyncType.None,
-                                        syncType: score.syncType || SyncType.None,
-                                        dxScore: score.dxScore[0],
-                                        dxStar: convertDXScoreToStar(score.dxScore[0], score.dxScore[1]),
-                                    };
-                                });
-                            })
-                            .map((item: unknown) =>
-                                (item as any[]).filter(
-                                    (s: any) =>
-                                        s.type === type && ((exception as any)[s.title] ?? s.title) === song.title,
-                                ),
-                            )
-                            .flat();
-
-                        let scoreCalculated = calculateScore(scores).data;
-
-                        let scoreData: {
-                            [key: string]: B50Data[];
-                        } = {};
-                        scoreCalculated.forEach((item) => {
-                            scoreData[DifficultyName[item.difficulty]] = [item];
-                        });
-
-                        sendScore(
-                            buttonInteraction as ButtonInteraction,
-                            song,
-                            playerInfo,
-                            scoreData,
-                            isUTAGE,
-                            () => true,
-                        );
-                    } else {
-                        let friendCode = db.get(buttonInteraction.user.id);
-                        if (!friendCode) return await buttonInteraction.editReply('你還沒綁定帳號');
-
-                        const fetcher = MaimaiDXNetFetcher.getInstance();
-
-                        let cacheExists = fetcher.playerCacheDataExists(friendCode);
-                        let lastDataDate = fetcher.getLatestCacheDataDate(friendCode);
-                        if (
-                            cacheExists &&
-                            lastDataDate &&
-                            Date.now() - lastDataDate.getTime() <= 24 * 60 * 60 * 1000 &&
-                            !isUTAGE
-                        ) {
-                            let actionRow = new ActionRowBuilder<ButtonBuilder>()
-                                .addComponents(
-                                    new ButtonBuilder()
-                                        .setLabel('Yes')
-                                        .setStyle(ButtonStyle.Success)
-                                        .setCustomId('yes'),
-                                )
-                                .addComponents(
-                                    new ButtonBuilder().setLabel('No').setStyle(ButtonStyle.Danger).setCustomId('no'),
-                                );
-
-                            let reply = await buttonInteraction.editReply({
-                                embeds: [
-                                    new EmbedBuilder()
-                                        .setTitle(
-                                            'We found cached score data. Would you like to use it or fetch new data?',
-                                        )
-                                        .setDescription(`Time: <t:${(lastDataDate.getTime() / 1000).toFixed()}:F>`),
-                                ],
-                                components: [actionRow],
-                            });
-
-                            let collector = reply.createMessageComponentCollector({
-                                max: 1,
-                                time: 60000,
-                                filter: (i) => i.user.id === buttonInteraction.user.id,
-                            });
-                            let btnUsed = false;
-                            collector.on('collect', async (btnI) => {
-                                btnUsed = true;
-                                switch (btnI.customId) {
-                                    case 'yes':
-                                        let data = fetcher.getPlayerCacheData(friendCode);
-                                        playerInfo = data.playerData;
-                                        scores = data.scoreData;
-                                        await buttonInteraction.editReply({
-                                            content: 'Processing...',
-                                            components: [],
-                                        });
-                                        sendScore(
-                                            buttonInteraction as ButtonInteraction,
-                                            song,
-                                            playerInfo,
-                                            scores,
-                                            isUTAGE,
-                                            scoreFilter,
-                                        );
-                                        break;
-                                    case 'no':
-                                        let message = 'Fetching player info...';
-                                        await buttonInteraction.editReply({
-                                            content: message,
-                                            components: [],
-                                            embeds: [],
-                                        });
-
-                                        playerInfo = (await fetcher.getPlayer(friendCode)) ?? {
-                                            name: '',
-                                            avatar: '',
-                                            rating: 0,
-                                            title: '',
-                                            titleType: TitleType.Normal,
-                                            course: '',
-                                            classRank: '',
-                                        };
-
-                                        message += [' OK', 'Fetching scores...'].join('\n');
-                                        await buttonInteraction.editReply(message);
-
-                                        scores = {};
-                                        for (const [difficulty, diffName] of Object.entries(DifficultyDisplayName)) {
-                                            if (!diffs.includes(parseInt(difficulty))) continue;
-
-                                            message += `\n> Fetching ${diffName} scores...`;
-                                            await buttonInteraction.editReply(message);
-                                            let scoreData = await fetcher.getScores(
-                                                scoreType,
-                                                friendCode,
-                                                parseInt(difficulty),
-                                            );
-                                            scores[diffName] = scoreData.data;
-                                            message += ' OK';
-                                        }
-
-                                        fetcher.savePlayerCacheData(friendCode, {
-                                            playerData: playerInfo,
-                                            scoreData: scores,
-                                        });
-
-                                        await buttonInteraction.editReply(
-                                            [
-                                                'Fetching player info... OK',
-                                                'Fetching scores... OK',
-                                                'Calculating...',
-                                            ].join('\n'),
-                                        );
-
-                                        sendScore(
-                                            buttonInteraction as ButtonInteraction,
-                                            song,
-                                            playerInfo,
-                                            scores,
-                                            isUTAGE,
-                                            scoreFilter,
-                                        );
-                                        break;
-
-                                    default:
-                                        btnI.reply({
-                                            content: 'how tf can you get here, go back right now bro',
-                                        });
-                                        break;
-                                }
-                            });
-                            collector.on('end', async () => {
-                                if (btnUsed) return;
-                                try {
-                                    interaction.editReply({
-                                        components: [],
-                                    });
-                                } catch (error) {}
-                            });
-                        } else {
-                            let message = 'Fetching player info...';
-
-                            await buttonInteraction.editReply(message);
-                            playerInfo = (await DXNetFetcher.getPlayer(friendCode)) || {
-                                name: '',
-                                avatar: '',
-                                rating: 0,
-                                title: '',
-                                titleType: TitleType.Normal,
-                                course: '',
-                                classRank: '',
-                            };
-
-                            if (!isUTAGE) {
-                                message += [' OK', 'Fetching scores...'].join('\n');
-
-                                await buttonInteraction.editReply(message);
-
-                                for (const [difficulty, diffName] of Object.entries(DifficultyDisplayName)) {
-                                    if (!diffs.includes(parseInt(difficulty))) continue;
-
-                                    message += `\n> Fetching ${diffName} scores...`;
-                                    await buttonInteraction.editReply(message);
-                                    let scoreData = await MaimaiDXNetFetcher.getInstance().getScores(
-                                        scoreType,
-                                        friendCode,
-                                        parseInt(difficulty),
-                                    );
-                                    playerScores[diffName] = scoreData.data;
-                                    message += ' OK';
-                                }
-                            } else {
-                                message += [' OK', 'Fetching scores...', '> Fetching UTAGE scores...'].join('\n');
-                                playerScores['UTAGE'] = (
-                                    await DXNetFetcher.getScores(scoreType, friendCode, Difficulty.UTAGE)
-                                ).data;
-                            }
-                            await buttonInteraction.editReply(
-                                ['Fetching player info... OK', 'Fetching scores... OK', 'Calculating...'].join('\n'),
-                            );
-
-                            fetcher.savePlayerCacheData(friendCode, {
-                                playerData: playerInfo,
-                                scoreData: scores,
-                            });
-
-                            sendScore(
-                                buttonInteraction as ButtonInteraction,
-                                song,
-                                playerInfo,
-                                playerScores,
-                                isUTAGE,
-                                scoreFilter,
-                            );
-                        }
-                    }
+                    await sendScore(
+                        buttonInteraction as ButtonInteraction,
+                        song,
+                        playerData,
+                        scoreData,
+                        isUTAGE,
+                        scoreFilter,
+                    );
                     break;
 
                 case 'detail_selector':
