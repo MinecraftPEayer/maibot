@@ -2,6 +2,7 @@ import axios from 'axios';
 import fs from 'fs';
 import {
     ConstantDatabase,
+    CourseData,
     RegionOverrides,
     Sheet,
     Song,
@@ -16,6 +17,7 @@ import { ChartType, Difficulty } from './CommonEnums';
 import exception from 'config/exception.json';
 
 type SourceSong = {
+    songId: string;
     title: string;
     artist: string;
     bpm: number;
@@ -254,12 +256,12 @@ class SongDataFetcher {
         }
     }
 
-    async getCourseData(): Promise<any> {
+    async getCourseData(): Promise<CourseData[]> {
         let data = fs.readFileSync('tmp/course.json', 'utf-8');
         return JSON.parse(data);
     }
 
-    private getData(): any {
+    private getData(): SongDatabase {
         let data = fs.readFileSync(this.filePath, 'utf-8');
         return JSON.parse(data);
     }
@@ -268,7 +270,7 @@ class SongDataFetcher {
         let data = this.getData();
         return data.songs
             .filter((item: any) => item.title.toLowerCase().includes(query.toLowerCase()))
-            .map((item: any) => {
+            .map((item) => {
                 return {
                     name: item.songId.length > 100 ? item.songId.slice(0, 97) + '...' : item.songId,
                     value: String(data.songs.indexOf(item)),

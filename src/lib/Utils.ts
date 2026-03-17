@@ -90,7 +90,7 @@ function calculateB50(
     let B15Data: B50Data[] = [],
         B35Data: B50Data[] = [];
     for (const item of scoreData) {
-        const song = database.songs.find((song: any) => song.songId === ((exception as any)[item.title] ?? item.title));
+        const song = database.songs.find((song) => song.songId === ((exception as any)[item.title] ?? item.title));
         if (song) {
             let sheet = song.sheets.find((sht) => sht.type === item.type && sht.difficulty === item.difficulty);
             if (sheet) {

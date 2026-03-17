@@ -21,7 +21,7 @@ type SongDatabaseVersions = {
 };
 
 type SongDatabaseTypes = {
-    type: SheetType;
+    type: 'dx' | 'std' | 'utage';
     name: string;
     abbr: string;
     iconUrl?: string;
@@ -92,9 +92,6 @@ type ConstantDatabase = {
     dx_lev_exp?: string;
     dx_lev_mas?: string;
     dx_lev_remas?: string;
-    dx_lev_adv?: string;
-    dx_lev_exp?: string;
-    dx_lev_mas?: string;
     dx_lev_bas_i?: string;
     dx_lev_bas_notes?: string;
     dx_lev_bas_notes_tap?: string;
@@ -136,6 +133,7 @@ type ConstantDatabase = {
 
 type Song = {
     category: string;
+    songId: string;
     title: string;
     artist: string;
     bpm: number;
@@ -181,7 +179,9 @@ type Region = {
 };
 
 type RegionOverrides = {
-    intl: Record<string, unknown>;
+    intl: {
+        version?: string;
+    };
 };
 
 type Version =
@@ -239,6 +239,18 @@ type ScoreData = {
     dxScore?: number;
 };
 
+type CourseData = {
+    title: string;
+    id: string;
+    sections: CourseSection[];
+}
+
+type CourseSection = {
+    title: string;
+    description: string;
+    sheets: string[]
+}
+
 export {
     SongDatabase,
     SongDatabaseCategories,
@@ -257,4 +269,6 @@ export {
     Rank,
     B50Data,
     ScoreData,
+    CourseData,
+    CourseSection,
 };
