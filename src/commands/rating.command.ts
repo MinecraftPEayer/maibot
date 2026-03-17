@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
-import { calculateRating, convertAchievementToRank } from 'src/lib/Utils';
+import { calculateRating, convertAchievementToRank, getRankFactor } from 'src/lib/Utils';
 import { RankFactor } from 'src/lib/constant/CommonConstant';
 
 const data = new SlashCommandBuilder()
@@ -26,7 +26,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
         while (parseFloat(achievement.toFixed(4)) <= 101) {
             const rating = Math.floor(
                 (parseFloat((achievement > 100.5 ? 100.5 : achievement).toFixed(4)) / 100) *
-                    RankFactor[convertAchievementToRank(parseFloat(achievement.toFixed(4)))] *
+                    getRankFactor(achievement) *
                     parseFloat(constant.toFixed(1)) *
                     100,
             );

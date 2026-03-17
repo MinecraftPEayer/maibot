@@ -400,6 +400,7 @@ export {
     calculateRating,
     getDifficultyEmoji,
     convertAchievementToRank,
+    getRankFactor,
     convertDXScoreToStar,
     getRatingBaseImage,
     getDifficultyIdFromName,

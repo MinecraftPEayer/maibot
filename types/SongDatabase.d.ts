@@ -248,7 +248,8 @@ type CourseData = {
 type CourseSection = {
     title: string;
     description: string;
-    sheets: string[]
+    sheets: string[],
+    sheetDescriptions?: string[],
 }
 
 export {

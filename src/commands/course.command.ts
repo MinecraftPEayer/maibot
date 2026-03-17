@@ -41,7 +41,9 @@ async function execute(interaction: ChatInputCommandInteraction) {
     if (!gallery.map((item: any) => item.id).includes(optionType))
         return interaction.reply({ content: 'Invalid course type selected.', ephemeral: true });
 
-    const course = gallery.find((item: any) => item.id === optionType);
+    const course = gallery.find((item) => item.id === optionType);
+
+    if (!course) return interaction.reply({ content: 'Course not found.', ephemeral: true });
 
     const selectMenu = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
         new StringSelectMenuBuilder()
@@ -65,6 +67,11 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
     collector.on('collect', async (selectInteraction: StringSelectMenuInteraction) => {
         const selectedSection = course.sections.find((section: any) => section.title === selectInteraction.values[0]);
+
+        if (!selectedSection) {
+            await selectInteraction.update({ content: 'Section not found.', components: [] });
+            return collector.stop();
+        }
 
         if (isRandomDan) {
             const specificFilter = selectedSection.sheets[0].split('|');
