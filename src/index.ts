@@ -9,6 +9,7 @@ import { MessageFlags } from 'discord.js';
 import config from 'config/config.json';
 import { inspect } from 'util';
 import { sendMessageToWebhook } from './lib/Utils';
+import RatingChartUtils from './lib/RatingChartUtils';
 
 const mainLogger = new Logger('main');
 process.logger = mainLogger;
@@ -80,6 +81,8 @@ client.on('clientReady', async () => {
         }
     }
     await fetcher.login();
+
+    RatingChartUtils.getInstance().preloadAssets();
 
     (await import('src/utils/api/index')).default();
 });

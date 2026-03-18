@@ -1,24 +1,18 @@
-import {
-    ChatInputCommandInteraction,
-    SlashCommandBuilder,
-    ActionRowBuilder,
-    ButtonBuilder,
-    EmbedBuilder,
-    ButtonStyle,
-} from 'discord.js';
-import { createCanvas, loadImage, registerFont, CanvasRenderingContext2D, Canvas, Image } from 'canvas';
+import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
+import { createCanvas, loadImage, CanvasRenderingContext2D } from 'canvas';
 import JSONdb from 'simple-json-db';
 import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
-import { calculateB50, convertDXScoreToStar, getRatingBaseImage, initializeFonts, FontStack } from 'src/lib/Utils';
+import { calculateB50, getRatingBaseImage, initializeFonts, FontStack } from 'src/lib/Utils';
 import fs from 'fs';
 import { ChartType, ComboType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
 import { B50Data, Rank, ScoreData } from 'types/SongDatabase';
-import { DifficultyDisplayName, DifficultyColor } from 'src/lib/constant/CommonConstant';
+import { DifficultyColor } from 'src/lib/constant/CommonConstant';
 import * as StackBlur from 'stackblur-canvas';
 import Logger from 'src/lib/logger';
 import { PlayerInfo } from 'types/main';
 import { getImageBuffer, drawRoundRect, drawCustomRoundRect, createBlurredBackground } from 'src/lib/DrawImageUtils';
 import PlayerDataService from 'src/lib/PlayerDataService';
+import RatingChartUtils from 'src/lib/RatingChartUtils';
 
 const TitleTypeName = {
     [TitleType.Normal]: 'Normal',
@@ -43,7 +37,7 @@ const ComboTypeImageName = {
     [ComboType.APp]: 'APp',
 };
 
-let diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
+const RCUtils = RatingChartUtils.getInstance();
 
 let logger: Logger;
 
@@ -168,8 +162,6 @@ async function drawRankCountBox(
                 fillStyle: 'rgba(183, 183, 183, 0.45)',
             });
 
-            const iconImg = await loadImage(box.imagePath);
-            ctx.drawImage(iconImg, x + offset.x + j * (57 + 2) + 7.71, y + offset.y + i * (53 + 2) + 4, 41.57, 18.5);
             ctx.font = `16px ${FontStack}`;
             ctx.fillStyle = '#FFFFFF';
             ctx.textAlign = 'center';
@@ -179,6 +171,13 @@ async function drawRankCountBox(
                 y + offset.y + i * (53 + 2) + 26.5 + 17.25,
             );
             ctx.textAlign = 'left';
+
+            const iconImg = await RCUtils.getAsset(box.imagePath);
+            if (!iconImg) {
+                logger.warn(`Icon image not found for path: ${box.imagePath}`);
+                continue;
+            }
+            ctx.drawImage(iconImg, x + offset.x + j * (57 + 2) + 7.71, y + offset.y + i * (53 + 2) + 4, 41.57, 18.5);
         }
     }
 
@@ -339,7 +338,9 @@ async function drawSongBox(
     ctx.font = `12px ${FontStack}`;
     ctx.fillText(`${score.achievement.toFixed(4)}%`, X + 6, Y + songBoxDim.height - 6 - 2);
 
-    const RankImg = await loadImage(`assets/ranking/${score.ranking.toLowerCase().replace(/[+]/g, 'plus')}.png`);
+    let RankImg = await RCUtils.getAsset(`assets/ranking/${score.ranking.toLowerCase().replace(/[+]/g, 'plus')}.png`);
+    if (!RankImg)
+        RankImg = await loadImage(`assets/ranking/${score.ranking.toLowerCase().replace(/[+]/g, 'plus')}.png`);
     ctx.drawImage(RankImg, X + 6, Y + songBoxDim.height - 16 - 20 - 2, 45, 20);
 
     if (drawSyncAndCombo) {
@@ -858,7 +859,7 @@ function drawBoldText(ctx: CanvasRenderingContext2D, text: string, posX: number,
 }
 
 async function execute(interaction: ChatInputCommandInteraction) {
-    logger = interaction.client.logger;
+    logger = new Logger('ChartCommand');
     let db = new JSONdb('data/linking.json');
     let optionUser = interaction.options.getUser('user');
     let optionDrawIcons = interaction.options.getBoolean('draw_icons') ?? false;
