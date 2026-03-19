@@ -1,7 +1,6 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 import { createCanvas, loadImage, CanvasRenderingContext2D } from 'canvas';
 import JSONdb from 'simple-json-db';
-import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
 import { calculateB50, getRatingBaseImage, initializeFonts, FontStack } from 'src/lib/Utils';
 import fs from 'fs';
 import { ChartType, ComboType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
@@ -13,6 +12,7 @@ import { PlayerInfo } from 'types/main';
 import { getImageBuffer, drawRoundRect, drawCustomRoundRect, createBlurredBackground } from 'src/lib/DrawImageUtils';
 import PlayerDataService from 'src/lib/PlayerDataService';
 import RatingChartUtils from 'src/lib/RatingChartUtils';
+import ConstantOverride from 'config/constant_override.json';
 
 const TitleTypeName = {
     [TitleType.Normal]: 'Normal',
@@ -372,10 +372,14 @@ async function drawAndSendChart(
         [key: string]: ScoreData[];
     },
     drawIcons?: boolean,
+    constantVersion?: string,
 ) {
     initializeFonts();
     logger.log('Drawing chart for player:', playerData?.name);
-    const { B15Data, B35Data } = calculateB50(Object.values(scores).flat());
+    const { B15Data, B35Data } = calculateB50(
+        Object.values(scores).flat(),
+        constantVersion ? ConstantOverride[constantVersion as keyof typeof ConstantOverride] : undefined,
+    );
 
     const B15RankMapped = B15Data.map((score) => score.ranking);
     const B35RankMapped = B35Data.map((score) => score.ranking);
@@ -843,6 +847,16 @@ const data = new SlashCommandBuilder()
     .addUserOption((option) => option.setName('user').setDescription('要查詢的玩家').setRequired(false))
     .addBooleanOption((option) =>
         option.setName('draw_icons').setDescription('是否繪製SYNC/FC/AP圖標 (預設為否)').setRequired(false),
+    )
+    .addStringOption((option) =>
+        option
+            .setName('constant_version')
+            .setDescription('定數版本')
+            .addChoices([
+                { name: 'Before CiRCLE PLUS', value: 'before_circle_plus' },
+                { name: 'CiRCLE PLUS', value: 'circle_plus' },
+            ])
+            .setRequired(false),
     );
 
 const scoreType = ScoreType.Achievement;
@@ -863,8 +877,8 @@ async function execute(interaction: ChatInputCommandInteraction) {
     let db = new JSONdb('data/linking.json');
     let optionUser = interaction.options.getUser('user');
     let optionDrawIcons = interaction.options.getBoolean('draw_icons') ?? false;
+    let optionConstantVersion = interaction.options.getString('constant_version') ?? 'before_circle_plus';
 
-    const fetcher = MaimaiDXNetFetcher.getInstance();
     if (optionUser && !db.has(optionUser.id)) {
         return await interaction.reply(`${optionUser.username} 還沒綁定帳號`);
     }
@@ -875,7 +889,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
     const { playerData, scoreData } = await PlayerDataService.getInstance().getPlayerData(interaction, id);
 
     await interaction.editReply({ content: 'All done!\nDrawing...', embeds: [], components: [] });
-    await drawAndSendChart(interaction, new Date(), playerData, scoreData, optionDrawIcons);
+    await drawAndSendChart(interaction, new Date(), playerData, scoreData, optionDrawIcons, optionConstantVersion);
 }
 
 export { data, execute };

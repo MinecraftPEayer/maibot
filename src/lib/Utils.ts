@@ -5,7 +5,7 @@ import exception from 'config/exception.json';
 import { timezone } from 'config/config.json';
 import { ChartType, ComboType, Difficulty, SyncType } from './CommonEnums';
 import longSongs from 'config/longSong.json';
-import { RatingBaseImageName, RankFactor } from './constant/CommonConstant';
+import { RatingBaseImageName, RankFactor, ChartTypeName } from './constant/CommonConstant';
 import { Emojis } from './constant/emojis';
 import { registerFont } from 'canvas';
 import SongDataFetcher from './SongDataFetcher';
@@ -81,11 +81,14 @@ function calculateB50(
         comboType: ComboType;
         syncType: SyncType;
     }[],
+    overrideConstant?: Record<string, number>,
 ): {
     B15Data: B50Data[];
     B35Data: B50Data[];
 } {
     let database = JSON.parse(fs.readFileSync('tmp/data.json').toString()) as SongDatabase;
+
+    if (!overrideConstant) overrideConstant = {};
 
     let B15Data: B50Data[] = [],
         B35Data: B50Data[] = [];
@@ -94,7 +97,10 @@ function calculateB50(
         if (song) {
             let sheet = song.sheets.find((sht) => sht.type === item.type && sht.difficulty === item.difficulty);
             if (sheet) {
-                const constant = sheet.internalLevelValue,
+                const constant =
+                        overrideConstant[
+                            `${song.title}:${ChartTypeName[sheet.type]}:${DifficultyName[sheet.difficulty]}`
+                        ] ?? sheet.internalLevelValue,
                     rating = calculateRating(item.achievement, constant, item.comboType >= ComboType.AP),
                     imageURL = song.imageName;
                 const version = (sheet.regionOverrides.intl.version as string) ?? sheet.version ?? song.version;
