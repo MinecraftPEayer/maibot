@@ -9,30 +9,134 @@ import {
     SlashCommandBuilder,
     StringSelectMenuBuilder,
     StringSelectMenuInteraction,
-    EmbedBuilder,
     MessageFlags,
+    AttachmentBuilder,
 } from 'discord.js';
 import SongDataFetcher from 'src/lib/SongDataFetcher';
 import exception from 'config/exception.json';
 import { Emojis } from 'src/lib/constant/emojis';
-import JSONdb from 'simple-json-db';
-import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
-import { ChartType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
-import { calculateRating, calculateScore, convertDXScoreToStar, getDifficultyEmoji } from 'src/lib/Utils';
-import { B50Data, ScoreData, Sheet, Song } from 'types/SongDatabase';
-import { DifficultyColor, DifficultyDisplayName, DifficultyName } from 'src/lib/constant/CommonConstant';
-import fs from 'fs';
+import { ChartType, Difficulty } from 'src/lib/CommonEnums';
+import { calculateRating, calculateScore, FontStack, getDifficultyEmoji, initializeFonts } from 'src/lib/Utils';
+import { ScoreData, Sheet, Song } from 'types/SongDatabase';
+import { DifficultyColor, DifficultyDisplayName } from 'src/lib/constant/CommonConstant';
 import { PlayerInfo } from 'types/main';
 import PlayerDataService from 'src/lib/PlayerDataService';
+import { Canvas, createCanvas, loadImage } from 'canvas';
 
-const diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
+import fs from 'fs';
 
 let syncType = [Emojis.FS_Short, Emojis.FSp_Short, Emojis.FDX_Short, Emojis.FDXp_Short, Emojis.SYNC];
 let comboType = [Emojis.FC_Short, Emojis.FCp_Short, Emojis.AP_Short, Emojis.APp_Short];
 
-const DXNetFetcher = MaimaiDXNetFetcher.getInstance();
+async function drawScoreTable(notes: {
+    tap?: number | null;
+    hold?: number | null;
+    slide?: number | null;
+    touch?: number | null;
+    break?: number | null;
+}): Promise<Canvas> {
+    initializeFonts();
 
-const scoreType = ScoreType.Achievement;
+    const tap = notes.tap ?? 0;
+    const hold = notes.hold ?? 0;
+    const slide = notes.slide ?? 0;
+    const touch = notes.touch ?? 0;
+    const breakNote = notes.break ?? 0;
+
+    const canvas = createCanvas(786, 212);
+    if (!canvas) throw new Error('Failed to create canvas');
+    ``;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Failed to get canvas context');
+
+    const background = await loadImage('./assets/score_table.png');
+    ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
+
+    const totalBaseScore = (tap + hold * 2 + slide * 3 + touch + breakNote * 5) * 500;
+
+    const noteTypes: Array<'tap' | 'hold' | 'slide'> = ['tap', 'hold', 'slide'];
+    const noteScoreFactors = {
+        tap: 1,
+        hold: 2,
+        slide: 3,
+    };
+    const judgeFactors = [0.8, 0.5, 0];
+
+    let texts: {
+        [key: string]: string[];
+    } = {};
+
+    const textBaseXPosition = 157;
+    const textBaseYPosition = 60 + 16;
+
+    const textXOffset = 94;
+    const textYOffset = 36;
+    const textColors = ['#FF9D03', '#FF9D03', '#F75EA3', '#F75EA3', '#F75EA3', '#2FCA4C', '#868686'];
+
+    ctx.textAlign = 'center';
+    ctx.font = `16px ${FontStack}`;
+
+    const normalNoteSkipIndex = [0, 1, 2, 4];
+    noteTypes.forEach((noteType, index) => {
+        const x = textBaseXPosition;
+        const y = textBaseYPosition + index * textYOffset;
+
+        const isNull = notes[noteType] === null;
+
+        let judgeIndex = 0;
+        for (let i = 0; i < textColors.length; i++) {
+            if (normalNoteSkipIndex.includes(i)) continue;
+            ctx.fillStyle = isNull ? '#000000' : textColors[i];
+            ctx.fillText(
+                isNull
+                    ? '-'
+                    : `-${(((500 * (1 - judgeFactors[judgeIndex]) * noteScoreFactors[noteType]) / totalBaseScore) * 100).toFixed(4)}%`,
+                x + i * textXOffset,
+                y,
+            );
+            judgeIndex++;
+        }
+    });
+
+    for (let noteType of noteTypes) {
+        if (!texts[noteType]) texts[noteType] = [];
+
+        if (notes[noteType] === null) {
+            texts[noteType] = ['-', '-', '-'];
+            continue;
+        }
+
+        for (let judge of judgeFactors) {
+            texts[noteType].push(
+                `-${(((500 * (1 - judge) * noteScoreFactors[noteType]) / totalBaseScore) * 100).toFixed(4)}%`,
+            );
+        }
+    }
+
+    let breakTexts = [
+        [0, 25],
+        [0, 50],
+        [500, 60],
+        [1000, 60],
+        [1250, 60],
+        [1500, 70],
+        [2500, 100],
+    ].map(
+        (item) =>
+            `-${(Math.round((item[0] * 100000000) / totalBaseScore + (item[1] * 1000000) / (100 * breakNote)) / 1000000).toFixed(4)}%`,
+    );
+
+    breakTexts.forEach((text, index) => {
+        const x = textBaseXPosition + index * textXOffset;
+        const y = textBaseYPosition + 3 * textYOffset;
+
+        ctx.fillStyle = textColors[index];
+        ctx.fillText(text, x, y);
+    });
+
+    return canvas;
+}
 
 async function sendScore(
     interaction: ButtonInteraction,
@@ -309,6 +413,14 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         S: 4.0,
                     };
 
+                    const image = await drawScoreTable(noteCounts);
+                    const buffer = image.toBuffer('image/png');
+                    fs.writeFileSync(`./tmp/${buttonInteraction.id}.png`, buffer);
+
+                    const attachment = new AttachmentBuilder(buffer, {
+                        name: 'score_table.png',
+                    });
+
                     for (let rank in greatCount) {
                         let count = 0;
                         while (
@@ -386,12 +498,16 @@ async function execute(interaction: ChatInputCommandInteraction) {
                                             .join(', '),
                                     },
                                 ],
+                                image: {
+                                    url: `attachment://score_table.png`,
+                                },
                                 thumbnail: {
                                     url: `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`,
                                 },
                             },
                         ],
                         components: [detailSelector],
+                        files: [attachment],
                     });
                     break;
             }
