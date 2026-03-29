@@ -57,8 +57,10 @@ function getRankFactor(achievement: number): number {
 
 function calculateRating(achievement: number, constant: number, allPerfect: boolean = false): number {
     return (
-        Math.floor(((achievement > 100.5 ? 100.5 : achievement) / 100) * getRankFactor(achievement) * constant * 100) +
-        (allPerfect ? 1 : 0)
+        Math.floor(
+            ((achievement > 100.5 ? 100.5 : achievement) * 10000 * getRankFactor(achievement) * 1000 * constant * 10) /
+                100000000,
+        ) + (allPerfect ? 1 : 0)
     );
 }
 

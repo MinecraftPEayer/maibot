@@ -16,28 +16,27 @@ async function execute(interaction: ChatInputCommandInteraction) {
         rank: string;
         allPerfect?: boolean;
     }[] = [];
-    for (let constant = 1; constant <= 15; constant += 0.1) {
+    for (let constant = 10; constant <= 150; constant += 1) {
         const thisResult = [];
         let achievement = 0;
 
         let canAchieveWithoutAP = false;
 
-        let calculateRate = 1;
-        while (parseFloat(achievement.toFixed(4)) <= 101) {
-            const rating = Math.floor(
-                (parseFloat((achievement > 100.5 ? 100.5 : achievement).toFixed(4)) / 100) *
-                    getRankFactor(achievement) *
-                    parseFloat(constant.toFixed(1)) *
-                    100,
-            );
+        let calculateRate = 10000;
+        while (achievement <= 1010000) {
+            const rating = calculateRating(achievement / 10000, constant / 10, false);
             if (rating >= (ratingNeeded ?? 0)) {
-                if (calculateRate === 0.0001) {
+                if (calculateRate === 1) {
                     canAchieveWithoutAP = true;
-                    if (!result.some((item) => item.achievement === achievement.toFixed(4) && !item.allPerfect)) {
+                    if (
+                        !result.some(
+                            (item) => item.achievement === (achievement / 10000).toFixed(4) && !item.allPerfect,
+                        )
+                    ) {
                         thisResult.push({
-                            constant: constant.toFixed(1),
-                            achievement: achievement.toFixed(4),
-                            rank: convertAchievementToRank(parseFloat(achievement.toFixed(4))),
+                            constant: (constant / 10).toFixed(1),
+                            achievement: (achievement / 10000).toFixed(4),
+                            rank: convertAchievementToRank(parseFloat((achievement / 10000).toFixed(4))),
                         });
                     }
                     break;
@@ -50,9 +49,9 @@ async function execute(interaction: ChatInputCommandInteraction) {
             achievement += calculateRate;
         }
 
-        if (!canAchieveWithoutAP && calculateRating(100.5, constant, true) >= (ratingNeeded ?? 0)) {
+        if (!canAchieveWithoutAP && calculateRating(100.5, constant / 10, true) >= (ratingNeeded ?? 0)) {
             result.push({
-                constant: constant.toFixed(1),
+                constant: (constant / 10).toFixed(1),
                 achievement: '100.5000',
                 rank: 'SSS+',
                 allPerfect: true,
