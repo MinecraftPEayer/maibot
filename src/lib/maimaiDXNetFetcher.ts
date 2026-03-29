@@ -61,7 +61,7 @@ class MaimaiDXNetFetcher {
 
         try {
             let loginResponse = await axios.post(
-                'https://lng-tgk-aime-gw.am-all.net/common_auth/login/sid/',
+                'https://lng-tgk-aime-gw.am-all.net/common_auth/login/sid',
                 new URLSearchParams({
                     sid: process.env.SID ?? '',
                     password: process.env.SID_PASSWORD ?? '',
