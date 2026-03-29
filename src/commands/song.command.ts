@@ -131,6 +131,12 @@ async function drawScoreTable(notes: {
         const x = textBaseXPosition + index * textXOffset;
         const y = textBaseYPosition + 3 * textYOffset;
 
+        if (notes.break === null) {
+            ctx.fillStyle = '#000000';
+            ctx.fillText('-', x, y);
+            return;
+        }
+
         ctx.fillStyle = textColors[index];
         ctx.fillText(text, x, y);
     });
