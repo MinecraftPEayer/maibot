@@ -382,7 +382,11 @@ async function execute(interaction: ChatInputCommandInteraction) {
     const user = interaction.options.getUser('user') || interaction.user;
     const type = interaction.options.getString('type') as keyof typeof DrawGraph;
 
-    const { playerData, scoreData } = await PlayerDataService.getInstance().getPlayerData(interaction, user.id);
+    const result = await PlayerDataService.getInstance().getPlayerData(interaction, user.id);
+
+    if (!result) return await interaction.editReply('Failed to get player data');
+
+    const { playerData, scoreData } = result;
 
     await interaction.editReply({ content: 'Drawing...', embeds: [], components: [] });
 

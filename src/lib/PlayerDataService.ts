@@ -10,6 +10,8 @@ import fs from 'fs';
 import MaimaiDXNetFetcher from './maimaiDXNetFetcher';
 import { ComboType, Difficulty, ScoreType, SyncType } from './CommonEnums';
 import { convertDXScoreToStar } from './Utils';
+import { PlayerInfo } from 'types/main';
+import { ScoreData } from 'types/SongDatabase';
 
 const fetcher = MaimaiDXNetFetcher.getInstance();
 
@@ -47,23 +49,23 @@ class PlayerDataService {
     public async getPlayerData(
         interaction: ChatInputCommandInteraction | ButtonInteraction,
         userId: string,
-    ): Promise<any> {
+    ): Promise<{ playerData: PlayerInfo; scoreData: Record<string, ScoreData[]> } | null> {
         if (!userId) userId = interaction.user.id;
 
         const friendCode = fetcher.getFriendCodeByDiscordId(userId);
 
         if (!friendCode) {
             await interaction.reply('No linked account found. Please link your account first.');
-            return;
+            return null;
         }
 
         if (fs.existsSync(`./data/user/${userId}/latest.json`)) {
             // Bookmarklet data exists
-            await interaction.reply('Processing...')
+            await interaction.reply('Processing...');
 
             const latestData = JSON.parse(fs.readFileSync(`./data/user/${userId}/latest.json`, 'utf-8'));
 
-            const scores: Record<string, any> = {};
+            const scores: Record<string, ScoreData[]> = {};
 
             for (let key in latestData.allScores) {
                 scores[key] = latestData.allScores[key].map((score: any) => {
@@ -80,7 +82,7 @@ class PlayerDataService {
                 });
             }
 
-            const playerInfo = {
+            const playerInfo: PlayerInfo = {
                 name: latestData.playerData.playerName,
                 rating: latestData.playerData.rating,
                 avatar: latestData.playerData.avatar,
@@ -135,7 +137,7 @@ class PlayerDataService {
         options?: {
             scoreType: ScoreType;
         },
-    ) {
+    ): Promise<{ playerData: PlayerInfo; scoreData: Record<string, ScoreData[]> } | null> {
         if (!options)
             options = {
                 scoreType: ScoreType.Achievement,
@@ -152,18 +154,21 @@ class PlayerDataService {
 
         if (!friendCode) {
             await interaction.editReply('No linked account found. Please link your account first.');
-            return;
+            return null;
         }
 
         let playerInfo = await fetcher.getPlayer(friendCode);
 
-        if (!playerInfo) return await interaction.editReply('Failed to fetch player info. Please try again later.');
+        if (!playerInfo) {
+            await interaction.editReply('Failed to fetch player info. Please try again later.');
+            return null;
+        }
 
         message += 'OK\nFetching scores...';
 
         await interaction.editReply(message);
 
-        const scores: Record<string, any> = {};
+        const scores: Record<string, ScoreData[]> = {};
         for (const [difficulty, displayName] of Object.entries(this.DifficultyDisplayNames)) {
             if (!this.Difficulties.includes(parseInt(difficulty))) continue;
 

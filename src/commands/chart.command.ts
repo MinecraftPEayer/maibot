@@ -886,7 +886,10 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
     let id = optionUser ? optionUser.id : interaction.user.id;
 
-    const { playerData, scoreData } = await PlayerDataService.getInstance().getPlayerData(interaction, id);
+    const result = await PlayerDataService.getInstance().getPlayerData(interaction, id);
+    if (!result) return await interaction.editReply('Failed to get player data');
+
+    const { playerData, scoreData } = result;
 
     await interaction.editReply({ content: 'All done!\nDrawing...', embeds: [], components: [] });
     await drawAndSendChart(interaction, new Date(), playerData, scoreData, optionDrawIcons, optionConstantVersion);

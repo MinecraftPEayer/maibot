@@ -240,10 +240,18 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     const scoreFilter = (s: ScoreData) =>
                         s.type === type && ((exception as any)[s.title] ?? s.title) === song.title;
 
-                    const { playerData, scoreData } = await PlayerDataService.getInstance().getPlayerData(
+                    const result = await PlayerDataService.getInstance().getPlayerData(
                         buttonInteraction as ButtonInteraction,
                         buttonInteraction.user.id,
                     );
+
+                    if (!result)
+                        return await buttonInteraction.reply({
+                            content: 'Failed to get player data',
+                            flags: [MessageFlags.Ephemeral],
+                        });
+
+                    const { playerData, scoreData } = result;
 
                     await sendScore(
                         buttonInteraction as ButtonInteraction,
