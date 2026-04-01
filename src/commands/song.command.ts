@@ -421,7 +421,6 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
                     const image = await drawScoreTable(noteCounts);
                     const buffer = image.toBuffer('image/png');
-                    fs.writeFileSync(`./tmp/${buttonInteraction.id}.png`, buffer);
 
                     const attachment = new AttachmentBuilder(buffer, {
                         name: 'score_table.png',
