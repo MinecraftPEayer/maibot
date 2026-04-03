@@ -225,6 +225,7 @@ type B50Data = {
     difficulty: Difficulty;
     comboType: ComboType;
     syncType: SyncType;
+    version: string;
 };
 
 type ScoreData = {
@@ -243,14 +244,14 @@ type CourseData = {
     title: string;
     id: string;
     sections: CourseSection[];
-}
+};
 
 type CourseSection = {
     title: string;
     description: string;
-    sheets: string[],
-    sheetDescriptions?: string[],
-}
+    sheets: string[];
+    sheetDescriptions?: string[];
+};
 
 export {
     SongDatabase,

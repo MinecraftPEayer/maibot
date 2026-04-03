@@ -85,3 +85,14 @@ export const DifficultyColor = {
     [Difficulty.ReMaster]: ['#dbaaff', '#501e89'],
     [Difficulty.UTAGE]: ['#ff6ffd', '#f8e8f6'],
 };
+
+export const VersionColor = {
+    CiRCLE: [
+        ['#F050A0', 0],
+        ['#FFEE80', 1],
+    ],
+    'PRiSM PLUS': [
+        ['#7FEFEF', 0],
+        ['#DFBDFF', 1],
+    ],
+};

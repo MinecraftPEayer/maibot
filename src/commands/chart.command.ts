@@ -5,7 +5,7 @@ import { calculateB50, getRatingBaseImage, initializeFonts, FontStack } from 'sr
 import fs from 'fs';
 import { ChartType, ComboType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
 import { B50Data, Rank, ScoreData } from 'types/SongDatabase';
-import { DifficultyColor } from 'src/lib/constant/CommonConstant';
+import { DifficultyColor, VersionColor } from 'src/lib/constant/CommonConstant';
 import * as StackBlur from 'stackblur-canvas';
 import Logger from 'src/lib/logger';
 import { PlayerInfo } from 'types/main';
@@ -88,6 +88,52 @@ function drawChartType(ctx: CanvasRenderingContext2D, x: number, y: number, char
     }
     ctx.font = originalFont;
     ctx.fillStyle = originalFillStyle;
+}
+
+// style format: { background: ["color", "percentage"], text: "color"}
+function drawVersion(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    version: string,
+    songBoxDim: { width: number; height: number },
+    style: {
+        background: Array<[string, number]> | string;
+        text: string;
+    },
+) {
+    const width = songBoxDim.width,
+        height = 16;
+
+    const originalTextAlign = ctx.textAlign,
+        originalTextBaseline = ctx.textBaseline;
+
+    let gradient = ctx.createLinearGradient(x, y, x + width, y + height);
+    if (Array.isArray(style.background)) {
+        for (let stylePoint of style.background) {
+            gradient.addColorStop(stylePoint[1], stylePoint[0]);
+        }
+        ctx.fillStyle = gradient;
+    } else {
+        ctx.fillStyle = style.background;
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + width, y);
+    ctx.lineTo(x + width, y + height);
+    ctx.lineTo(x, y + height);
+    ctx.lineTo(x, y);
+    ctx.fill();
+
+    ctx.fillStyle = style.text;
+    ctx.font = `12px ${FontStack}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(version, x + width / 2, y + height / 2);
+
+    ctx.textAlign = originalTextAlign;
+    ctx.textBaseline = originalTextBaseline;
 }
 
 /**
@@ -191,7 +237,10 @@ async function drawSongBox(
     song: B50Data,
     songBoxDim: { width: number; height: number },
     index: number,
-    drawSyncAndCombo?: boolean,
+    options?: {
+        drawSyncAndCombo?: boolean;
+        drawVersion?: boolean;
+    },
 ) {
     const score = song,
         X = x,
@@ -309,12 +358,21 @@ async function drawSongBox(
     }
     ctx.fillText(text, X + 22, Y + 4 + 14);
 
+    const chartDiffAndTypeBoxY = options?.drawVersion ? Y + 28 + 16 : Y + 28;
+
+    if (options?.drawVersion) {
+        drawVersion(ctx, X, Y + 28, score.version, songBoxDim, {
+            background: VersionColor[score.version as keyof typeof VersionColor] as Array<[string, number]>,
+            text: 'black',
+        });
+    }
+
     ctx.beginPath();
-    ctx.moveTo(X, Y + 28);
-    ctx.lineTo(X, Y + 28 + 28);
-    ctx.lineTo(X + (106 - 64), Y + 28 + 28);
-    ctx.lineTo(X + (120 - 64), Y + 28);
-    ctx.lineTo(X, Y + 28);
+    ctx.moveTo(X, chartDiffAndTypeBoxY);
+    ctx.lineTo(X, chartDiffAndTypeBoxY + 28);
+    ctx.lineTo(X + (106 - 64), chartDiffAndTypeBoxY + 28);
+    ctx.lineTo(X + (120 - 64), chartDiffAndTypeBoxY);
+    ctx.lineTo(X, chartDiffAndTypeBoxY);
     ctx.closePath();
     ctx.fillStyle = DifficultyColor[score.difficulty as Difficulty][0];
     ctx.fill();
@@ -322,17 +380,23 @@ async function drawSongBox(
     ctx.font = `20px ${FontStack}`;
     ctx.textAlign = 'right';
     ctx.fillStyle = DifficultyColor[score.difficulty as Difficulty][1];
-    drawBoldText(ctx, score.constant.toString().split('.')[0], X + 3 + 26, Y + 28 + 6 + 16, 0.5);
+    drawBoldText(ctx, score.constant.toString().split('.')[0], X + 3 + 26, chartDiffAndTypeBoxY + 6 + 16, 0.5);
     ctx.textAlign = 'left';
 
     ctx.font = `12px ${FontStack}`;
-    drawBoldText(ctx, '.' + (score.constant.toString().split('.')[1] ?? '0'), X + 30, Y + 28 + 11 + 10.5, 0.5);
+    drawBoldText(
+        ctx,
+        '.' + (score.constant.toString().split('.')[1] ?? '0'),
+        X + 30,
+        chartDiffAndTypeBoxY + 11 + 10.5,
+        0.5,
+    );
 
     if (parseInt(score.constant.toString().split('.')[1]) > 5) {
-        ctx.fillText('+', X + 30, Y + 28 + 2 + 8);
+        ctx.fillText('+', X + 30, chartDiffAndTypeBoxY + 2 + 8);
     }
 
-    drawChartType(ctx, X + (120 - 64), Y + 28, score.type);
+    drawChartType(ctx, X + 56, chartDiffAndTypeBoxY, score.type);
 
     ctx.fillStyle = 'white';
     ctx.font = `12px ${FontStack}`;
@@ -343,7 +407,7 @@ async function drawSongBox(
         RankImg = await loadImage(`assets/ranking/${score.ranking.toLowerCase().replace(/[+]/g, 'plus')}.png`);
     ctx.drawImage(RankImg, X + 6, Y + songBoxDim.height - 16 - 20 - 2, 45, 20);
 
-    if (drawSyncAndCombo) {
+    if (options?.drawSyncAndCombo) {
         let toDraw = [];
         if (score.comboType !== ComboType.None) toDraw.push(ComboTypeImageName[score.comboType]);
         if (score.syncType !== SyncType.None) toDraw.push(SyncTypeImageName[score.syncType]);
@@ -734,7 +798,9 @@ async function drawAndSendChart(
             const index = i * 7 + j;
             const score = B35Data[index];
 
-            await drawSongBox(ctx, X, Y, score, songBoxDim, index, drawIcons);
+            await drawSongBox(ctx, X, Y, score, songBoxDim, index, {
+                drawSyncAndCombo: drawIcons,
+            });
         }
     }
 
@@ -791,7 +857,7 @@ async function drawAndSendChart(
             const index = i * 3 + j;
             const score = B15Data[index];
 
-            await drawSongBox(ctx, X, Y, score, songBoxDim, index, drawIcons);
+            await drawSongBox(ctx, X, Y, score, songBoxDim, index, { drawSyncAndCombo: drawIcons, drawVersion: true });
         }
     }
 

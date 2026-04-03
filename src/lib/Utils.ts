@@ -118,6 +118,7 @@ function calculateB50(
                     difficulty: item.difficulty,
                     comboType: item.comboType,
                     syncType: item.syncType,
+                    version: sheet.regionOverrides.intl.version ?? sheet.version ?? song.version,
                 });
             }
         }
@@ -174,6 +175,7 @@ function calculateScore(
                     difficulty: item.difficulty,
                     comboType: item.comboType,
                     syncType: item.syncType,
+                    version: sheet.regionOverrides.intl.version ?? sheet.version ?? song.version,
                 });
             }
         }
