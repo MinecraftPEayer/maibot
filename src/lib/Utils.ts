@@ -1,6 +1,6 @@
 import fs from 'fs';
 import util from 'util';
-import { B50Data, Sheet, Song, SongDatabase } from 'types/SongDatabase';
+import { B50Data, ScoreData, Sheet, Song, SongDatabase } from 'types/SongDatabase';
 import exception from 'config/exception.json';
 import { timezone } from 'config/config.json';
 import { ChartType, ComboType, Difficulty, SyncType } from './CommonEnums';
@@ -11,6 +11,8 @@ import { registerFont } from 'canvas';
 import SongDataFetcher from './SongDataFetcher';
 import axios from 'axios';
 import config from 'config/config.json';
+import { ButtonInteraction, ChatInputCommandInteraction } from 'discord.js';
+import { PlayerInfo } from 'types/main';
 
 function convertAchievementToRank(achievement: number) {
     if (achievement >= 100.5) return 'SSS+';
@@ -398,6 +400,46 @@ function randomSong(
     return { filtered, randomized };
 }
 
+// used by score and song command
+async function sendScore(
+    interaction: ChatInputCommandInteraction | ButtonInteraction,
+    song: Song,
+    playerInfo: PlayerInfo,
+    playerScores: { [key: string]: ScoreData[] },
+    isUTAGE: boolean,
+    scoreFilter: (s: ScoreData) => boolean,
+    additionComponent: any[] = [],
+) {
+    const syncType = [Emojis.FS_Short, Emojis.FSp_Short, Emojis.FDX_Short, Emojis.FDXp_Short, Emojis.SYNC];
+    const comboType = [Emojis.FC_Short, Emojis.FCp_Short, Emojis.AP_Short, Emojis.APp_Short];
+
+    let scores = Object.values(playerScores)
+        .map((item) => item.filter(scoreFilter))
+        .flat();
+
+    let scoreData = calculateScore(scores).data;
+
+    return await interaction.editReply({
+        content: '',
+        embeds: [
+            {
+                title: song.title,
+                description: `${playerInfo?.name}`,
+                thumbnail: {
+                    url: `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`,
+                },
+                fields: scoreData.map((score) => {
+                    return {
+                        name: `${score.difficulty === Difficulty.UTAGE ? Emojis.Utage + '' : score.type === ChartType.DX ? Emojis.DX + ' ' : Emojis.STD + ' '}${isUTAGE ? '【' + playerScores['UTAGE'][0].utageKind + '】' : getDifficultyEmoji(score.difficulty)}`,
+                        value: `${Emojis[score.ranking]} ${score.achievement.toFixed(4)}%\n${score.comboType !== -1 ? comboType[score.comboType] + ' ' : ' '}${score.syncType !== -1 ? syncType[score.syncType] + ' ' : ' '}`,
+                    };
+                }),
+            },
+        ],
+        components: additionComponent,
+    });
+}
+
 async function sendMessageToWebhook(messagePayload: any) {
     await axios.post(config.error_log_webhook_url, messagePayload);
 }
@@ -417,6 +459,7 @@ export {
     getChartTypeFromName,
     randomSong,
     initializeFonts,
+    sendScore,
     writeErrorToFile,
     sendMessageToWebhook,
     FontStack,

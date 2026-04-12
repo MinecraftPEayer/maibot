@@ -15,18 +15,12 @@ import {
 import SongDataFetcher from 'src/lib/SongDataFetcher';
 import exception from 'config/exception.json';
 import { Emojis } from 'src/lib/constant/emojis';
-import { ChartType, Difficulty } from 'src/lib/CommonEnums';
-import { calculateRating, calculateScore, FontStack, getDifficultyEmoji, initializeFonts } from 'src/lib/Utils';
-import { ScoreData, Sheet, Song } from 'types/SongDatabase';
+import { ChartType } from 'src/lib/CommonEnums';
+import { calculateRating, sendScore, FontStack, getDifficultyEmoji, initializeFonts } from 'src/lib/Utils';
+import { ScoreData, Sheet } from 'types/SongDatabase';
 import { DifficultyColor, DifficultyDisplayName } from 'src/lib/constant/CommonConstant';
-import { PlayerInfo } from 'types/main';
 import PlayerDataService from 'src/lib/PlayerDataService';
 import { Canvas, createCanvas, loadImage } from 'canvas';
-
-import fs from 'fs';
-
-let syncType = [Emojis.FS_Short, Emojis.FSp_Short, Emojis.FDX_Short, Emojis.FDXp_Short, Emojis.SYNC];
-let comboType = [Emojis.FC_Short, Emojis.FCp_Short, Emojis.AP_Short, Emojis.APp_Short];
 
 async function drawScoreTable(notes: {
     tap?: number | null;
@@ -142,41 +136,6 @@ async function drawScoreTable(notes: {
     });
 
     return canvas;
-}
-
-async function sendScore(
-    interaction: ButtonInteraction,
-    song: Song,
-    playerInfo: PlayerInfo,
-    playerScores: { [key: string]: ScoreData[] },
-    isUTAGE: boolean,
-    scoreFilter: (s: ScoreData) => boolean,
-) {
-    let scores = Object.values(playerScores)
-        .map((item) => item.filter(scoreFilter))
-        .flat();
-
-    let scoreData = calculateScore(scores).data;
-
-    interaction.editReply({
-        content: '',
-        embeds: [
-            {
-                title: song.title,
-                description: `${playerInfo?.name}`,
-                thumbnail: {
-                    url: `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`,
-                },
-                fields: scoreData.map((score) => {
-                    return {
-                        name: `${score.difficulty === Difficulty.UTAGE ? Emojis.Utage + '' : score.type === ChartType.DX ? Emojis.DX + ' ' : Emojis.STD + ' '}${isUTAGE ? '【' + playerScores['UTAGE'][0].utageKind + '】' : getDifficultyEmoji(score.difficulty)}`,
-                        value: `${Emojis[score.ranking]} ${score.achievement.toFixed(4)}%\n${score.comboType !== -1 ? comboType[score.comboType] + ' ' : ' '}${score.syncType !== -1 ? syncType[score.syncType] + ' ' : ' '}`,
-                    };
-                }),
-            },
-        ],
-        components: [],
-    });
 }
 
 const data = new SlashCommandBuilder()

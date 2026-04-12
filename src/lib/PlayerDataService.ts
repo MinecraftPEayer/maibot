@@ -35,6 +35,7 @@ class PlayerDataService {
         Difficulty.Expert,
         Difficulty.Master,
         Difficulty.ReMaster,
+        Difficulty.UTAGE,
     ];
 
     private constructor() {}
@@ -112,6 +113,8 @@ class PlayerDataService {
                 const btnI = await reply.awaitMessageComponent({
                     filter: (i) => i.user.id === interaction.user.id,
                 });
+
+                await btnI.deferUpdate();
 
                 if (btnI.customId === 'yes') {
                     // use cached data
