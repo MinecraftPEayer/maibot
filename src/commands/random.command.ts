@@ -154,7 +154,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
         filter.version = undefined;
     }
 
-    const { filtered, randomized } = randomSong( (interaction.options.getInteger('count') ?? 1), filter);
+    const { filtered, randomized } = randomSong(interaction.options.getInteger('count') ?? 1, filter);
 
     if (filtered.length === 0) {
         await interaction.reply('No songs found with the given filters.');
@@ -185,7 +185,10 @@ async function execute(interaction: ChatInputCommandInteraction) {
     );
 
     const owo = await interaction.reply({
-        content: (outOfRange ? `You requested ${optCount} songs, but only ${filtered.length} are available. Showing ${count} songs instead.\n` : '') + `Page ${page + 1} / ${Math.ceil(count / itemPerPage)}`,
+        content:
+            (outOfRange
+                ? `You requested ${optCount} songs, but only ${filtered.length} are available. Showing ${count} songs instead.\n`
+                : '') + `Page ${page + 1} / ${Math.ceil(count / itemPerPage)}`,
         embeds: getPageEmbed(page),
         components: count > itemPerPage ? [paginationActionRow] : [],
     });
@@ -223,7 +226,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
         await owo.edit({
             components: [],
         });
-    })
+    });
 }
 
 async function autocomplete(interaction: AutocompleteInteraction) {

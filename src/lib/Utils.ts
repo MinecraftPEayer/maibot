@@ -5,13 +5,14 @@ import exception from 'config/exception.json';
 import { timezone } from 'config/config.json';
 import { ChartType, ComboType, Difficulty, SyncType } from './CommonEnums';
 import longSongs from 'config/longSong.json';
-import { RatingBaseImageName, RankFactor, ChartTypeName } from './constant/CommonConstant';
+import { RatingBaseImageName, RankFactor, ChartTypeName, NewSongVersion } from './constant/CommonConstant';
 import { Emojis } from './constant/emojis';
 import { registerFont } from 'canvas';
 import SongDataFetcher from './SongDataFetcher';
 import axios from 'axios';
 import config from 'config/config.json';
 import { ButtonInteraction, ChatInputCommandInteraction } from 'discord.js';
+import overrideConstant from 'config/constant_override.json';
 import { PlayerInfo } from 'types/main';
 
 function convertAchievementToRank(achievement: number) {
@@ -85,14 +86,14 @@ function calculateB50(
         comboType: ComboType;
         syncType: SyncType;
     }[],
-    overrideConstant?: Record<string, number>,
+    calculateVersion: string,
 ): {
     B15Data: B50Data[];
     B35Data: B50Data[];
 } {
     let database = JSON.parse(fs.readFileSync('tmp/data.json').toString()) as SongDatabase;
 
-    if (!overrideConstant) overrideConstant = {};
+    if (!calculateVersion) calculateVersion = 'CiRCLE';
 
     let B15Data: B50Data[] = [],
         B35Data: B50Data[] = [];
@@ -102,13 +103,13 @@ function calculateB50(
             let sheet = song.sheets.find((sht) => sht.type === item.type && sht.difficulty === item.difficulty);
             if (sheet) {
                 const constant =
-                        overrideConstant[
+                        overrideConstant[calculateVersion][
                             `${song.title}:${ChartTypeName[sheet.type]}:${DifficultyName[sheet.difficulty]}`
                         ] ?? sheet.internalLevelValue,
                     rating = calculateRating(item.achievement, constant, item.comboType >= ComboType.AP),
                     imageURL = song.imageName;
                 const version = (sheet.regionOverrides.intl.version as string) ?? sheet.version ?? song.version;
-                (['PRiSM PLUS', 'CiRCLE'].includes(version) ? B15Data : B35Data).push({
+                (NewSongVersion[calculateVersion].includes(version) ? B15Data : B35Data).push({
                     type: item.type,
                     title: (exception as any)[item.title] ?? item.title,
                     achievement: item.achievement,

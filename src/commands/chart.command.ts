@@ -5,14 +5,13 @@ import { calculateB50, getRatingBaseImage, initializeFonts, FontStack } from 'sr
 import fs from 'fs';
 import { ChartType, ComboType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
 import { B50Data, Rank, ScoreData } from 'types/SongDatabase';
-import { DifficultyColor, VersionColor } from 'src/lib/constant/CommonConstant';
+import { DifficultyColor, VersionColor, NewSongVersion } from 'src/lib/constant/CommonConstant';
 import * as StackBlur from 'stackblur-canvas';
 import Logger from 'src/lib/logger';
 import { PlayerInfo } from 'types/main';
 import { getImageBuffer, drawRoundRect, drawCustomRoundRect, createBlurredBackground } from 'src/lib/DrawImageUtils';
 import PlayerDataService from 'src/lib/PlayerDataService';
 import RatingChartUtils from 'src/lib/RatingChartUtils';
-import ConstantOverride from 'config/constant_override.json';
 
 const TitleTypeName = {
     [TitleType.Normal]: 'Normal',
@@ -436,14 +435,11 @@ async function drawAndSendChart(
         [key: string]: ScoreData[];
     },
     drawIcons?: boolean,
-    constantVersion?: string,
+    calculateVersion?: string,
 ) {
     initializeFonts();
     logger.log('Drawing chart for player:', playerData?.name);
-    const { B15Data, B35Data } = calculateB50(
-        Object.values(scores).flat(),
-        constantVersion ? ConstantOverride[constantVersion as keyof typeof ConstantOverride] : undefined,
-    );
+    const { B15Data, B35Data } = calculateB50(Object.values(scores).flat(), calculateVersion);
 
     const B15RankMapped = B15Data.map((score) => score.ranking);
     const B35RankMapped = B35Data.map((score) => score.ranking);
@@ -916,12 +912,13 @@ const data = new SlashCommandBuilder()
     )
     .addStringOption((option) =>
         option
-            .setName('constant_version')
-            .setDescription('定數版本')
-            .addChoices([
-                { name: 'Before CiRCLE PLUS', value: 'before_circle_plus' },
-                { name: 'CiRCLE PLUS', value: 'circle_plus' },
-            ])
+            .setName('version')
+            .setDescription('版本')
+            .addChoices(
+                Object.keys(NewSongVersion).map((item) => {
+                    return { name: item, value: item };
+                }),
+            )
             .setRequired(false),
     );
 
@@ -943,7 +940,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
     let db = new JSONdb('data/linking.json');
     let optionUser = interaction.options.getUser('user');
     let optionDrawIcons = interaction.options.getBoolean('draw_icons') ?? false;
-    let optionConstantVersion = interaction.options.getString('constant_version') ?? 'before_circle_plus';
+    let optionVersion = interaction.options.getString('version') ?? 'CiRCLE';
 
     if (optionUser && !db.has(optionUser.id)) {
         return await interaction.reply(`${optionUser.username} 還沒綁定帳號`);
@@ -958,7 +955,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
     const { playerData, scoreData } = result;
 
     await interaction.editReply({ content: 'All done!\nDrawing...', embeds: [], components: [] });
-    await drawAndSendChart(interaction, new Date(), playerData, scoreData, optionDrawIcons, optionConstantVersion);
+    await drawAndSendChart(interaction, new Date(), playerData, scoreData, optionDrawIcons, optionVersion);
 }
 
 export { data, execute };
