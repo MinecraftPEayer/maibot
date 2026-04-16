@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 import crypto from 'crypto';
 import zlib from 'zlib';
 import { astrodx_decrypt_key } from 'config/config.json';
@@ -15,12 +15,14 @@ const data = new SlashCommandBuilder()
             ),
     );
 
-async function execute(interaction: any) {
+async function execute(interaction: ChatInputCommandInteraction) {
     if (interaction.options.getSubcommand() === 'decrypt_cache') {
         const file = interaction.options.getAttachment('file');
         if (!file) {
             return interaction.reply({ content: 'No file provided.', ephemeral: true });
         }
+
+        await interaction.reply('Processing...');
 
         try {
             const response = await fetch(file.url);
@@ -65,7 +67,7 @@ async function execute(interaction: any) {
 
             const formatted = JSON.stringify(JSON.parse(result), null, 4);
 
-            await interaction.reply({
+            await interaction.editReply({
                 files: [
                     {
                         attachment: Buffer.from(formatted, 'utf8'),
@@ -74,9 +76,8 @@ async function execute(interaction: any) {
                 ],
             });
         } catch (error) {
-            return interaction.reply({
+            return await interaction.editReply({
                 content: 'Failed to decrypt file.',
-                ephemeral: true,
             });
         }
     }
