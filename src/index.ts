@@ -118,8 +118,8 @@ client.on('interactionCreate', async (interaction) => {
         }
 
         try {
-            await command.execute(interaction);
             client.logger.log(`${interaction.user.username} - /${interaction.commandName}`);
+            await command.execute(interaction);
         } catch (error) {
             try {
                 sendMessageToWebhook({
