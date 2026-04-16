@@ -230,7 +230,7 @@ async function drawAndSendGraph(
     graphType: keyof typeof DrawGraph,
 ) {
     initializeFonts();
-    const { B15Data, B35Data } = calculateB50(Object.values(scores).flat());
+    const { B15Data, B35Data } = calculateB50(Object.values(scores).flat(), 'CiRCLE');
 
     const canvas = createCanvas(1920, 1080);
     const ctx = canvas.getContext('2d');

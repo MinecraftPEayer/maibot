@@ -86,14 +86,12 @@ function calculateB50(
         comboType: ComboType;
         syncType: SyncType;
     }[],
-    calculateVersion: string,
+    calculateVersion: string = 'CiRCLE',
 ): {
     B15Data: B50Data[];
     B35Data: B50Data[];
 } {
     let database = JSON.parse(fs.readFileSync('tmp/data.json').toString()) as SongDatabase;
-
-    if (!calculateVersion) calculateVersion = 'CiRCLE';
 
     let B15Data: B50Data[] = [],
         B35Data: B50Data[] = [];
@@ -103,13 +101,16 @@ function calculateB50(
             let sheet = song.sheets.find((sht) => sht.type === item.type && sht.difficulty === item.difficulty);
             if (sheet) {
                 const constant =
-                        overrideConstant[calculateVersion][
+                        (overrideConstant as any)[calculateVersion][
                             `${song.title}:${ChartTypeName[sheet.type]}:${DifficultyName[sheet.difficulty]}`
                         ] ?? sheet.internalLevelValue,
                     rating = calculateRating(item.achievement, constant, item.comboType >= ComboType.AP),
                     imageURL = song.imageName;
                 const version = (sheet.regionOverrides.intl.version as string) ?? sheet.version ?? song.version;
-                (NewSongVersion[calculateVersion].includes(version) ? B15Data : B35Data).push({
+                (NewSongVersion[calculateVersion as keyof typeof NewSongVersion].includes(version)
+                    ? B15Data
+                    : B35Data
+                ).push({
                     type: item.type,
                     title: (exception as any)[item.title] ?? item.title,
                     achievement: item.achievement,
