@@ -15,7 +15,6 @@
         "sharp": "^0.34.2",
         "simple-json-db": "^2.0.0",
         "stackblur-canvas": "^2.7.0",
-        "tsx": "^4.20.2",
         "typescript": "^5.8.3"
     },
     "main": "src/index.ts",
