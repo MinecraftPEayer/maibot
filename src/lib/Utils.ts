@@ -432,8 +432,8 @@ async function sendScore(
                 },
                 fields: scoreData.map((score) => {
                     return {
-                        name: `${score.difficulty === Difficulty.UTAGE ? Emojis.Utage + '' : score.type === ChartType.DX ? Emojis.DX + ' ' : Emojis.STD + ' '}${isUTAGE ? '【' + playerScores['UTAGE'][0].utageKind + '】' + `${score.level}` : `${getDifficultyEmoji(score.difficulty)} ${score.level} (${score.constant.toFixed(1)})`}`,
-                        value: `${Emojis[score.ranking]} ${score.achievement.toFixed(4)}%\n${score.comboType !== -1 ? comboType[score.comboType] + ' ' : ' '}${score.syncType !== -1 ? syncType[score.syncType] + ' ' : ' '}`,
+                        name: `${score.difficulty === Difficulty.UTAGE ? Emojis.Utage + '' : score.type === ChartType.DX ? Emojis.DX + ' ' : Emojis.STD + ' '}${isUTAGE ? '【' + playerScores['UTAGE'][0].utageKind + '】' + `${score.level}` : `${getDifficultyEmoji(score.difficulty)}`}`,
+                        value: `-# ${score.level} (${score.constant.toFixed(1)})\n${Emojis[score.ranking]} ${score.achievement.toFixed(4)}%\n${score.comboType !== -1 ? comboType[score.comboType] + ' ' : ' '}${score.syncType !== -1 ? syncType[score.syncType] + ' ' : ' '}`,
                     };
                 }),
             },
