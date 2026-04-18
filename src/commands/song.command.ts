@@ -21,6 +21,7 @@ import { ScoreData, Sheet } from 'types/SongDatabase';
 import { DifficultyColor, DifficultyDisplayName } from 'src/lib/constant/CommonConstant';
 import PlayerDataService from 'src/lib/PlayerDataService';
 import { Canvas, createCanvas, loadImage } from 'canvas';
+import MaiNoteService from 'src/lib/MaiNoteService';
 
 async function drawScoreTable(notes: {
     tap?: number | null;
@@ -148,6 +149,8 @@ const data = new SlashCommandBuilder()
 async function execute(interaction: ChatInputCommandInteraction) {
     let songId = interaction.options.getString('name');
 
+    const maiNotes = MaiNoteService.getInstance();
+
     const toggle_dx_std = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
             .setCustomId('toggle_dx_std')
@@ -222,6 +225,8 @@ async function execute(interaction: ChatInputCommandInteraction) {
     );
     components.push(detailSelector);
 
+    const maiNoteChartIDMap = maiNotes.getSongChartUUIDsByTitle(song.title);
+
     let owo = await interaction.reply({
         embeds: [
             {
@@ -246,6 +251,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                             value: [
                                 `${isUTAGE ? `-# ${song.comment}\n` : ''}Lv: ${sheet.level}(${sheet.internalLevel ?? sheet.internalLevelValue.toFixed(1) ?? sheet.level + '.?'})`,
                                 `Note Designer: ${sheet.noteDesigner ?? 'N/A'}`,
+                                `[YouTube](<https://www.youtube.com/results?search_query=${encodeURIComponent('maimai ' + song.title + ' ' + DifficultyDisplayName[sheet.difficulty])}>)${maiNoteChartIDMap?.get(sheet.difficulty) ? ` - [mai-notes](<https://mai-notes.com/player?chart=${maiNoteChartIDMap.get(sheet.difficulty)}>)` : ''}`,
                             ].join('\n'),
                         };
                     }),

@@ -10,6 +10,7 @@ import config from 'config/config.json';
 import { inspect } from 'util';
 import { sendMessageToWebhook } from './lib/Utils';
 import RatingChartUtils from './lib/RatingChartUtils';
+import MaiNoteService from './lib/MaiNoteService';
 
 const mainLogger = new Logger('main');
 process.logger = mainLogger;
@@ -83,6 +84,8 @@ client.on('clientReady', async () => {
     await fetcher.login();
 
     RatingChartUtils.getInstance().preloadAssets();
+
+    MaiNoteService.getInstance();
 
     (await import('src/utils/api/index')).default();
 });
