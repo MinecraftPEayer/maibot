@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { createCanvas, loadImage } from 'canvas';
+import { Canvas, loadImage } from 'skia-canvas';
 import { initializeFonts, FontStack } from 'src/lib/Utils';
 
 export async function GET(req: Request, res: Response) {
@@ -31,7 +31,7 @@ export async function GET(req: Request, res: Response) {
         totalData[noteType[index]] = note.split(',');
     });
 
-    const canvas = createCanvas(695, 253);
+    const canvas = new Canvas(695, 253);
     const ctx = canvas.getContext('2d');
 
     let tableImg = await loadImage('assets/NoteTable.png');
@@ -52,5 +52,5 @@ export async function GET(req: Request, res: Response) {
         });
     }
 
-    res.header('Content-Type', 'image/png').send(canvas.toBuffer('image/png'));
+    res.header('Content-Type', 'image/png').send(await canvas.toBuffer('png'));
 }

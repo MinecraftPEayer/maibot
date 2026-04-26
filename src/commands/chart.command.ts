@@ -1,17 +1,17 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
-import { createCanvas, loadImage, CanvasRenderingContext2D } from 'canvas';
+import { Canvas, CanvasRenderingContext2D } from 'skia-canvas';
 import JSONdb from 'simple-json-db';
 import { calculateB50, getRatingBaseImage, initializeFonts, FontStack } from 'src/lib/Utils';
 import fs from 'fs';
 import { ChartType, ComboType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
 import { B50Data, Rank, ScoreData } from 'types/SongDatabase';
 import { DifficultyColor, VersionColor, NewSongVersion } from 'src/lib/constant/CommonConstant';
-import * as StackBlur from 'stackblur-canvas';
 import Logger from 'src/lib/logger';
 import { PlayerInfo } from 'types/main';
-import { getImageBuffer, drawRoundRect, drawCustomRoundRect, createBlurredBackground } from 'src/lib/DrawImageUtils';
+import { drawRoundRect, drawCustomRoundRect, createBlurredBackground } from 'src/lib/DrawImageUtils';
 import PlayerDataService from 'src/lib/PlayerDataService';
 import RatingChartUtils from 'src/lib/RatingChartUtils';
+import ImageHelper from 'src/lib/ImageHelper';
 
 const TitleTypeName = {
     [TitleType.Normal]: 'Normal',
@@ -37,6 +37,8 @@ const ComboTypeImageName = {
 };
 
 const RCUtils = RatingChartUtils.getInstance();
+
+const { loadImage } = ImageHelper.getInstance();
 
 let logger: Logger;
 
@@ -248,14 +250,8 @@ async function drawSongBox(
     if (!score) return;
 
     let songBackgroundImg = await loadImage(
-        await getImageBuffer(`https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${score.backgroundImg}`, true),
+        `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${score.backgroundImg}`,
     );
-    let bgImgCanvas = createCanvas(songBoxDim.width, songBoxDim.height);
-    let bgImgCtx = bgImgCanvas.getContext('2d');
-    bgImgCtx.save();
-    bgImgCtx.beginPath();
-    bgImgCtx.roundRect(0, 0, songBoxDim.width, songBoxDim.height, 8);
-    bgImgCtx.clip();
 
     const scaleWidth = songBoxDim.width / songBackgroundImg.width;
     const scaleHeight = songBoxDim.height / songBackgroundImg.height;
@@ -266,17 +262,18 @@ async function drawSongBox(
     const xOffset = (songBoxDim.width - scaledWidth) / 2;
     const yOffset = (songBoxDim.height - scaledHeight) / 2;
 
-    bgImgCtx.drawImage(songBackgroundImg, xOffset, yOffset, scaledWidth, scaledHeight);
-    bgImgCtx.restore();
-
-    StackBlur.canvasRGBA(bgImgCanvas as unknown as HTMLCanvasElement, 0, 0, songBoxDim.width, songBoxDim.height, 4);
-
     ctx.save();
     ctx.beginPath();
     ctx.roundRect(X, Y, songBoxDim.width, songBoxDim.height, 8);
     ctx.clip();
-    ctx.drawImage(bgImgCanvas, X, Y, songBoxDim.width, songBoxDim.height);
+
+    const orignalCtxFilter = ctx.filter;
+    ctx.filter = 'blur(4px)';
+
+    ctx.drawImage(songBackgroundImg, X + xOffset, Y + yOffset, scaledWidth, scaledHeight);
     ctx.restore();
+
+    ctx.filter = orignalCtxFilter;
 
     drawRoundRect({
         ctx,
@@ -469,7 +466,9 @@ async function drawAndSendChart(
         category.some((rank) => B15RankMapped.includes(rank) || B35RankMapped.includes(rank)),
     );
 
-    const canvas = createCanvas(WIDTH, HEIGHT);
+    const time1 = Date.now();
+
+    const canvas = new Canvas(WIDTH, HEIGHT);
     if (!canvas) return;
 
     canvas.width = WIDTH;
@@ -524,15 +523,11 @@ async function drawAndSendChart(
         fillStyle: 'rgba(183, 183, 183, 0.45)',
     });
 
-    const avatarImg = await loadImage(
-        await getImageBuffer(`https://chart.minecraftpeayer.com/api/proxy/img?url=${playerData.avatar}`),
-    );
+    const avatarImg = await loadImage(`https://chart.minecraftpeayer.com/api/proxy/img?url=${playerData.avatar}`);
     ctx.drawImage(avatarImg, 72, 72, 92, 92);
 
     const ratingImg = await loadImage(
-        await getImageBuffer(
-            `https://chart.minecraftpeayer.com/api/proxy/img?url=https://maimaidx-eng.com/maimai-mobile/img/rating_base_${getRatingBaseImage(playerData.rating)}.png`,
-        ),
+        `https://chart.minecraftpeayer.com/api/proxy/img?url=https://maimaidx-eng.com/maimai-mobile/img/rating_base_${getRatingBaseImage(playerData.rating)}.png`,
     );
     ctx.drawImage(ratingImg, 172, 70, 104, 30);
     ctx.font = `14px ${FontStack}`;
@@ -550,9 +545,7 @@ async function drawAndSendChart(
     ctx.fillText(ratingArray[3], baseX + 32.5, 90);
     ctx.fillText(ratingArray[4], baseX + 43.5, 90);
 
-    const classImg = await loadImage(
-        await getImageBuffer(`https://chart.minecraftpeayer.com/api/proxy/img?url=${playerData.classRank}`),
-    );
+    const classImg = await loadImage(`https://chart.minecraftpeayer.com/api/proxy/img?url=${playerData.classRank}`);
     ctx.drawImage(classImg, 276, 68, 58, 32);
 
     drawRoundRect({
@@ -568,15 +561,11 @@ async function drawAndSendChart(
     ctx.fillStyle = 'black';
     ctx.fillText(playerData.name, 180, 106 + 20);
 
-    const courseImg = await loadImage(
-        await getImageBuffer(`https://chart.minecraftpeayer.com/api/proxy/img?url=${playerData.course}`),
-    );
+    const courseImg = await loadImage(`https://chart.minecraftpeayer.com/api/proxy/img?url=${playerData.course}`);
     ctx.drawImage(courseImg, 341, 104, 71, 28);
 
     const titleBackImg = await loadImage(
-        await getImageBuffer(
-            `https://chart.minecraftpeayer.com/api/proxy/img?url=https://maimaidx-eng.com/maimai-mobile/img/trophy_${TitleTypeName[playerData.titleType].toLowerCase()}.png`,
-        ),
+        `https://chart.minecraftpeayer.com/api/proxy/img?url=https://maimaidx-eng.com/maimai-mobile/img/trophy_${TitleTypeName[playerData.titleType].toLowerCase()}.png`,
     );
 
     ctx.drawImage(titleBackImg, 172, 138, 270, 25);
@@ -786,19 +775,17 @@ async function drawAndSendChart(
         height: 152,
     };
 
-    for (let i = 0; i < 5; i++) {
-        for (let j = 0; j < 7; j++) {
-            const X = B35BaseX + j * (songBoxDim.width + Gap),
-                Y = B35BaseY + i * (songBoxDim.height + Gap);
+    const b35Tasks = B35Data.map((score, index) => {
+        const i = Math.floor(index / 7);
+        const j = index % 7;
 
-            const index = i * 7 + j;
-            const score = B35Data[index];
+        const X = B35BaseX + j * (songBoxDim.width + Gap);
+        const Y = B35BaseY + i * (songBoxDim.height + Gap);
 
-            await drawSongBox(ctx, X, Y, score, songBoxDim, index, {
-                drawSyncAndCombo: drawIcons,
-            });
-        }
-    }
+        return drawSongBox(ctx, X, Y, score, songBoxDim, index, {
+            drawSyncAndCombo: drawIcons,
+        });
+    });
 
     ctx.fillStyle = 'white';
     ctx.font = `8px ${FontStack}`;
@@ -845,17 +832,21 @@ async function drawAndSendChart(
         ctx.fillText(chartText[i / 10], B15BaseX + 42 + i, B15BaseY - 8 - 20 + 15);
     }
 
-    for (let i = 0; i < 5; i++) {
-        for (let j = 0; j < 3; j++) {
-            const X = B15BaseX + j * (songBoxDim.width + Gap),
-                Y = B15BaseY + i * (songBoxDim.height + Gap);
+    const b15Tasks = B15Data.map((score, index) => {
+        const i = Math.floor(index / 3);
+        const j = index % 3;
 
-            const index = i * 3 + j;
-            const score = B15Data[index];
+        const X = B15BaseX + j * (songBoxDim.width + Gap);
+        const Y = B15BaseY + i * (songBoxDim.height + Gap);
 
-            await drawSongBox(ctx, X, Y, score, songBoxDim, index, { drawSyncAndCombo: drawIcons, drawVersion: true });
-        }
-    }
+        return drawSongBox(ctx, X, Y, score, songBoxDim, index, {
+            drawSyncAndCombo: drawIcons,
+            drawVersion: true,
+        });
+    });
+
+    await Promise.all(b35Tasks);
+    await Promise.all(b15Tasks);
 
     ctx.fillStyle = 'white';
     ctx.font = `8px ${FontStack}`;
@@ -892,10 +883,10 @@ async function drawAndSendChart(
         HEIGHT - 39,
     );
 
-    let attachment = canvas.toBuffer('image/png');
+    let attachment = await canvas.toBuffer('png');
     try {
         await interaction.editReply({
-            content: '',
+            content: `Image drawing took ${Date.now() - time1}ms`,
             files: [attachment],
         });
     } catch (error) {

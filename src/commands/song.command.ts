@@ -20,7 +20,7 @@ import { calculateRating, sendScore, FontStack, getDifficultyEmoji, initializeFo
 import { ScoreData, Sheet } from 'types/SongDatabase';
 import { DifficultyColor, DifficultyDisplayName } from 'src/lib/constant/CommonConstant';
 import PlayerDataService from 'src/lib/PlayerDataService';
-import { Canvas, createCanvas, loadImage } from 'canvas';
+import { Canvas, loadImage } from 'skia-canvas';
 import MaiNoteService from 'src/lib/MaiNoteService';
 
 async function drawScoreTable(notes: {
@@ -38,7 +38,7 @@ async function drawScoreTable(notes: {
     const touch = notes.touch ?? 0;
     const breakNote = notes.break ?? 0;
 
-    const canvas = createCanvas(786, 212);
+    const canvas = new Canvas(786, 212);
     if (!canvas) throw new Error('Failed to create canvas');
     ``;
 
@@ -385,7 +385,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     };
 
                     const image = await drawScoreTable(noteCounts);
-                    const buffer = image.toBuffer('image/png');
+                    const buffer = await image.toBuffer('png');
 
                     const attachment = new AttachmentBuilder(buffer, {
                         name: 'score_table.png',

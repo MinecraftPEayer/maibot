@@ -7,7 +7,7 @@ import { ChartType, ComboType, Difficulty, SyncType } from './CommonEnums';
 import longSongs from 'config/longSong.json';
 import { RatingBaseImageName, RankFactor, ChartTypeName, NewSongVersion } from './constant/CommonConstant';
 import { Emojis } from './constant/emojis';
-import { registerFont } from 'canvas';
+import { FontLibrary } from 'skia-canvas';
 import SongDataFetcher from './SongDataFetcher';
 import axios from 'axios';
 import config from 'config/config.json';
@@ -258,30 +258,11 @@ function getDifficultyEmoji(difficulty: Difficulty | string): string {
 function initializeFonts() {
     const fontPath = 'assets/fonts';
 
-    registerFont(`${fontPath}/SEGAMaruGothicDB.ttf`, {
-        family: 'SEGAMaruGothic',
-        weight: 'normal',
-    });
+    FontLibrary.use('SEGAMaruGothic', `${fontPath}/SEGAMaruGothicDB.ttf`);
 
-    registerFont(`${fontPath}/NotoSans-Regular.ttf`, {
-        family: 'Noto Sans',
-        weight: 'normal',
-    });
+    FontLibrary.use('Noto Sans', [`${fontPath}/NotoSans-Regular.ttf`, `${fontPath}/NotoSans-Bold.ttf`]);
 
-    registerFont(`${fontPath}/NotoSans-Bold.ttf`, {
-        family: 'Noto Sans',
-        weight: 'bold',
-    });
-
-    registerFont(`${fontPath}/NotoSansJP-Regular.ttf`, {
-        family: 'Noto Sans JP',
-        weight: 'normal',
-    });
-
-    registerFont(`${fontPath}/NotoSansJP-Bold.ttf`, {
-        family: 'Noto Sans JP',
-        weight: 'bold',
-    });
+    FontLibrary.use('Noto Sans JP', [`${fontPath}/NotoSansJP-Regular.ttf`, `${fontPath}/NotoSansJP-Bold.ttf`]);
 }
 
 function writeErrorToFile(error: any) {

@@ -1,11 +1,11 @@
-import { Canvas, Image, loadImage } from 'canvas';
+import { CanvasDrawable, Image, loadImage } from 'skia-canvas';
 import PATH from 'path';
 import fs from 'fs';
 import Logger from './logger';
 
 class RatingChartUtils {
     private static instance: RatingChartUtils;
-    private assets: Map<string, Canvas | Image> = new Map<string, Canvas | Image>();
+    private assets: Map<string, CanvasDrawable | Image> = new Map<string, CanvasDrawable | Image>();
     private logger: Logger = new Logger('RatingChartUtils');
     public preloaded = false;
 
@@ -19,7 +19,7 @@ class RatingChartUtils {
     constructor() {}
 
     async preloadAssets() {
-        this.assets = new Map<string, Canvas | Image>();
+        this.assets = new Map<string, CanvasDrawable | Image>();
         const assetList = [
             'assets/ranking/*.png',
             'assets/rank_center/*.png',
@@ -51,7 +51,7 @@ class RatingChartUtils {
         this.logger.log('All assets preloaded');
     }
 
-    async getAsset(name: string): Promise<Canvas | Image | null> {
+    async getAsset(name: string): Promise<CanvasDrawable | Image | null> {
         if (!this.preloaded) {
             await this.preloadAssets();
         }

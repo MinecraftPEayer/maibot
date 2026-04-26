@@ -1,22 +1,13 @@
-import {
-    ActionRowBuilder,
-    ButtonBuilder,
-    ButtonStyle,
-    ChatInputCommandInteraction,
-    EmbedBuilder,
-    SlashCommandBuilder,
-} from 'discord.js';
-import JSONdb from 'simple-json-db';
-import { ComboType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
+import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
+import { Difficulty, ScoreType } from 'src/lib/CommonEnums';
 import { PlayerInfo } from 'types/main';
 import { B50Data, ScoreData } from 'types/SongDatabase';
 import fs from 'fs';
-import { calculateB50, convertDXScoreToStar, FontStack, getRatingBaseImage, initializeFonts } from 'src/lib/Utils';
+import { calculateB50, FontStack, getRatingBaseImage, initializeFonts } from 'src/lib/Utils';
 import { getImageBuffer, drawRoundRect, createBlurredBackground } from 'src/lib/DrawImageUtils';
-import { Canvas, createCanvas, loadImage } from 'canvas';
-import { DifficultyDisplayName, TitleTypeName } from 'src/lib/constant/CommonConstant';
+import { Canvas, loadImage } from 'skia-canvas';
+import { TitleTypeName } from 'src/lib/constant/CommonConstant';
 import Chart from 'chart.js/auto';
-import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
 import PlayerDataService from 'src/lib/PlayerDataService';
 
 let logger;
@@ -60,7 +51,7 @@ const DrawGraph: {
             136 + 16,
         );
 
-        const chart = createCanvas(1792, 844);
+        const chart = new Canvas(1792, 844);
         new Chart(chart as any, {
             type: 'line',
             data: {
@@ -155,7 +146,7 @@ const DrawGraph: {
             136 + 16,
         );
 
-        const chart = createCanvas(1792, 844);
+        const chart = new Canvas(1792, 844);
         new Chart(chart as any, {
             type: 'line',
             data: {
@@ -232,7 +223,7 @@ async function drawAndSendGraph(
     initializeFonts();
     const { B15Data, B35Data } = calculateB50(Object.values(scores).flat(), 'CiRCLE');
 
-    const canvas = createCanvas(1920, 1080);
+    const canvas = new Canvas(1920, 1080);
     const ctx = canvas.getContext('2d');
 
     ctx.clearRect(0, 0, WIDTH, HEIGHT);
@@ -358,7 +349,7 @@ async function drawAndSendGraph(
         content: '',
         files: [
             {
-                attachment: canvas.toBuffer('image/png'),
+                attachment: await canvas.toBuffer('png'),
                 name: 'image.png',
             },
         ],

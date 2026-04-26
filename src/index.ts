@@ -11,6 +11,7 @@ import { inspect } from 'util';
 import { sendMessageToWebhook } from './lib/Utils';
 import RatingChartUtils from './lib/RatingChartUtils';
 import MaiNoteService from './lib/MaiNoteService';
+import ImageHelper from './lib/ImageHelper';
 
 const mainLogger = new Logger('main');
 process.logger = mainLogger;
@@ -86,6 +87,8 @@ client.on('clientReady', async () => {
     RatingChartUtils.getInstance().preloadAssets();
 
     MaiNoteService.getInstance();
+
+    ImageHelper.getInstance();
 
     (await import('src/utils/api/index')).default();
 });

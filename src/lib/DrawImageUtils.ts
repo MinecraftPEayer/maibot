@@ -2,15 +2,19 @@ import fs from 'fs';
 import axios from 'axios';
 import { logger } from 'process';
 import sharp from 'sharp';
-import { CanvasRenderingContext2D, CanvasGradient, Image, createCanvas } from 'canvas';
-import * as StackBlur from 'stackblur-canvas';
+import { CanvasRenderingContext2D, CanvasGradient, Image, Canvas, CanvasDrawable } from 'skia-canvas';
+import crypto from 'crypto';
 
 async function getImageBuffer(imageURL: string, cache?: boolean): Promise<Buffer> {
     if (cache === undefined) cache = false;
+
+    const hashName = crypto.createHash('md5').update(imageURL).digest('hex');
+    const cachePath = `tmp/cache/image/${hashName}.png`;
+
     try {
         let url = new URL(imageURL);
-        if (fs.existsSync(`tmp/cache/image/${url.pathname.split('/').pop()}`) && cache) {
-            const Buffer = fs.readFileSync(`tmp/cache/image/${url.pathname.split('/').pop()}`);
+        if (fs.existsSync(cachePath) && cache) {
+            const Buffer = fs.readFileSync(cachePath);
             return sharp(Buffer).png().toBuffer();
         } else {
             const response = await axios.get(imageURL, {
@@ -23,7 +27,7 @@ async function getImageBuffer(imageURL: string, cache?: boolean): Promise<Buffer
             });
             const buffer = Buffer.from(response.data);
             if (cache) {
-                fs.writeFileSync(`tmp/cache/image/${url.pathname.split('/').pop()}`, buffer);
+                fs.writeFileSync(cachePath, buffer);
             }
             return await sharp(buffer).png().toBuffer();
         }
@@ -87,17 +91,13 @@ function drawCustomRoundRect(options: {
     ctx.fillStyle = originalFillStyle;
 }
 
-async function createBlurredBackground(width: number, height: number, backgroundImage: Image): Promise<void> {
-    const bgCanvas = createCanvas(width - 60, height - 60);
+async function createBlurredBackground(width: number, height: number, backgroundImage: CanvasDrawable): Promise<void> {
+    const bgCanvas = new Canvas(width - 60, height - 60);
     const bgCtx = bgCanvas.getContext('2d');
     bgCtx.drawImage(backgroundImage, -30, -30, width, height);
-    StackBlur.canvasRGBA(bgCanvas as unknown as HTMLCanvasElement, 0, 0, width - 60, height - 60, 20);
-    const out = fs.createWriteStream('tmp/bg_blurred.png');
-    const stream = bgCanvas.createPNGStream();
-    stream.pipe(out);
-    await new Promise<void>((resolve) => {
-        out.on('finish', resolve);
-    });
+    bgCtx.filter = 'blur(20px)';
+    bgCtx.drawImage(bgCanvas, 0, 0, width - 60, height - 60);
+    await bgCanvas.toFile('tmp/bg_blurred.png');
 }
 
 export { getImageBuffer, drawRoundRect, drawCustomRoundRect, createBlurredBackground };
