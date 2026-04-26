@@ -3,7 +3,7 @@ import { getImageBuffer } from './DrawImageUtils';
 
 class ImageHelper {
     private static instance: ImageHelper;
-    private limit: number = 200;
+    private limit: number = 1000;
 
     imageCacheMap: Map<string, CanvasDrawable | Image> = new Map<string, CanvasDrawable>();
 
