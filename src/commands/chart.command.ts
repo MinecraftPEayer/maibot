@@ -45,48 +45,7 @@ let logger: Logger;
 function drawChartType(ctx: CanvasRenderingContext2D, x: number, y: number, chartType: ChartType) {
     let originalFillStyle = ctx.fillStyle,
         originalFont = ctx.font;
-    switch (chartType) {
-        case ChartType.DX:
-            ctx.fillStyle = '#FFFFFF';
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-            ctx.lineTo(x - 10, y + 20);
-            ctx.lineTo(x - 10 + 61, y + 20);
-            ctx.lineTo(x + 61, y);
-            ctx.lineTo(x, y);
-            ctx.fill();
-
-            const TextColor = ['#FF1C00', '#FFAB00', '#FFEB00', '#A4FF00', '#0081FF'];
-            const Text = 'でらっくす';
-            ctx.font = `10px ${FontStack}`;
-            for (let i = 0; i < 50; i += 10) {
-                ctx.fillStyle = TextColor[i / 10];
-                ctx.lineWidth = 0.5;
-                ctx.strokeStyle = TextColor[i / 10];
-                ctx.strokeText(Text[i / 10], x + 1 + i, y + 5 + 8);
-                ctx.fillText(Text[i / 10], x + 1 + i, y + 5 + 8);
-            }
-            ctx.save();
-            break;
-        case ChartType.STD:
-            ctx.fillStyle = '#73ADF8';
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-            ctx.lineTo(x - 10, y + 20);
-            ctx.lineTo(x - 10 + 75, y + 20);
-            ctx.lineTo(x + 75, y);
-            ctx.lineTo(x, y);
-            ctx.fill();
-
-            ctx.fillStyle = '#FFFFFF';
-            ctx.font = `10px ${FontStack}`;
-            ctx.lineWidth = 0.5;
-            ctx.strokeStyle = 'white';
-            ctx.strokeText('スタンダード', x + 3, y + 5 + 8);
-            ctx.fillText('スタンダード', x + 3, y + 5 + 8);
-            ctx.save();
-            break;
-    }
+    ctx.drawCanvas(RatingChartUtils.ChartTypeCanvas[chartType as ChartType.DX | ChartType.STD], x - 10, y);
     ctx.font = originalFont;
     ctx.fillStyle = originalFillStyle;
 }
