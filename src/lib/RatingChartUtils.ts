@@ -3,7 +3,7 @@ import PATH from 'path';
 import fs from 'fs';
 import Logger from './logger';
 import { ChartType } from './CommonEnums';
-import { FontStack } from './Utils';
+import { FontStack, initializeFonts } from './Utils';
 
 class RatingChartUtils {
     private static instance: RatingChartUtils;
@@ -13,6 +13,8 @@ class RatingChartUtils {
 
     public static ChartTypeCanvas = {
         [ChartType.DX]: (() => {
+            initializeFonts();
+            
             const canvas = new Canvas(71, 20);
             const ctx = canvas.getContext('2d');
             const x = 10, y = 0;
@@ -41,6 +43,8 @@ class RatingChartUtils {
             return canvas
         })(),
         [ChartType.STD]: (() => {
+            initializeFonts();
+            
             const canvas = new Canvas(85, 20);
             const ctx = canvas.getContext('2d');
             const x = 10, y = 0;
