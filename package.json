@@ -10,6 +10,7 @@
         "express": "^5.1.0",
         "js-yaml": "^4.1.1",
         "nan": "^2.22.2",
+        "node-cron": "^4.2.1",
         "set-cookie-parser": "^2.7.1",
         "sharp": "^0.34.2",
         "simple-json-db": "^2.0.0",

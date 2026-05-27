@@ -8,7 +8,7 @@ import SongDataFetcher from './lib/SongDataFetcher';
 import { MessageFlags } from 'discord.js';
 import config from 'config/config.json';
 import { inspect } from 'util';
-import { sendMessageToWebhook } from './lib/Utils';
+import { sendMessageToWebhook, setupSongDataAutoUpdateCronJob } from './lib/Utils';
 import RatingChartUtils from './lib/RatingChartUtils';
 import MaiNoteService from './lib/MaiNoteService';
 import ImageHelper from './lib/ImageHelper';
@@ -83,6 +83,8 @@ client.on('clientReady', async () => {
         }
     }
     await fetcher.login();
+
+    setupSongDataAutoUpdateCronJob();
 
     RatingChartUtils.getInstance().preloadAssets();
 

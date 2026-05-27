@@ -14,6 +14,8 @@ import config from 'config/config.json';
 import { ButtonInteraction, ChatInputCommandInteraction } from 'discord.js';
 import overrideConstant from 'config/constant_override.json';
 import { PlayerInfo } from 'types/main';
+import cron from 'node-cron'
+import Logger from './logger';
 
 function convertAchievementToRank(achievement: number) {
     if (achievement >= 100.5) return 'SSS+';
@@ -423,6 +425,30 @@ async function sendScore(
     });
 }
 
+function setupSongDataAutoUpdateCronJob() {
+    const logger = new Logger('SongDataUpdate');
+    cron.schedule('0 6 * * *', async () => {
+        try {
+            const fetcher = SongDataFetcher.getInstance();
+            await fetcher.fetchData();
+            await fetcher.fetchCourseData();
+            logger.log('Song data updated successfully');
+        } catch (error) {
+            logger.error('Error updating song data:', error);
+            writeErrorToFile(error);
+            await sendMessageToWebhook({
+                content: 'Error updating song data',
+                embeds: [
+                    {
+                        title: 'Error Details',
+                        description: `\`\`\`${util.inspect(error, { depth: null })}\`\`\``,
+                    },
+                ],
+            });
+        }
+    });
+}
+
 async function sendMessageToWebhook(messagePayload: any) {
     await axios.post(config.error_log_webhook_url, messagePayload);
 }
@@ -443,6 +469,7 @@ export {
     randomSong,
     initializeFonts,
     sendScore,
+    setupSongDataAutoUpdateCronJob,
     writeErrorToFile,
     sendMessageToWebhook,
     FontStack,
