@@ -260,12 +260,8 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         .getSongByName(score.title)
                         .sheets.find((s) => s.difficulty === score.difficulty);
                     return {
-                        name:
-                            score.title.length > 100
-                                ? score.title.substring(0, 97) + '...'
-                                : score.title +
-                                  ` ${getDifficultyEmoji(score.difficulty)} ${sheet?.level ?? ''} (${sheet?.internalLevelValue.toFixed(1) ?? 'N/A'})`,
-                        value: `${score.achievement.toFixed(4)}%\n${comboTypeReflection[score.comboType]}${score.comboType === ComboType.None ? '' : ' '}${syncTypeReflection[score.syncType]}`,
+                        name: score.title.length > 100 ? score.title.substring(0, 97) + '...' : score.title,
+                        value: `${score.type !== ChartType.UTAGE ? Emojis[score.type === ChartType.STD ? 'STD' : 'DX'] + ' ' : ''}${getDifficultyEmoji(score.difficulty)} ${sheet?.level ?? ''} (${sheet?.internalLevelValue.toFixed(1) ?? 'N/A'})\n${score.achievement.toFixed(4)}%\n${comboTypeReflection[score.comboType]}${score.comboType === ComboType.None ? '' : ' '}${syncTypeReflection[score.syncType]}`,
                     };
                 }),
         )
@@ -310,12 +306,8 @@ async function execute(interaction: ChatInputCommandInteraction) {
                                     .getSongByName(score.title)
                                     .sheets.find((s) => s.difficulty === score.difficulty);
                                 return {
-                                    name:
-                                        score.title.length > 100
-                                            ? score.title.substring(0, 97) + '...'
-                                            : score.title +
-                                              ` ${getDifficultyEmoji(score.difficulty)} ${sheet?.level ?? ''} (${sheet?.internalLevelValue.toFixed(1) ?? 'N/A'})`,
-                                    value: `${score.achievement.toFixed(4)}%\n${comboTypeReflection[score.comboType]}${score.comboType === ComboType.None ? '' : ' '}${syncTypeReflection[score.syncType]}`,
+                                    name: score.title.length > 100 ? score.title.substring(0, 97) + '...' : score.title,
+                                    value: `${score.type !== ChartType.UTAGE ? Emojis[score.type === ChartType.STD ? 'STD' : 'DX'] + ' ' : ''}${getDifficultyEmoji(score.difficulty)} ${sheet?.level ?? ''} (${sheet?.internalLevelValue.toFixed(1) ?? 'N/A'})\n${score.achievement.toFixed(4)}%\n${comboTypeReflection[score.comboType]}${score.comboType === ComboType.None ? '' : ' '}${syncTypeReflection[score.syncType]}`,
                                 };
                             }),
                     )
@@ -347,12 +339,8 @@ async function execute(interaction: ChatInputCommandInteraction) {
                                 .getSongByName(score.title)
                                 .sheets.find((s) => s.difficulty === score.difficulty);
                             return {
-                                name:
-                                    score.title.length > 100
-                                        ? score.title.substring(0, 97) + '...'
-                                        : score.title +
-                                          ` ${getDifficultyEmoji(score.difficulty)} ${sheet?.level ?? ''} (${sheet?.internalLevelValue.toFixed(1) ?? 'N/A'})`,
-                                value: `${score.achievement.toFixed(4)}%\n${comboTypeReflection[score.comboType]}${score.comboType === ComboType.None ? '' : ' '}${syncTypeReflection[score.syncType]}`,
+                                name: score.title.length > 100 ? score.title.substring(0, 97) + '...' : score.title,
+                                value: `${score.type !== ChartType.UTAGE ? Emojis[score.type === ChartType.STD ? 'STD' : 'DX'] + ' ' : ''}${getDifficultyEmoji(score.difficulty)} ${sheet?.level ?? ''} (${sheet?.internalLevelValue.toFixed(1) ?? 'N/A'})\n${score.achievement.toFixed(4)}%\n${comboTypeReflection[score.comboType]}${score.comboType === ComboType.None ? '' : ' '}${syncTypeReflection[score.syncType]}`,
                             };
                         }),
                 )
