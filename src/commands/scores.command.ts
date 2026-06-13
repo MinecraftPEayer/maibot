@@ -271,7 +271,11 @@ async function execute(interaction: ChatInputCommandInteraction) {
         )
         .setFooter({ text: `Page ${page + 1} of ${Math.ceil(allFilteredScores.length / 5)}` });
 
-    const reply = await interaction.editReply({ embeds: [embed], components: [sortMethodSelector, pageActionRow] });
+    const reply = await interaction.editReply({
+        content: '',
+        embeds: [embed],
+        components: [sortMethodSelector, pageActionRow],
+    });
 
     const collector = reply.createMessageComponentCollector({ filter: (i) => i.user.id === interaction.user.id });
 
