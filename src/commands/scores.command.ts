@@ -141,11 +141,18 @@ async function execute(interaction: ChatInputCommandInteraction) {
         .getString('version')
         ?.split(',')
         .map((s) => s.trim());
-    const chartType = interaction.options.getString('chart_type') === 'dx' ? ChartType.DX : ChartType.STD;
+    const chartType =
+        interaction.options.getString('chart_type') === null
+            ? null
+            : interaction.options.getString('chart_type') === 'dx'
+              ? ChartType.DX
+              : ChartType.STD;
 
     const availableGenres = SongDataFetcher.genres;
     const availableVersions = SongDataFetcher.versions.map((v) => v.version);
     const availableDifficulties = SongDataFetcher.difficulties.map((d) => d.name);
+
+    const FilterDisplayText = `Filters:\nGenres: ${genre ? genre.join(', ') : 'All'}\nVersions: ${version ? version.join(', ') : 'All'}\nChart Type: ${chartType === null ? 'All' : chartType === ChartType.DX ? 'DX' : 'STD'}\nDifficulty: ${difficulty ? difficulty.join(', ') : 'All'}\nLevel: ${minLevel ?? '1.0'} - ${maxLevel ?? '15.0'}`;
 
     if (genre && genre.some((g) => !availableGenres.includes(g))) {
         await interaction.reply({
@@ -245,7 +252,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
     let embed = new EmbedBuilder()
         .setTitle(`${playerData?.playerData.name}'s Scores`)
         .setDescription(
-            `Sort by: ${SortMethodDisplayName[currentSortMethod as keyof typeof SortMethodDisplayName] || 'Unknown'}`,
+            `Sort by: ${SortMethodDisplayName[currentSortMethod as keyof typeof SortMethodDisplayName] || 'Unknown'}\n\n${FilterDisplayText}`,
         )
         .addFields(
             allFilteredScores
@@ -276,7 +283,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
                 embed
                     .setDescription(
-                        `Sort by: ${SortMethodDisplayName[currentSortMethod as keyof typeof SortMethodDisplayName] || 'Unknown'}`,
+                        `Sort by: ${SortMethodDisplayName[currentSortMethod as keyof typeof SortMethodDisplayName] || 'Unknown'}\n\n${FilterDisplayText}`,
                     )
                     .setFields(
                         allFilteredScores
@@ -313,7 +320,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
             embed
                 .setDescription(
-                    `Sort by: ${SortMethodDisplayName[currentSortMethod as keyof typeof SortMethodDisplayName] || 'Unknown'}`,
+                    `Sort by: ${SortMethodDisplayName[currentSortMethod as keyof typeof SortMethodDisplayName] || 'Unknown'}\n\n${FilterDisplayText}`,
                 )
                 .setFields(
                     allFilteredScores
