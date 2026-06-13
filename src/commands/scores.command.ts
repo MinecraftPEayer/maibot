@@ -187,11 +187,8 @@ async function execute(interaction: ChatInputCommandInteraction) {
     }
 
     const PSService = PlayerDataService.getInstance();
-
     const playerData = await PSService.getPlayerData(interaction, user.id);
-
     const scores = playerData?.scoreData || {};
-
     const allFilteredScores: ScoreData[] = [];
 
     for (const diff of difficulty ?? Object.keys(scores)) {
@@ -272,7 +269,16 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
     const collector = reply.createMessageComponentCollector({ filter: (i) => i.user.id === interaction.user.id });
 
+    let stopTimeout = setTimeout(() => {
+        collector.stop();
+    }, 60000);
+
     collector.on('collect', async (i: StringSelectMenuInteraction | ButtonInteraction) => {
+        clearTimeout(stopTimeout);
+        stopTimeout = setTimeout(() => {
+            collector.stop();
+        }, 60000);
+
         if (i.isStringSelectMenu()) {
             if (i.customId === 'sort_method') {
                 currentSortMethod = i.values[0];
