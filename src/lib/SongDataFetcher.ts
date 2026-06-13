@@ -86,6 +86,8 @@ class SongDataFetcher {
     private static instance: SongDataFetcher;
     private filePath: string;
 
+    private data: SongDatabase;
+
     static genres: string[];
     static difficulties: SongDatabaseDifficulties[];
     static versions: SongDatabaseVersions[];
@@ -93,6 +95,7 @@ class SongDataFetcher {
 
     private constructor() {
         this.filePath = 'tmp/data.json';
+        this.data = this.getData();
     }
 
     public static getInstance(): SongDataFetcher {
@@ -262,6 +265,7 @@ class SongDataFetcher {
     }
 
     private getData(): SongDatabase {
+        if (this.data) return this.data;
         let data = fs.readFileSync(this.filePath, 'utf-8');
         return JSON.parse(data);
     }
