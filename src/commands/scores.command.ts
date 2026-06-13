@@ -255,13 +255,19 @@ async function execute(interaction: ChatInputCommandInteraction) {
             allFilteredScores
                 .sort(sortFunction[currentSortMethod])
                 .slice(5 * page, 5 * (page + 1))
-                .map((score) => ({
-                    name:
-                        score.title.length > 100
-                            ? score.title.substring(0, 97) + '...'
-                            : score.title + ` ${getDifficultyEmoji(score.difficulty)}`,
-                    value: `${score.achievement.toFixed(4)}%\n${comboTypeReflection[score.comboType]}${score.comboType === ComboType.None ? '' : ' '}${syncTypeReflection[score.syncType]}`,
-                })),
+                .map((score) => {
+                    const sheet = dataFetcher
+                        .getSongByName(score.title)
+                        .sheets.find((s) => s.difficulty === score.difficulty);
+                    return {
+                        name:
+                            score.title.length > 100
+                                ? score.title.substring(0, 97) + '...'
+                                : score.title +
+                                  ` ${getDifficultyEmoji(score.difficulty)} ${sheet?.level ?? ''} (${sheet?.internalLevelValue.toFixed(1) ?? 'N/A'})`,
+                        value: `${score.achievement.toFixed(4)}%\n${comboTypeReflection[score.comboType]}${score.comboType === ComboType.None ? '' : ' '}${syncTypeReflection[score.syncType]}`,
+                    };
+                }),
         )
         .setFooter({ text: `Page ${page + 1} of ${Math.ceil(allFilteredScores.length / 5)}` });
 
@@ -332,13 +338,19 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     allFilteredScores
                         .sort(sortFunction[currentSortMethod])
                         .slice(5 * page, 5 * (page + 1))
-                        .map((score) => ({
-                            name:
-                                score.title.length > 100
-                                    ? score.title.substring(0, 97) + '...'
-                                    : score.title + ` ${getDifficultyEmoji(score.difficulty)}`,
-                            value: `${score.achievement.toFixed(4)}%\n${comboTypeReflection[score.comboType]}${score.comboType === ComboType.None ? '' : ' '}${syncTypeReflection[score.syncType]}`,
-                        })),
+                        .map((score) => {
+                            const sheet = dataFetcher
+                                .getSongByName(score.title)
+                                .sheets.find((s) => s.difficulty === score.difficulty);
+                            return {
+                                name:
+                                    score.title.length > 100
+                                        ? score.title.substring(0, 97) + '...'
+                                        : score.title +
+                                          ` ${getDifficultyEmoji(score.difficulty)} ${sheet?.level ?? ''} (${sheet?.internalLevelValue.toFixed(1) ?? 'N/A'})`,
+                                value: `${score.achievement.toFixed(4)}%\n${comboTypeReflection[score.comboType]}${score.comboType === ComboType.None ? '' : ' '}${syncTypeReflection[score.syncType]}`,
+                            };
+                        }),
                 )
                 .setFooter({ text: `Page ${page + 1} of ${Math.ceil(allFilteredScores.length / 5)}` });
             await i.update({ embeds: [embed], components: [sortMethodSelector, pageActionRow] });
