@@ -88,7 +88,7 @@ function calculateB50(
         comboType: ComboType;
         syncType: SyncType;
     }[],
-    calculateVersion: string = 'CiRCLE',
+    calculateVersion: string = 'CiRCLE PLUS',
 ): {
     B15Data: B50Data[];
     B35Data: B50Data[];
