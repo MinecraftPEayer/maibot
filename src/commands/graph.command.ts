@@ -221,7 +221,7 @@ async function drawAndSendGraph(
     graphType: keyof typeof DrawGraph,
 ) {
     initializeFonts();
-    const { B15Data, B35Data } = calculateB50(Object.values(scores).flat(), 'CiRCLE');
+    const { B15Data, B35Data } = calculateB50(Object.values(scores).flat(), 'CiRCLE PLUS');
 
     const canvas = new Canvas(1920, 1080);
     const ctx = canvas.getContext('2d');
@@ -237,25 +237,25 @@ async function drawAndSendGraph(
     }
 
     const bgBlur = await loadImage('tmp/bg_blurred.png');
-    ctx.save();
-    ctx.beginPath();
-    ctx.roundRect(30, 30, WIDTH - 60, HEIGHT - 60, 54);
-    ctx.clip();
-    ctx.drawImage(bgBlur, 30, 30, WIDTH - 60, HEIGHT - 60);
-    ctx.restore();
-
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(24, 24, WIDTH - 48, HEIGHT - 48, 40);
+        ctx.clip();
+        ctx.drawImage(bgBlur, 24, 24, WIDTH - 48, HEIGHT - 48);
+        ctx.restore();
+    
     drawRoundRect({
         ctx,
-        x: 30,
-        y: 30,
-        width: WIDTH - 60,
-        height: HEIGHT - 60,
-        radius: 54,
+        x: 24,
+        y: 24,
+        width: WIDTH - 48,
+        height: HEIGHT - 48,
+        radius: 40,
         fillStyle: 'rgba(0, 0, 0, 0.5)',
     });
 
     const logoImg = await loadImage('assets/logo.png');
-    ctx.drawImage(logoImg, 1627, 64, 229, 109);
+    ctx.drawImage(logoImg, 1625, 64, 231, 109);
 
     drawRoundRect({
         ctx,

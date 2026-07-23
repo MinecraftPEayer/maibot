@@ -99,5 +99,4 @@ export const VersionColor = {
 
 export const NewSongVersion = {
     'CiRCLE PLUS': ['CiRCLE PLUS', 'CiRCLE'],
-    CiRCLE: ['CiRCLE', 'PRiSM PLUS'],
 };

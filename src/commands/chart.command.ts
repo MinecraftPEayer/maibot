@@ -449,23 +449,23 @@ async function drawAndSendChart(
     const bgBlur = await loadImage('tmp/bg_blurred.png');
     ctx.save();
     ctx.beginPath();
-    ctx.roundRect(30, 30, WIDTH - 60, HEIGHT - 60, 54);
+    ctx.roundRect(24, 24, WIDTH - 48, HEIGHT - 48, 40);
     ctx.clip();
-    ctx.drawImage(bgBlur, 30, 30, WIDTH - 60, HEIGHT - 60);
+    ctx.drawImage(bgBlur, 24, 24, WIDTH - 48, HEIGHT - 48);
     ctx.restore();
 
     drawRoundRect({
         ctx,
-        x: 30,
-        y: 30,
-        width: WIDTH - 60,
-        height: HEIGHT - 60,
-        radius: 54,
+        x: 24,
+        y: 24,
+        width: WIDTH - 48,
+        height: HEIGHT - 48,
+        radius: 40,
         fillStyle: 'rgba(0, 0, 0, 0.5)',
     });
 
     const logoImg = await loadImage('assets/logo.png');
-    ctx.drawImage(logoImg, 1627, 64, 229, 109);
+    ctx.drawImage(logoImg, 1625, 64, 231, 109);
 
     drawCustomRoundRect({
         ctx,
@@ -860,17 +860,17 @@ const data = new SlashCommandBuilder()
     .addBooleanOption((option) =>
         option.setName('draw_icons').setDescription('是否繪製SYNC/FC/AP圖標 (預設為否)').setRequired(false),
     )
-    .addStringOption((option) =>
-        option
-            .setName('version')
-            .setDescription('版本')
-            .addChoices(
-                Object.keys(NewSongVersion).map((item) => {
-                    return { name: item, value: item };
-                }),
-            )
-            .setRequired(false),
-    );
+    // .addStringOption((option) =>
+    //     option
+    //         .setName('version')
+    //         .setDescription('版本')
+    //         .addChoices(
+    //             Object.keys(NewSongVersion).map((item) => {
+    //                 return { name: item, value: item };
+    //             }),
+    //         )
+    //         .setRequired(false),
+    // );
 
 const scoreType = ScoreType.Achievement;
 
@@ -890,7 +890,8 @@ async function execute(interaction: ChatInputCommandInteraction) {
     let db = new JSONdb('data/linking.json');
     let optionUser = interaction.options.getUser('user');
     let optionDrawIcons = interaction.options.getBoolean('draw_icons') ?? false;
-    let optionVersion = interaction.options.getString('version') ?? 'CiRCLE';
+    // let optionVersion = interaction.options.getString('version') ?? 'CiRCLE';
+    let optionVersion = 'CiRCLE PLUS';
 
     if (optionUser && !db.has(optionUser.id)) {
         return await interaction.reply(`${optionUser.username} 還沒綁定帳號`);
