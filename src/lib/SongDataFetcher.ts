@@ -111,10 +111,10 @@ class SongDataFetcher {
             if (response.status === 200) {
                 const data = response.data;
                 const intlConstantDBResponse = await axios.get(
-                    'https://raw.githubusercontent.com/zvuc/otoge-db/refs/heads/master/maimai/data/music-ex-intl.json',
+                    'https://raw.githubusercontent.com/zvuc/otoge-db/refs/heads/main/maimai/data/music-ex-intl.json',
                 );
                 const jpConstantDBResponse = await axios.get(
-                    'https://raw.githubusercontent.com/zvuc/otoge-db/refs/heads/master/maimai/data/music-ex.json',
+                    'https://raw.githubusercontent.com/zvuc/otoge-db/refs/heads/main/maimai/data/music-ex.json',
                 );
 
                 const outputData: SongDatabase = {
