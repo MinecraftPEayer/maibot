@@ -5,13 +5,14 @@ import { calculateB50, getRatingBaseImage, initializeFonts, FontStack } from 'sr
 import fs from 'fs';
 import { ChartType, ComboType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
 import { B50Data, Rank, ScoreData } from 'types/SongDatabase';
-import { DifficultyColor, VersionColor, NewSongVersion } from 'src/lib/constant/CommonConstant';
+import { DifficultyColor, VersionColor } from 'src/lib/constant/CommonConstant';
 import Logger from 'src/lib/logger';
 import { PlayerInfo } from 'types/main';
 import { drawRoundRect, drawCustomRoundRect, createBlurredBackground } from 'src/lib/DrawImageUtils';
 import PlayerDataService from 'src/lib/PlayerDataService';
 import RatingChartUtils from 'src/lib/RatingChartUtils';
 import ImageHelper from 'src/lib/ImageHelper';
+import ImageConfig from 'src/lib/ImageConfig'
 
 const TitleTypeName = {
     [TitleType.Normal]: 'Normal',
@@ -446,26 +447,29 @@ async function drawAndSendChart(
         await createBlurredBackground(WIDTH, HEIGHT, bgImg);
     }
 
+    const Margin = ImageConfig.backgroundDim.margin,
+        CornerRadius = ImageConfig.backgroundDim.cornerRadius;
     const bgBlur = await loadImage('tmp/bg_blurred.png');
     ctx.save();
     ctx.beginPath();
-    ctx.roundRect(24, 24, WIDTH - 48, HEIGHT - 48, 40);
+    ctx.roundRect(Margin, Margin, WIDTH - (Margin * 2), HEIGHT - (Margin * 2), CornerRadius);
     ctx.clip();
-    ctx.drawImage(bgBlur, 24, 24, WIDTH - 48, HEIGHT - 48);
+    ctx.drawImage(bgBlur, Margin, Margin, WIDTH - (Margin * 2), HEIGHT - (Margin * 2));
     ctx.restore();
 
     drawRoundRect({
         ctx,
-        x: 24,
-        y: 24,
-        width: WIDTH - 48,
-        height: HEIGHT - 48,
-        radius: 40,
+        x: Margin,
+        y: Margin,
+        width: WIDTH - (Margin * 2),
+        height: HEIGHT - (Margin * 2),
+        radius: CornerRadius,
         fillStyle: 'rgba(0, 0, 0, 0.5)',
     });
 
+    const logoConfig = ImageConfig.logo;
     const logoImg = await loadImage('assets/logo.png');
-    ctx.drawImage(logoImg, 1625, 64, 231, 109);
+    ctx.drawImage(logoImg, logoConfig.x, logoConfig.y, logoConfig.width, logoConfig.height);
 
     drawCustomRoundRect({
         ctx,
