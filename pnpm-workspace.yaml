@@ -1,0 +1,4 @@
+allowBuilds:
+  bun: true
+  sharp: true
+  skia-canvas: true
