@@ -55,8 +55,8 @@ function getRankFactor(achievement: number): number {
     if (achievement >= 50) return RankFactor['C'];
     if (achievement >= 40) return RankFactor['D_40'];
     if (achievement >= 30) return RankFactor['D_30'];
-    if (achievement >= 10) return RankFactor['D_10'];
     if (achievement >= 20) return RankFactor['D_20'];
+    if (achievement >= 10) return RankFactor['D_10'];
     return RankFactor['D_0'];
 }
 
