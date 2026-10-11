@@ -1,22 +1,24 @@
-import cookieParser, { Cookie } from 'set-cookie-parser';
 import * as cheerio from 'cheerio';
 import fs from 'fs';
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { ChartType, ComboType, Difficulty, Genres, ScoreType, SyncType, TitleType } from './CommonEnums';
 import { DifficultyDisplayName, DifficultyName } from './constant/CommonConstant';
 import Logger from './logger';
 import { writeErrorToFile } from './Utils';
 import { ScoreData } from 'types/SongDatabase';
 import JSONdb from 'simple-json-db';
+import { CookieJar } from 'tough-cookie';
+import { wrapper } from 'axios-cookiejar-support';
 
 const UserAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36';
 
 class MaimaiDXNetFetcher {
     static instance: MaimaiDXNetFetcher | null = null;
-    cookies: Cookie[] = [];
     loginFinished: boolean = false;
     logger: Logger = new Logger('MaimaiDXNetFetcher');
+    http: AxiosInstance;
+    cookieJar: CookieJar;
 
     static getInstance() {
         if (!MaimaiDXNetFetcher.instance) {
@@ -25,86 +27,57 @@ class MaimaiDXNetFetcher {
         return MaimaiDXNetFetcher.instance;
     }
 
-    private constructor() {}
+    private constructor() {
+        this.cookieJar = new CookieJar();
+        this.http = wrapper(axios.create({ jar: this.cookieJar, headers: { 'User-Agent': UserAgent } }));
+    }
 
     private async update() {
-        let resp = await axios.get('https://maimaidx-eng.com/maimai-mobile/home', {
-            headers: {
-                Cookie: this.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-                'User-Agent': UserAgent,
-            },
-        });
+        const homeResponse = await this.http.get('https://maimaidx-eng.com/maimai-mobile/home');
 
-        if (resp.headers['set-cookie']) {
-            let newCookies = cookieParser
-                .parse(cookieParser.splitCookiesString(resp.headers['set-cookie']))
-                .filter((c) => c.value !== 'deleted');
-
-            newCookies.forEach((newCookie) => {
-                const index = this.cookies.findIndex((c) => c.name === newCookie.name);
-                if (index !== -1) {
-                    this.cookies[index] = newCookie;
-                } else {
-                    this.cookies.push(newCookie);
-                }
-            });
+        const $ = cheerio.load(homeResponse.data);
+        if ($('title').text() !== 'maimai DX NET－Home－') {
+            this.logger.warn('Session expired, re-logging in...');
+            await this.login();
         }
     }
 
     public async login(): Promise<void> {
-        this.cookies = [];
+        this.cookieJar.removeAllCookiesSync();
+        this.loginFinished = false;
 
-        let jsessionIdResponse = await axios.get(
+        await this.http.get(
             'https://lng-tgk-aime-gw.am-all.net/common_auth/login?site_id=maimaidxex&redirect_url=https://maimaidx-eng.com/maimai-mobile/&back_url=https://maimai.sega.com/',
         );
-        let cookies = jsessionIdResponse.headers['set-cookie'];
 
         try {
-            let loginResponse = await axios.post(
+            const loginResponse = await this.http.post(
                 'https://lng-tgk-aime-gw.am-all.net/common_auth/login/sid',
                 new URLSearchParams({
                     sid: process.env.SID ?? '',
                     password: process.env.SID_PASSWORD ?? '',
                     retention: '1',
                 }),
-                {
-                    headers: {
-                        ...(cookies ? { Cookie: cookies.join('; ') } : {}),
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'User-Agent': UserAgent,
-                    },
-                    maxRedirects: 0,
-                    validateStatus: (status) => status === 302,
-                },
             );
 
-            let dxNetResponse = await axios.get(loginResponse.headers.location, {
-                headers: {
-                    ...(cookies ? { Cookie: cookies.join('; ') } : {}),
-                    'User-Agent': UserAgent,
-                },
-                maxRedirects: 0,
-                validateStatus: (status) => status === 302,
-            });
-
-            let dxNetCookies = dxNetResponse.headers['set-cookie'];
-            if (dxNetCookies) {
-                let parsing = cookieParser.splitCookiesString(dxNetCookies);
-                this.cookies.push(...cookieParser.parse(parsing).filter((c) => c.value !== 'deleted'));
+            const $ = cheerio.load(loginResponse.data);
+            const errorMessage = $('#error-ui').text().trim();
+            if (errorMessage) {
+                this.logger.error(`Login failed: ${errorMessage}`);
+                throw new Error(`Login failed: ${errorMessage}`);
             }
 
-            let homeResp = await axios.get('https://maimaidx-eng.com/maimai-mobile/home', {
-                headers: {
-                    Cookie: this.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-                    'User-Agent': UserAgent,
-                },
-            });
+            if ($('title').text() !== 'maimai DX NET－Home－') {
+                this.logger.error('Login failed: Unexpected response after login');
+                throw new Error('Login failed: Unexpected response after login');
+            }
 
             this.loginFinished = true;
             this.logger.log('Logged in successfully');
         } catch (error) {
-            Promise.reject('Error fetching user info');
             writeErrorToFile(error);
+            this.logger.error('Error during login:', error);
+            throw new Error('Error during login');
         }
     }
 
@@ -116,27 +89,23 @@ class MaimaiDXNetFetcher {
         await this.update();
 
         try {
-            let resp = await axios.get('https://maimaidx-eng.com/maimai-mobile/friend', {
-                headers: {
-                    'User-Agent': UserAgent,
-                    Cookie: this.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-                },
+            let resp = await this.http.get('https://maimaidx-eng.com/maimai-mobile/friend', {
                 maxRedirects: 0,
                 validateStatus: (status) => status === 200 || status === 302,
             });
 
             let $ = cheerio.load(resp.data);
 
-            if ($('title').text() === 'maimai DX NET－Error－' || resp.status === 302 || resp.data === '') {
+            if ($('title').text() !== 'maimai DX NET－All Friend\'s－') {
                 await this.login();
-                resp = await axios.get('https://maimaidx-eng.com/maimai-mobile/friend', {
-                    headers: {
-                        'User-Agent': UserAgent,
-                        Cookie: this.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-                    },
-                });
+                resp = await this.http.get('https://maimaidx-eng.com/maimai-mobile/friend');
 
                 $ = cheerio.load(resp.data);
+
+                if ($('title').text() !== 'maimai DX NET－All Friend\'s－') {
+                    this.logger.error('Failed to fetch friend list after re-login');
+                    throw new Error('Failed to fetch friend list after re-login');
+                }
             }
 
             let output: {
@@ -157,6 +126,7 @@ class MaimaiDXNetFetcher {
         } catch (error) {
             this.logger.error('Error fetching friend list:', error);
             writeErrorToFile(error);
+            throw new Error('Error fetching friend list');
         }
     }
 
@@ -167,26 +137,36 @@ class MaimaiDXNetFetcher {
 
         await this.update();
         try {
-            let resp = await axios.post(
-                'https://maimaidx-eng.com/maimai-mobile/friend/search/invite',
+            const inviteURL = 'https://maimaidx-eng.com/maimai-mobile/friend/search/invite';
+            const cookies = await this.cookieJar.getCookies(inviteURL);
+            let token = cookies.find((cookie) => cookie.key === '_t')?.value;
+
+            if (!token) {
+                await this.update();
+                const updatedCookies = await this.cookieJar.getCookies(inviteURL);
+                const updatedToken = updatedCookies.find((cookie) => cookie.key === '_t')?.value;
+                if (!updatedToken) {
+                    throw new Error('Failed to obtain token after update');
+                }
+                token = updatedToken;
+            }
+
+            await this.http.post(
+                inviteURL,
                 new URLSearchParams({
                     idx: friendCode,
-                    token: this.cookies.find((c) => c.name === '_t')?.value ?? '',
+                    token: token,
                 }),
                 {
                     headers: {
-                        Cookie: this.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-                        'User-Agent': UserAgent,
                         Referer: `https://maimaidx-eng.com/maimai-mobile/friend/search/searchUser/?friendCode=${friendCode}`,
                     },
-                    maxRedirects: 0,
-                    validateStatus: (status) => status === 200 || status === 302,
                 },
             );
         } catch (error) {
             this.logger.error('Error adding friend:', error);
             writeErrorToFile(error);
-            return null;
+            throw new Error('Error adding friend');
         }
     }
 
@@ -205,35 +185,35 @@ class MaimaiDXNetFetcher {
 
         await this.update();
         try {
-            let resp = await axios.get(
+            let resp = await this.http.get(
                 `https://maimaidx-eng.com/maimai-mobile/friend/friendDetail/?idx=${friendCode}`,
                 {
                     headers: {
-                        Cookie: this.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-                        'User-Agent': UserAgent,
                         Referer: `https://maimaidx-eng.com/maimai-mobile/friend`,
                     },
-                    maxRedirects: 0,
-                    validateStatus: (status) => status === 200 || status === 302,
                 },
             );
             let data = resp.data;
 
             let $ = cheerio.load(data);
 
-            if ($('title').text() === 'maimai DX NET－Error－' || resp.status === 302 || resp.data === '') {
-                await this.login();
-                resp = await axios.get(
+            if ($('title').text() !== 'maimai DX NET－Friend\'s Details－') {
+                await this.update();
+                resp = await this.http.get(
                     `https://maimaidx-eng.com/maimai-mobile/friend/friendDetail/?idx=${friendCode}`,
                     {
                         headers: {
-                            'User-Agent': UserAgent,
-                            Cookie: this.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
+                            Referer: `https://maimaidx-eng.com/maimai-mobile/friend`,
                         },
                     },
                 );
 
                 $ = cheerio.load(resp.data);
+
+                if ($('title').text() !== 'maimai DX NET－Friend\'s Details－') {
+                    this.logger.error('Failed to fetch player info after re-login');
+                    throw new Error('Failed to fetch player info after re-login');
+                }
             }
             let name = $('.name_block').text() ?? '';
             let rating = parseInt($('.rating_block').first().text() ?? '0');
@@ -280,37 +260,29 @@ class MaimaiDXNetFetcher {
     }> {
         this.logger.log(`Fetching ${DifficultyDisplayName[difficulty]} scores for player:`, friendCode);
 
-        let resp = await axios.get(
+        if (!this.loginFinished) {
+            await this.update();
+        }
+
+        let resp = await this.http.get(
             `https://maimaidx-eng.com/maimai-mobile/friend/friendGenreVs/battleStart/?scoreType=${scoreType}&genre=${Genres.ALL}&diff=${difficulty}&idx=${friendCode}`,
-            {
-                headers: {
-                    Cookie: this.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-                    'User-Agent': UserAgent,
-                },
-            },
         );
         let output: ScoreData[] = [];
         let data = resp.data;
         let $ = cheerio.load(data);
 
-        if ($('title').text() === 'maimai DX NET－Error－' || resp.status === 302 || resp.data === '') {
-            await this.login();
-            resp = await axios.get(
+        if ($('title').text() !== 'maimai DX NET－Friends VS－') {
+            await this.update();
+            resp = await this.http.get(
                 `https://maimaidx-eng.com/maimai-mobile/friend/friendGenreVs/battleStart/?scoreType=${scoreType}&genre=${Genres.ALL}&diff=${difficulty}&idx=${friendCode}`,
-                {
-                    headers: {
-                        'User-Agent': UserAgent,
-                        Cookie: this.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-                    },
-                },
             );
 
             $ = cheerio.load(resp.data);
-        }
-        if ($('title').text() === 'maimai DX NET－Error－') {
-            let time = Date.now();
-            fs.writeFileSync(`tmp/dxnet_error_${time}.html`, data);
-            this.logger.error(`Error while fetching scores, response was saved to tmp/dxnet_error_${time}.html`);
+
+            if ($('title').text() !== 'maimai DX NET－Friends VS－') {
+                this.logger.error('Failed to fetch scores after re-login');
+                throw new Error('Failed to fetch scores after re-login');
+            }
         }
 
         let allScore = $(`.music_${DifficultyName[difficulty]}_score_back`);
