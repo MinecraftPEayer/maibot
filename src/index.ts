@@ -12,6 +12,7 @@ import { sendMessageToWebhook, setupSongDataAutoUpdateCronJob } from './lib/Util
 import RatingChartUtils from './lib/RatingChartUtils';
 import MaiNoteService from './lib/MaiNoteService';
 import ImageHelper from './lib/ImageHelper';
+import { getErrorMessageFromError } from './lib/handleInteractionError';
 
 const mainLogger = new Logger('main');
 process.logger = mainLogger;
@@ -129,8 +130,37 @@ client.on('interactionCreate', async (interaction) => {
             client.logger.log(`${interaction.user.username} - /${interaction.commandName}`);
             await command.execute(interaction);
         } catch (error) {
+            const RepliedOrDeferred = interaction.replied || interaction.deferred;
+
             try {
-                sendMessageToWebhook({
+                if (getErrorMessageFromError(error)) {
+                    if (RepliedOrDeferred) {
+                        await interaction.editReply({
+                            content: getErrorMessageFromError(error)!,
+                        });
+                    } else {
+                        await interaction.reply({
+                            content: getErrorMessageFromError(error)!,
+                        });
+                    }
+                    return;
+                }
+
+                
+                client.logger.error(`Error executing command ${interaction.commandName}:`, error);
+                if (!interaction.isRepliable()) return;
+
+                if (RepliedOrDeferred) {
+                    await interaction.editReply({
+                        content: `Something went wrong while executing this command.`,
+                    });
+                } else {
+                    await interaction.reply({
+                        content: `Something went wrong while executing this command.`,
+                    });
+                }
+
+                await sendMessageToWebhook({
                     embeds: [
                         {
                             title: 'CommandExecutionError',
@@ -139,20 +169,8 @@ client.on('interactionCreate', async (interaction) => {
                         },
                     ],
                 });
-                client.logger.error(`Error executing command ${interaction.commandName}:`, error);
-                if (!interaction.isRepliable()) return;
-
-                if (interaction.replied) {
-                    await interaction.editReply({
-                        content: `Something went wrong while executing this commmand.`,
-                    });
-                } else {
-                    await interaction.reply({
-                        content: `Something went wrong while executing this commmand.`,
-                    });
-                }
             } catch (replyError) {
-                sendMessageToWebhook({
+                await sendMessageToWebhook({
                     embeds: [
                         {
                             title: 'CommandExecutionError',

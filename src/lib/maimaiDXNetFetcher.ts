@@ -9,6 +9,7 @@ import { ScoreData } from 'types/SongDatabase';
 import JSONdb from 'simple-json-db';
 import { CookieJar } from 'tough-cookie';
 import { wrapper } from 'axios-cookiejar-support';
+import { MaimaiDXNetMaintenanceError } from './errors';
 
 const UserAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36';
@@ -30,6 +31,30 @@ class MaimaiDXNetFetcher {
     private constructor() {
         this.cookieJar = new CookieJar();
         this.http = wrapper(axios.create({ jar: this.cookieJar, headers: { 'User-Agent': UserAgent } }));
+
+        this.http.interceptors.response.use(
+            (response) => {
+                if (typeof response.data === 'string' && this.isMaintenancePage(response.data)) {
+                    throw new MaimaiDXNetMaintenanceError();
+                }
+                return response;
+            },
+            (error: unknown) => {
+                if (
+                    axios.isAxiosError(error) &&
+                    typeof error.response?.data === 'string' &&
+                    this.isMaintenancePage(error.response.data)
+                ) {
+                    throw new MaimaiDXNetMaintenanceError();
+                }
+                return Promise.reject(error);
+            },
+        );
+    }
+
+    private isMaintenancePage(data: string): boolean {
+        const $ = cheerio.load(data);
+        return $('.main_info_title').text().trim() === 'Sorry, servers are under maintenance.';
     }
 
     private async update() {
@@ -75,6 +100,8 @@ class MaimaiDXNetFetcher {
             this.loginFinished = true;
             this.logger.log('Logged in successfully');
         } catch (error) {
+            if (error instanceof MaimaiDXNetMaintenanceError) throw error;
+
             writeErrorToFile(error);
             this.logger.error('Error during login:', error);
             throw new Error('Error during login');
@@ -96,13 +123,13 @@ class MaimaiDXNetFetcher {
 
             let $ = cheerio.load(resp.data);
 
-            if ($('title').text() !== 'maimai DX NET－All Friend\'s－') {
+            if ($('title').text() !== "maimai DX NET－All Friend's－") {
                 await this.login();
                 resp = await this.http.get('https://maimaidx-eng.com/maimai-mobile/friend');
 
                 $ = cheerio.load(resp.data);
 
-                if ($('title').text() !== 'maimai DX NET－All Friend\'s－') {
+                if ($('title').text() !== "maimai DX NET－All Friend's－") {
                     this.logger.error('Failed to fetch friend list after re-login');
                     throw new Error('Failed to fetch friend list after re-login');
                 }
@@ -124,6 +151,8 @@ class MaimaiDXNetFetcher {
             this.logger.log('Fetched friend list successfully');
             return output;
         } catch (error) {
+            if (error instanceof MaimaiDXNetMaintenanceError) throw error;
+            
             this.logger.error('Error fetching friend list:', error);
             writeErrorToFile(error);
             throw new Error('Error fetching friend list');
@@ -164,6 +193,8 @@ class MaimaiDXNetFetcher {
                 },
             );
         } catch (error) {
+            if (error instanceof MaimaiDXNetMaintenanceError) throw error;
+
             this.logger.error('Error adding friend:', error);
             writeErrorToFile(error);
             throw new Error('Error adding friend');
@@ -197,7 +228,7 @@ class MaimaiDXNetFetcher {
 
             let $ = cheerio.load(data);
 
-            if ($('title').text() !== 'maimai DX NET－Friend\'s Details－') {
+            if ($('title').text() !== "maimai DX NET－Friend's Details－") {
                 await this.update();
                 resp = await this.http.get(
                     `https://maimaidx-eng.com/maimai-mobile/friend/friendDetail/?idx=${friendCode}`,
@@ -210,7 +241,7 @@ class MaimaiDXNetFetcher {
 
                 $ = cheerio.load(resp.data);
 
-                if ($('title').text() !== 'maimai DX NET－Friend\'s Details－') {
+                if ($('title').text() !== "maimai DX NET－Friend's Details－") {
                     this.logger.error('Failed to fetch player info after re-login');
                     throw new Error('Failed to fetch player info after re-login');
                 }
@@ -245,9 +276,11 @@ class MaimaiDXNetFetcher {
                 classRank,
             };
         } catch (error) {
+            if (error instanceof MaimaiDXNetMaintenanceError) throw error;
+
             this.logger.error('Error getting player:', error);
             writeErrorToFile(error);
-            return null;
+            throw new Error('Error getting player');
         }
     }
 
