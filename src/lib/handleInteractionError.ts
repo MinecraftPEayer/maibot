@@ -1,4 +1,4 @@
-import { Message } from 'discord.js';
+import { MessageComponentInteraction } from 'discord.js';
 import { MaimaiDXNetMaintenanceError, PlayerDataFetchError } from './errors';
 
 function getErrorMessageFromError(error: unknown): string | null {
@@ -13,4 +13,35 @@ function getErrorMessageFromError(error: unknown): string | null {
     return null
 }
 
-export { getErrorMessageFromError };
+async function handleComponentError(interaction: MessageComponentInteraction, error: unknown): Promise<void> {
+    const errorMessage = getErrorMessageFromError(error);
+
+    if (errorMessage) {
+        if (interaction.replied || interaction.deferred) {
+            await interaction.followUp({
+                content: errorMessage,
+                ephemeral: true,
+            });
+        } else {
+            await interaction.reply({
+                content: errorMessage,
+                ephemeral: true,
+            });
+        }
+    } else {
+        console.error('An unexpected error occurred:', error);
+        if (interaction.replied || interaction.deferred) {
+            await interaction.followUp({
+                content: 'An unexpected error occurred. Please try again later.',
+                ephemeral: true,
+            });
+        } else {
+            await interaction.reply({
+                content: 'An unexpected error occurred. Please try again later.',
+                ephemeral: true,
+            });
+        }
+    }
+}
+
+export { getErrorMessageFromError, handleComponentError };
