@@ -89,6 +89,8 @@ async function sendB50(
 
     collector.on('collect', (actionInteraction: ButtonInteraction) => {
         void (async () => {
+            const lastPage = Math.max(0, Math.ceil(B50Data[currentType].length / 10) - 1)
+
             switch (actionInteraction.customId) {
                 case 'toggle_b15b35':
                     currentType = currentType === 0 ? 1 : 0;
@@ -102,7 +104,7 @@ async function sendB50(
                     break;
 
                 case 'next_page':
-                    if (page < Math.floor(B50Data[currentType].length / 10)) {
+                    if (page < lastPage) {
                         page++;
                     }
                     break;
@@ -114,7 +116,7 @@ async function sendB50(
             if (page == 0) pageActionRow.components[0].setDisabled(true);
             else pageActionRow.components[0].setDisabled(false);
 
-            if (page == Math.floor(B50Data[currentType].length / 10)) pageActionRow.components[1].setDisabled(true);
+            if (page == lastPage) pageActionRow.components[1].setDisabled(true);
             else pageActionRow.components[1].setDisabled(false);
 
             await actionInteraction.update({
