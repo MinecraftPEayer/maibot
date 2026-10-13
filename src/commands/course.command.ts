@@ -12,6 +12,7 @@ import { Emojis } from 'src/lib/constant/emojis';
 import SongDataFetcher from 'src/lib/SongDataFetcher';
 import { getChartTypeFromName, getDifficultyEmoji, getDifficultyIdFromName, randomSong } from 'src/lib/Utils';
 import { DifficultyColor } from 'src/lib/constant/CommonConstant';
+import { handleComponentError } from 'src/lib/handleInteractionError';
 
 // [min, max]
 const RandomCourseLevelRange = {
@@ -59,94 +60,106 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
     const owo = await interaction.reply({ content: 'Select type', components: [selectMenu] });
 
-    const collector = owo.createMessageComponentCollector({ filter: (i) => i.user.id === interaction.user.id });
+    const collector = owo.createMessageComponentCollector({
+        filter: (i) => i.user.id === interaction.user.id,
+        idle: 60_000,
+    });
 
-    let timeout = setTimeout(() => {
-        collector.emit('end');
-    }, 60000);
+    collector.on('collect', (selectInteraction: StringSelectMenuInteraction) => {
+        void (async () => {
+            const selectedSection = course.sections.find(
+                (section: any) => section.title === selectInteraction.values[0],
+            );
 
-    collector.on('collect', async (selectInteraction: StringSelectMenuInteraction) => {
-        const selectedSection = course.sections.find((section: any) => section.title === selectInteraction.values[0]);
+            if (!selectedSection) {
+                await selectInteraction.update({ content: 'Section not found.', components: [] });
+                return collector.stop();
+            }
 
-        if (!selectedSection) {
-            await selectInteraction.update({ content: 'Section not found.', components: [] });
-            return collector.stop();
-        }
+            if (isRandomDan) {
+                const specificFilter = selectedSection.sheets[0].split('|');
+                const filter = {
+                    difficulty: specificFilter[2] === 'master' ? ['master', 'remaster'] : specificFilter[2],
+                    minConstant: RandomCourseLevelRange[selectedSection.title as RandomCourseType][0],
+                    maxConstant: RandomCourseLevelRange[selectedSection.title as RandomCourseType][1],
+                };
 
-        if (isRandomDan) {
-            const specificFilter = selectedSection.sheets[0].split('|');
-            const filter = {
-                difficulty: specificFilter[2] === 'master' ? ['master', 'remaster'] : specificFilter[2],
-                minConstant: RandomCourseLevelRange[selectedSection.title as RandomCourseType][0],
-                maxConstant: RandomCourseLevelRange[selectedSection.title as RandomCourseType][1],
-            };
+                const { filtered, randomized } = randomSong(selectedSection.sheets.length, filter, true);
 
-            const { filtered, randomized } = randomSong(selectedSection.sheets.length, filter, true);
-
-            await selectInteraction.update({
-                content: [`**${course.title} - ${selectedSection.title}**`, selectedSection.description].join('\n'),
-                embeds: randomized.map((sheet, index: number) => {
-                    const version = sheet.sheet.version ? sheet.sheet.version : sheet.song.version;
-                    return new EmbedBuilder()
-                        .setTitle(sheet.song.title)
-                        .setAuthor({ name: `${sheet.song.artist}` })
-                        .setColor(parseInt(DifficultyColor[sheet.sheet.difficulty][0].slice(1) || '000000', 16))
-                        .setThumbnail(`https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${sheet.song.imageName}`)
-                        .setDescription(
-                            [
-                                `${Emojis[sheet.sheet.type === ChartType.DX ? 'DX' : 'STD']} ${getDifficultyEmoji(sheet.sheet.difficulty)} ${sheet.sheet.level || 'N/A'} ${sheet.sheet.internalLevelValue ? `(${sheet.sheet.internalLevelValue.toFixed(1)})` : ''}`,
-                                `-# Note Designer: ${sheet.sheet.noteDesigner ? sheet.sheet.noteDesigner : 'N/A'}`,
-                                `${version ? version : 'N/A'}`,
-                                `${selectedSection.sheetDescriptions ? `\n${selectedSection.sheetDescriptions[index]}` : ''}`,
-                            ].join('\n'),
-                        );
-                }),
-            });
-        } else {
-            await selectInteraction.update({
-                content: [`**${course.title} - ${selectedSection.title}**`, selectedSection.description].join('\n'),
-                embeds: selectedSection.sheets
-                    .map((sheet: string) => sheet.split('|'))
-                    .map((sheet: string[], index: number) => {
-                        const song = SongDataFetcher.getInstance().getSongByName(sheet[0]);
-                        const chartType = getChartTypeFromName(sheet[1]);
-                        const difficulty = getDifficultyIdFromName(sheet[2]);
-
-                        const sheetData = song.sheets.find((s) => s.type === chartType && s.difficulty === difficulty);
-                        const version = sheetData?.version ? sheetData.version : song.version;
-
+                await selectInteraction.update({
+                    content: [`**${course.title} - ${selectedSection.title}**`, selectedSection.description].join('\n'),
+                    embeds: randomized.map((sheet, index: number) => {
+                        const version = sheet.sheet.version ? sheet.sheet.version : sheet.song.version;
                         return new EmbedBuilder()
-                            .setTitle(song.title)
-                            .setAuthor({ name: `${song.artist}` })
-                            .setColor(
-                                parseInt(
-                                    SongDataFetcher.difficulties
-                                        .find((d) => d.difficulty === sheet[2])
-                                        ?.color.slice(1) || '000000',
-                                    16,
-                                ),
+                            .setTitle(sheet.song.title)
+                            .setAuthor({ name: `${sheet.song.artist}` })
+                            .setColor(parseInt(DifficultyColor[sheet.sheet.difficulty][0].slice(1) || '000000', 16))
+                            .setThumbnail(
+                                `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${sheet.song.imageName}`,
                             )
-                            .setThumbnail(`https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`)
                             .setDescription(
                                 [
-                                    `${Emojis[sheetData?.type === ChartType.DX ? 'DX' : 'STD']} ${getDifficultyEmoji(sheetData?.difficulty ?? difficulty)} ${sheetData?.level || 'N/A'} ${sheetData?.internalLevelValue ? `(${sheetData.internalLevelValue.toFixed(1)})` : ''}`,
-                                    `-# Note Designer: ${sheetData?.noteDesigner ? sheetData.noteDesigner : 'N/A'}`,
+                                    `${Emojis[sheet.sheet.type === ChartType.DX ? 'DX' : 'STD']} ${getDifficultyEmoji(sheet.sheet.difficulty)} ${sheet.sheet.level || 'N/A'} ${sheet.sheet.internalLevelValue ? `(${sheet.sheet.internalLevelValue.toFixed(1)})` : ''}`,
+                                    `-# Note Designer: ${sheet.sheet.noteDesigner ? sheet.sheet.noteDesigner : 'N/A'}`,
                                     `${version ? version : 'N/A'}`,
-                                    `${selectedSection.sheetDescriptions ? `## ${selectedSection.sheetDescriptions[index]}` : ''}`,
+                                    `${selectedSection.sheetDescriptions ? `\n${selectedSection.sheetDescriptions[index]}` : ''}`,
                                 ].join('\n'),
                             );
                     }),
-            });
-        }
+                });
+            } else {
+                await selectInteraction.update({
+                    content: [`**${course.title} - ${selectedSection.title}**`, selectedSection.description].join('\n'),
+                    embeds: selectedSection.sheets
+                        .map((sheet: string) => sheet.split('|'))
+                        .map((sheet: string[], index: number) => {
+                            const song = SongDataFetcher.getInstance().getSongByName(sheet[0]);
+                            const chartType = getChartTypeFromName(sheet[1]);
+                            const difficulty = getDifficultyIdFromName(sheet[2]);
 
-        clearTimeout(timeout);
-        timeout = setTimeout(() => {
-            collector.emit('end');
-        }, 60000);
+                            const sheetData = song.sheets.find(
+                                (s) => s.type === chartType && s.difficulty === difficulty,
+                            );
+                            const version = sheetData?.version ? sheetData.version : song.version;
+
+                            return new EmbedBuilder()
+                                .setTitle(song.title)
+                                .setAuthor({ name: `${song.artist}` })
+                                .setColor(
+                                    parseInt(
+                                        SongDataFetcher.difficulties
+                                            .find((d) => d.difficulty === sheet[2])
+                                            ?.color.slice(1) || '000000',
+                                        16,
+                                    ),
+                                )
+                                .setThumbnail(
+                                    `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`,
+                                )
+                                .setDescription(
+                                    [
+                                        `${Emojis[sheetData?.type === ChartType.DX ? 'DX' : 'STD']} ${getDifficultyEmoji(sheetData?.difficulty ?? difficulty)} ${sheetData?.level || 'N/A'} ${sheetData?.internalLevelValue ? `(${sheetData.internalLevelValue.toFixed(1)})` : ''}`,
+                                        `-# Note Designer: ${sheetData?.noteDesigner ? sheetData.noteDesigner : 'N/A'}`,
+                                        `${version ? version : 'N/A'}`,
+                                        `${selectedSection.sheetDescriptions ? `## ${selectedSection.sheetDescriptions[index]}` : ''}`,
+                                    ].join('\n'),
+                                );
+                        }),
+                });
+            }
+        })()
+            .catch(async (error) => await handleComponentError(selectInteraction, error))
+            .catch(async (error) => {
+                console.error('Error handling component interaction:', error);
+            });
     });
 
     collector.on('end', async () => {
-        await interaction.editReply({ components: [] });
+        try {
+            await interaction.editReply({ components: [] });
+        } catch (error) {
+            console.error('Error cleaning components:', error);
+        }
     });
 }
 

@@ -22,6 +22,7 @@ import { DifficultyColor, DifficultyDisplayName } from 'src/lib/constant/CommonC
 import PlayerDataService from 'src/lib/PlayerDataService';
 import { Canvas, loadImage } from 'skia-canvas';
 import MaiNoteService from 'src/lib/MaiNoteService';
+import { handleComponentError } from 'src/lib/handleInteractionError';
 
 async function drawScoreTable(notes: {
     tap?: number | null;
@@ -263,13 +264,9 @@ async function execute(interaction: ChatInputCommandInteraction) {
         components,
     });
 
-    const timeoutFunction = () => {
-        collector.emit('end');
-    };
-    const collector = owo.createMessageComponentCollector({ max: Infinity });
-    let timeout = setTimeout(timeoutFunction, 60000);
-    collector.on('collect', async (buttonInteraction: ButtonInteraction | StringSelectMenuInteraction) => {
-        try {
+    const collector = owo.createMessageComponentCollector({ idle: 60_000 });
+    collector.on('collect', (buttonInteraction: ButtonInteraction | StringSelectMenuInteraction) => {
+        void (async () => {
             switch (buttonInteraction.customId) {
                 case 'toggle_dx_std':
                     if (buttonInteraction.user.id !== interaction.user.id) return;
@@ -353,7 +350,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                             flags: [MessageFlags.Ephemeral],
                         });
 
-                    buttonInteraction.deferUpdate();
+                    await buttonInteraction.deferUpdate();
                     let title = [
                         `${isUTAGE ? song.title.slice(3) : song.title} - ${!isUTAGE ? Emojis[selectedSheet.type === ChartType.DX ? 'DX' : 'STD'] + ' ' : ''}`,
                         getDifficultyEmoji(isUTAGE ? selectedSheet.utageType! : selectedSheet.difficulty),
@@ -404,7 +401,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
                     const totalDXScore = noteCounts.total ? noteCounts.total * 3 : null;
 
-                    interaction.editReply({
+                    await interaction.editReply({
                         embeds: [
                             {
                                 title:
@@ -481,18 +478,19 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     });
                     break;
             }
-
-            clearTimeout(timeout);
-            timeout = setTimeout(timeoutFunction, 60000);
-        } catch (error) {
-            console.error(error);
-        }
+        })()
+            .catch(async (error) => await handleComponentError(buttonInteraction, error))
+            .catch(async (error) => {
+                console.error('Error handling component interaction:', error);
+            });
     });
 
     collector.on('end', async () => {
         try {
             await interaction.editReply({ components: [] });
-        } catch (error) {}
+        } catch (error) {
+            console.error('Error cleaning components:', error);
+        }
     });
 }
 

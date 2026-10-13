@@ -10,6 +10,7 @@ import {
 } from 'discord.js';
 import fs from 'fs';
 import { Emojis } from 'src/lib/constant/emojis';
+import { handleComponentError } from 'src/lib/handleInteractionError';
 import SongDataFetcher from 'src/lib/SongDataFetcher';
 import { getChartTypeFromName, getDifficultyIdFromName, randomSong } from 'src/lib/Utils';
 import { Sheet, Song } from 'types/SongDatabase';
@@ -195,37 +196,39 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
     const collector = owo.createMessageComponentCollector({
         filter: (i) => i.user.id === interaction.user.id,
+        idle: 60_000,
     });
 
-    let timeout = setTimeout(() => {
-        collector.emit('end');
-    }, 60000);
+    collector.on('collect', (i) => {
+        void (async () => {
+            if (i.customId === 'prev_page') {
+                if (page > 0) page--;
+            } else if (i.customId === 'next_page') {
+                if (page !== Math.ceil(count / itemPerPage) - 1) page++;
+            }
+            paginationActionRow.components[0].setDisabled(page === 0);
+            paginationActionRow.components[1].setDisabled(page === Math.ceil(count / itemPerPage) - 1);
 
-    collector.on('collect', async (i) => {
-        if (i.customId === 'prev_page') {
-            if (page > 0) page--;
-        } else if (i.customId === 'next_page') {
-            if (page !== Math.ceil(count / itemPerPage) - 1) page++;
-        }
-        paginationActionRow.components[0].setDisabled(page === 0);
-        paginationActionRow.components[1].setDisabled(page === Math.ceil(count / itemPerPage) - 1);
-
-        await i.update({
-            content: `Page ${page + 1} / ${Math.ceil(count / itemPerPage)}`,
-            embeds: getPageEmbed(page),
-            components: [paginationActionRow],
-        });
-
-        clearTimeout(timeout);
-        timeout = setTimeout(() => {
-            collector.emit('end');
-        }, 60000);
+            await i.update({
+                content: `Page ${page + 1} / ${Math.ceil(count / itemPerPage)}`,
+                embeds: getPageEmbed(page),
+                components: [paginationActionRow],
+            });
+        })()
+            .catch(async (error) => await handleComponentError(i, error))
+            .catch(async (error) => {
+                console.error('Error handling component interaction:', error);
+            });
     });
 
     collector.on('end', async () => {
-        await owo.edit({
-            components: [],
-        });
+        try {
+            await owo.edit({
+                components: [],
+            });
+        } catch (error) {
+            console.error('Error cleaning up components:', error);
+        }
     });
 }
 

@@ -14,6 +14,7 @@ import SongDataFetcher from 'src/lib/SongDataFetcher';
 import { sendScore } from 'src/lib/Utils';
 import { ScoreData } from 'types/SongDatabase';
 import exception from 'config/exception.json';
+import { handleComponentError } from 'src/lib/handleInteractionError';
 
 const toggle_dx_std = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
@@ -107,21 +108,31 @@ async function execute(interaction: ChatInputCommandInteraction) {
             collector.stop();
         }, 60000);
 
-        collector.on('collect', async (i) => {
-            if (i.customId === 'toggle_dx_std') {
-                await i.deferUpdate();
-                type = type === ChartType.DX ? ChartType.STD : ChartType.DX;
-                await sendScore(interaction, song, playerData, scoreData, isUTAGE, scoreFilter, components);
+        collector.on('collect', (i) => {
+            void (async () => {
+                if (i.customId === 'toggle_dx_std') {
+                    await i.deferUpdate();
+                    type = type === ChartType.DX ? ChartType.STD : ChartType.DX;
+                    await sendScore(interaction, song, playerData, scoreData, isUTAGE, scoreFilter, components);
 
-                clearTimeout(timeout);
-                timeout = setTimeout(() => {
-                    collector.stop();
-                }, 60000);
-            }
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => {
+                        collector.stop();
+                    }, 60000);
+                }
+            })()
+                .catch(async (error) => await handleComponentError(i, error))
+                .catch(async (error) => {
+                    console.error('Error handling component interaction:', error);
+                });
         });
 
-        collector.on('end', () => {
-            repliedMessage.edit({ components: [] });
+        collector.on('end', async () => {
+            try {
+                await repliedMessage.edit({ components: [] });
+            } catch (error) {
+                console.error('Error cleaning components:', error);
+            }
         });
     }
 }
