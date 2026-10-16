@@ -73,10 +73,10 @@ class PlayerDataService {
                     return {
                         title: score.name,
                         type: score.chartType,
-                        difficulty: score.difficulty || Difficulty.Basic,
+                        difficulty: score.difficulty ?? Difficulty.Basic,
                         achievement: score.achievement,
-                        comboType: score.comboType || ComboType.None,
-                        syncType: score.syncType || SyncType.None,
+                        comboType: score.comboType ?? ComboType.None,
+                        syncType: score.syncType ?? SyncType.None,
                         dxScore: score.dxScore[0],
                         dxStar: convertDXScoreToStar(score.dxScore[0], score.dxScore[1]),
                     };
@@ -112,9 +112,18 @@ class PlayerDataService {
 
                 const btnI = await reply.awaitMessageComponent({
                     filter: (i) => i.user.id === interaction.user.id,
-                });
+                    time: 60 * 1000,
+                })
+                .catch(() => null);
+
+                if (!btnI) {
+                    return await this.fetchNewData(interaction, userId, {
+                        scoreType: ScoreType.Achievement,
+                    });
+                }
 
                 await btnI.deferUpdate();
+                await btnI.editReply({ components: [] });
 
                 if (btnI.customId === 'yes') {
                     // use cached data

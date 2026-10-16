@@ -175,8 +175,8 @@ const execute = async (interaction: ChatInputCommandInteraction) => {
     });
 
     collector.on('end', async () => {
-        container.spliceComponents(container.components.length - 2, 2);
         try {
+            container.spliceComponents(container.components.length - 2, 2);
             await interaction.editReply({ components: [container], flags: [MessageFlags.IsComponentsV2] });
         } catch (e) {
             console.error('Error cleaning components:', e);

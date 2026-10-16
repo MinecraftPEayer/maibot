@@ -317,11 +317,15 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         buttonInteraction.user.id,
                     );
 
-                    if (!result)
-                        return await buttonInteraction.reply({
-                            content: 'Failed to get player data',
-                            flags: [MessageFlags.Ephemeral],
-                        });
+                    if (!result) {
+                        if (!buttonInteraction.replied && !buttonInteraction.deferred) {
+                            await buttonInteraction.reply({
+                                content: 'Failed to get player data',
+                                flags: [MessageFlags.Ephemeral],
+                            });
+                        }
+                        return;
+                    }
 
                     const { playerData, scoreData } = result;
 

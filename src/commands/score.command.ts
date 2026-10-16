@@ -90,11 +90,16 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
     const result = await PlayerDataService.getInstance().getPlayerData(interaction, interaction.user.id);
 
-    if (!result)
-        return await interaction.reply({
-            content: 'Failed to get player data',
-            flags: [MessageFlags.Ephemeral],
-        });
+
+    if (!result) {
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({
+                content: 'Failed to get player data',
+                flags: [MessageFlags.Ephemeral],
+            });
+        }
+        return;
+    }
 
     const { playerData, scoreData } = result;
 
@@ -102,11 +107,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
     if (containDXAndSTD) {
         const filter = (i: any) => i.user.id === interaction.user.id;
-        const collector = repliedMessage.createMessageComponentCollector({ filter });
-
-        let timeout = setTimeout(() => {
-            collector.stop();
-        }, 60000);
+        const collector = repliedMessage.createMessageComponentCollector({ filter, idle: 60000 });
 
         collector.on('collect', (i) => {
             void (async () => {
@@ -114,11 +115,6 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     await i.deferUpdate();
                     type = type === ChartType.DX ? ChartType.STD : ChartType.DX;
                     await sendScore(interaction, song, playerData, scoreData, isUTAGE, scoreFilter, components);
-
-                    clearTimeout(timeout);
-                    timeout = setTimeout(() => {
-                        collector.stop();
-                    }, 60000);
                 }
             })()
                 .catch(async (error) => await handleComponentError(i, error))
