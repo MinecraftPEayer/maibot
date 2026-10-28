@@ -453,6 +453,12 @@ async function sendMessageToWebhook(messagePayload: any) {
     await axios.post(config.error_log_webhook_url, messagePayload);
 }
 
+function writeFileAtomic(path: string, data: unknown) {
+    const tmp = `${path}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
+    fs.renameSync(tmp, path);
+}
+
 const FontStack = '"SEGAMaruGothic", "Noto Sans", "Noto Sans JP", sans-serif';
 
 export {
@@ -472,5 +478,6 @@ export {
     setupSongDataAutoUpdateCronJob,
     writeErrorToFile,
     sendMessageToWebhook,
+    writeFileAtomic,
     FontStack,
 };

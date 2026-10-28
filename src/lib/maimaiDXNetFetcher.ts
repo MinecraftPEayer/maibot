@@ -4,7 +4,7 @@ import axios, { AxiosInstance } from 'axios';
 import { ChartType, ComboType, Difficulty, Genres, ScoreType, SyncType, TitleType } from './CommonEnums';
 import { DifficultyDisplayName, DifficultyName } from './constant/CommonConstant';
 import Logger from './logger';
-import { writeErrorToFile } from './Utils';
+import { writeErrorToFile, writeFileAtomic } from './Utils';
 import { ScoreData } from 'types/SongDatabase';
 import JSONdb from 'simple-json-db';
 import { CookieJar } from 'tough-cookie';
@@ -468,7 +468,7 @@ class MaimaiDXNetFetcher {
         },
     ): void {
         if (!fs.existsSync(`data/playerData/${friendCode}`)) fs.mkdirSync(`data/playerData/${friendCode}`);
-        fs.writeFileSync(
+        writeFileAtomic(
             `data/playerData/${friendCode}/latest.json`,
             JSON.stringify(
                 {

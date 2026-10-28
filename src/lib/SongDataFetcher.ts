@@ -12,6 +12,7 @@ import {
     SongDatabaseRegions,
     SongDatabaseVersions,
 } from 'types/SongDatabase';
+import { writeFileAtomic } from './Utils';
 import yaml from 'js-yaml';
 import { ChartType, Difficulty } from './CommonEnums';
 import exception from 'config/exception.json';
@@ -239,7 +240,7 @@ class SongDataFetcher {
                 SongDataFetcher.difficulties = outputData.difficulties;
                 SongDataFetcher.regions = outputData.regions;
 
-                fs.writeFileSync(this.filePath, JSON.stringify(outputData));
+                writeFileAtomic(this.filePath, JSON.stringify(outputData));
             }
         } catch (error) {
             console.error('Error fetching song data:', error);
@@ -250,9 +251,9 @@ class SongDataFetcher {
         try {
             const response = await axios.get('https://dp4p6x0xfi5o9.cloudfront.net/maimai/gallery.yaml');
             if (response.status === 200) {
-                fs.writeFileSync('tmp/course.yaml', response.data);
+                writeFileAtomic('tmp/course.yaml', response.data);
                 const yamlProcessed = yaml.load(response.data);
-                fs.writeFileSync('tmp/course.json', JSON.stringify(yamlProcessed));
+                writeFileAtomic('tmp/course.json', JSON.stringify(yamlProcessed));
             }
         } catch (error) {
             console.error('Error fetching course data:', error);

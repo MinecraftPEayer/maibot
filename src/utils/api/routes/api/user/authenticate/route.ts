@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import fs from 'fs';
+import { writeFileAtomic } from 'src/lib/Utils';
 
 export async function POST(req: Request, res: Response) {
     let body = req.body;
@@ -15,7 +16,7 @@ export async function POST(req: Request, res: Response) {
     let generatedToken = fs.readFileSync('data/api/token.json');
     let tokenData = JSON.parse(generatedToken.toString());
 
-    fs.writeFileSync(
+    writeFileAtomic(
         'data/api/token.json',
         JSON.stringify([...tokenData, { id: body.id, token: body.token }], null, 2),
     );
