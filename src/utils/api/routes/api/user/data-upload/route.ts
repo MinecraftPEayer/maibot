@@ -4,8 +4,12 @@ import fs from 'fs';
 export async function POST(req: Request, res: Response) {
     let body = req.body;
 
-    if (!body || !body.userData || !body.userData.token || !body.data) {
+    if (!body || !body.userData || !body.userData.token || !body.data || !Array.isArray(body.data?.recentCreditDetail)) {
         return res.status(400).json({ error: 'Bad request' });
+    }
+
+    if (!body.userData.id || !/^\d+$/.test(body.userData.id)) {
+        return res.status(400).json({ error: 'Invalid id' });
     }
 
     let generatedToken = fs.readFileSync('data/api/token.json');
@@ -61,5 +65,7 @@ export async function POST(req: Request, res: Response) {
         fs.writeFileSync(`data/user/${id}/detailed.json`, JSON.stringify(detailedData, null, 2));
 
         return res.status(200).json({ success: true });
+    } else {
+        return res.status(401).send({ error: 'Invalid token' });
     }
 }

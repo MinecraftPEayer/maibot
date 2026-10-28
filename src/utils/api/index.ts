@@ -7,6 +7,10 @@ import Logger from 'src/lib/logger';
 export default async () => {
     const logger = new Logger('API');
 
+    if (!process.env.API_KEY) {
+        return logger.error('API_KEY is empty, API server not started.')
+    }
+
     const app = express();
 
     app.use(express.json());

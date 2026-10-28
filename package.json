@@ -21,7 +21,7 @@
         "typescript": "^5.8.3"
     },
     "scripts": {
-        "start": "npx bun ."
+        "start": "npx tsx ."
     },
     "main": "src/index.ts",
     "devDependencies": {

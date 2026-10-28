@@ -8,6 +8,10 @@ export async function POST(req: Request, res: Response) {
         return res.status(400).json({ error: 'Bad request' });
     }
 
+    if (!/^\d+$/.test(body.id)) {
+        return res.status(400).json({ error: 'Invalid id' });
+    }
+
     let generatedToken = fs.readFileSync('data/api/token.json');
     let tokenData = JSON.parse(generatedToken.toString());
 
