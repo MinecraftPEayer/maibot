@@ -71,11 +71,11 @@ class MaimaiDXNetFetcher {
         this.cookieJar.removeAllCookiesSync();
         this.loginFinished = false;
 
-        await this.http.get(
-            'https://lng-tgk-aime-gw.am-all.net/common_auth/login?site_id=maimaidxex&redirect_url=https://maimaidx-eng.com/maimai-mobile/&back_url=https://maimai.sega.com/',
-        );
-
         try {
+            await this.http.get(
+                'https://lng-tgk-aime-gw.am-all.net/common_auth/login?site_id=maimaidxex&redirect_url=https://maimaidx-eng.com/maimai-mobile/&back_url=https://maimai.sega.com/',
+            );
+
             const loginResponse = await this.http.post(
                 'https://lng-tgk-aime-gw.am-all.net/common_auth/login/sid',
                 new URLSearchParams({
@@ -152,7 +152,7 @@ class MaimaiDXNetFetcher {
             return output;
         } catch (error) {
             if (error instanceof MaimaiDXNetMaintenanceError) throw error;
-            
+
             this.logger.error('Error fetching friend list:', error);
             writeErrorToFile(error);
             throw new Error('Error fetching friend list');

@@ -14,9 +14,8 @@ import config from 'config/config.json';
 import { ButtonInteraction, ChatInputCommandInteraction } from 'discord.js';
 import overrideConstant from 'config/constant_override.json';
 import { PlayerInfo } from 'types/main';
-import cron from 'node-cron'
-import Logger from './logger';
-
+import cron from 'node-cron';
+import Logger, { summarizeAxiosError } from './logger';
 
 function convertAchievementToRank(achievement: number) {
     if (achievement >= 100.5) return 'SSS+';
@@ -279,7 +278,9 @@ function writeErrorToFile(error: any) {
         time.getUTCSeconds().toString().padStart(2, '0'),
     ];
     const fileName = `tmp/error_${nowTime[0]}${nowTime[1]}${nowTime[2]}_${nowTime[3]}${nowTime[4]}${nowTime[5]}.log`;
-    const errorContent = `${util.inspect(error, { depth: null })}`;
+    const errorContent = axios.isAxiosError(error)
+        ? `${summarizeAxiosError(error)}\n\nResponse body:\n${String(error.response?.data ?? '').slice(0, 5000)}`
+        : util.inspect(error, { depth: null });
 
     fs.writeFileSync(fileName, errorContent);
 }
@@ -448,9 +449,10 @@ function setupSongDataAutoUpdateCronJob() {
 
 const webhookLogger = new Logger('Webhook');
 async function sendMessageToWebhook(messagePayload: any) {
-    if (!config.error_log_webhook_url) return webhookLogger.warn('Error log webhook URL is not configured. Skipping sending message to webhook.');
+    if (!config.error_log_webhook_url)
+        return webhookLogger.warn('Error log webhook URL is not configured. Skipping sending message to webhook.');
     try {
-        await axios.post(config.error_log_webhook_url, messagePayload, { timeout: 5000});
+        await axios.post(config.error_log_webhook_url, messagePayload, { timeout: 5000 });
     } catch (error) {
         webhookLogger.error('Failed to send message to webhook:', error);
     }
