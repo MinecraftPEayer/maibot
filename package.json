@@ -22,8 +22,8 @@
         "node": "26.X"
     },
     "scripts": {
-        "start": "npx tsx .",
-        "typecheck": "npx tsc --noEmit"
+        "start": "tsx .",
+        "typecheck": "tsc --noEmit"
     },
     "main": "src/index.ts",
     "devDependencies": {

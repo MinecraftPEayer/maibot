@@ -1,5 +1,4 @@
 allowBuilds:
-  bun: true
   esbuild: true
   sharp: false
   skia-canvas: true
