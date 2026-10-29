@@ -465,9 +465,16 @@ function writeFileAtomic(path: string, data: string) {
 }
 
 function describeError(error: unknown): string {
-    return axios.isAxiosError(error)
-        ? summarizeAxiosError(error)
-        : util.inspect(error);
+    return axios.isAxiosError(error) ? summarizeAxiosError(error) : util.inspect(error);
+}
+
+function summarizeRatings(list: B50Data[]): { total: number; avg: number; range: string } {
+    const total = list.reduce((sum, score) => sum + score.rating, 0);
+    return {
+        total,
+        avg: list.length ? Math.floor(total / list.length) : 0,
+        range: list.length ? `${list[0].rating} / ${list[list.length - 1].rating}` : '-',
+    };
 }
 
 const FontStack = '"SEGAMaruGothic", "Noto Sans", "Noto Sans JP", sans-serif';
@@ -491,5 +498,6 @@ export {
     sendMessageToWebhook,
     writeFileAtomic,
     describeError,
+    summarizeRatings,
     FontStack,
 };

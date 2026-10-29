@@ -1,9 +1,8 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
-import { Difficulty, ScoreType } from 'src/lib/CommonEnums';
 import { PlayerInfo } from 'types/main';
 import { B50Data, ScoreData } from 'types/SongDatabase';
 import fs from 'fs';
-import { calculateB50, FontStack, getRatingBaseImage, initializeFonts } from 'src/lib/Utils';
+import { calculateB50, FontStack, getRatingBaseImage, initializeFonts, summarizeRatings } from 'src/lib/Utils';
 import { getImageBuffer, drawRoundRect, createBlurredBackground } from 'src/lib/DrawImageUtils';
 import { Canvas, loadImage } from 'skia-canvas';
 import { TitleTypeName } from 'src/lib/constant/CommonConstant';
@@ -16,9 +15,6 @@ let logger;
 const WIDTH = 1920,
     HEIGHT = 1080;
 
-const scoreType = ScoreType.Achievement;
-const diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
-
 const DrawGraph: {
     [name: string]: (canvas: Canvas, ...args: any[]) => Promise<void>;
 } = {
@@ -29,6 +25,8 @@ const DrawGraph: {
             B35: B50Data[];
         },
     ) => {
+        const b15Summary = summarizeRatings(drawingData.B15);
+
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = 'white';
         ctx.font = `48px ${FontStack}`;
@@ -41,16 +39,8 @@ const DrawGraph: {
         ctx.fillText(`AVG`, 734, 136 + 16);
 
         ctx.font = `36px ${FontStack}`;
-        ctx.fillText(
-            `${drawingData.B15[0].rating} / ${drawingData.B15[drawingData.B15.length - 1].rating}`,
-            773,
-            100 + 16,
-        );
-        ctx.fillText(
-            `${(drawingData.B15.reduce((acc, score) => acc + score.rating, 0) / drawingData.B15.length).toFixed(0)}`,
-            773,
-            136 + 16,
-        );
+        ctx.fillText(b15Summary.range, 773, 100 + 16);
+        ctx.fillText(String(b15Summary.avg), 773, 136 + 16);
 
         const chart = new Canvas(1792, 844);
         new Chart(chart as any, {
@@ -124,6 +114,8 @@ const DrawGraph: {
             B35: B50Data[];
         },
     ) => {
+        const b35Summary = summarizeRatings(drawingData.B35);
+
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = 'white';
         ctx.font = `48px ${FontStack}`;
@@ -136,16 +128,8 @@ const DrawGraph: {
         ctx.fillText(`AVG`, 734, 136 + 16);
 
         ctx.font = `36px ${FontStack}`;
-        ctx.fillText(
-            `${drawingData.B35[0].rating} / ${drawingData.B35[drawingData.B35.length - 1].rating}`,
-            773,
-            100 + 16,
-        );
-        ctx.fillText(
-            `${(drawingData.B35.reduce((acc, score) => acc + score.rating, 0) / drawingData.B35.length).toFixed(0)}`,
-            773,
-            136 + 16,
-        );
+        ctx.fillText(b35Summary.range, 773, 100 + 16);
+        ctx.fillText(String(b35Summary.avg), 773, 136 + 16);
 
         const chart = new Canvas(1792, 844);
         new Chart(chart as any, {

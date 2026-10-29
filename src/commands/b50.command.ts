@@ -74,7 +74,7 @@ async function sendB50(
                     url: `https://chart.minecraftpeayer.com/api/proxy/img?url=${playerInfo?.avatar}`,
                 },
                 footer: {
-                    text: `${TypeText[currentType]} Page ${page + 1} / ${Math.ceil(B50Data[currentType].length / 10)}`,
+                    text: `${TypeText[currentType]} Page ${page + 1} / ${Math.max(1, Math.ceil(B50Data[currentType].length / 10))}`,
                 },
             },
         ],
@@ -137,8 +137,9 @@ async function sendB50(
                             url: `https://chart.minecraftpeayer.com/api/proxy/img?url=${playerInfo?.avatar}`,
                         },
                         footer: {
-                            text: `${TypeText[currentType]} Page ${page + 1} / ${Math.ceil(
-                                B50Data[currentType].length / 10,
+                            text: `${TypeText[currentType]} Page ${page + 1} / ${Math.max(
+                                1,
+                                Math.ceil(B50Data[currentType].length / 10),
                             )}`,
                         },
                     }),
