@@ -17,6 +17,7 @@ import { PlayerInfo } from 'types/main';
 import cron from 'node-cron'
 import Logger from './logger';
 
+
 function convertAchievementToRank(achievement: number) {
     if (achievement >= 100.5) return 'SSS+';
     if (achievement >= 100.0) return 'SSS';
@@ -283,10 +284,6 @@ function writeErrorToFile(error: any) {
     fs.writeFileSync(fileName, errorContent);
 }
 
-const Difficulties = SongDataFetcher.difficulties;
-const Genres = SongDataFetcher.genres;
-const Versions = SongDataFetcher.versions;
-const Regions = SongDataFetcher.regions;
 const Levels = [
     '1',
     '2',
@@ -449,8 +446,14 @@ function setupSongDataAutoUpdateCronJob() {
     });
 }
 
+const webhookLogger = new Logger('Webhook');
 async function sendMessageToWebhook(messagePayload: any) {
-    await axios.post(config.error_log_webhook_url, messagePayload);
+    if (!config.error_log_webhook_url) return webhookLogger.warn('Error log webhook URL is not configured. Skipping sending message to webhook.');
+    try {
+        await axios.post(config.error_log_webhook_url, messagePayload, { timeout: 5000});
+    } catch (error) {
+        webhookLogger.error('Failed to send message to webhook:', error);
+    }
 }
 
 function writeFileAtomic(path: string, data: string) {
