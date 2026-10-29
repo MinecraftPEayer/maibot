@@ -2,6 +2,7 @@ import axios from 'axios';
 import fs from 'fs';
 import { MaiNoteManifest, MaiNoteSongData } from 'types/main';
 import { Difficulty } from './CommonEnums';
+import { writeFileAtomic } from './Utils';
 
 const DifficultyReflect = {
     BASIC: Difficulty.Basic,
@@ -43,7 +44,7 @@ class MaiNoteService {
             this.songsMap.set(song.title, song);
         }
 
-        fs.writeFileSync('./tmp/mai-notes_data.json', JSON.stringify(data, null, 2));
+        writeFileAtomic('./tmp/mai-notes_data.json', JSON.stringify(data, null, 2));
     }
 
     public getSongUUIDByTitle(title: string) {

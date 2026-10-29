@@ -1,5 +1,6 @@
 import axios from 'axios';
 import fs from 'fs';
+import { writeFileAtomic } from './Utils';
 
 export default async () => {
     if (!fs.existsSync('tmp')) fs.mkdirSync('tmp', { recursive: true });
@@ -11,11 +12,11 @@ export default async () => {
     if (!fs.existsSync('data/playerData')) fs.mkdirSync('data/playerData', { recursive: true });
 
     if (!fs.existsSync('data/api/token.json')) {
-        fs.writeFileSync('data/api/token.json', JSON.stringify([], null, 2));
+        writeFileAtomic('data/api/token.json', JSON.stringify([], null, 2));
     }
     if (!fs.existsSync('commit_hash.txt')) {
         const { data } = await axios.get('https://api.github.com/repos/MinecraftPEayer/maibot/commits/master');
-        fs.writeFileSync('commit_hash.txt', data.sha);
+        writeFileAtomic('commit_hash.txt', data.sha);
     }
 
     process.BuildVersion = process.env.DEVELOPMENT
