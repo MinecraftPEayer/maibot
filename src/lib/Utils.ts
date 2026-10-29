@@ -464,6 +464,12 @@ function writeFileAtomic(path: string, data: string) {
     fs.renameSync(tmp, path);
 }
 
+function describeError(error: unknown): string {
+    return axios.isAxiosError(error)
+        ? summarizeAxiosError(error)
+        : util.inspect(error);
+}
+
 const FontStack = '"SEGAMaruGothic", "Noto Sans", "Noto Sans JP", sans-serif';
 
 export {
@@ -484,5 +490,6 @@ export {
     writeErrorToFile,
     sendMessageToWebhook,
     writeFileAtomic,
+    describeError,
     FontStack,
 };

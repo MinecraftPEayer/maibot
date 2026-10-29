@@ -7,8 +7,7 @@ import Logger from 'src/lib/logger';
 import SongDataFetcher from './lib/SongDataFetcher';
 import { MessageFlags } from 'discord.js';
 import config from 'config/config.json';
-import { inspect } from 'util';
-import { sendMessageToWebhook, setupSongDataAutoUpdateCronJob } from './lib/Utils';
+import { sendMessageToWebhook, setupSongDataAutoUpdateCronJob, describeError } from './lib/Utils';
 import RatingChartUtils from './lib/RatingChartUtils';
 import MaiNoteService from './lib/MaiNoteService';
 import ImageHelper from './lib/ImageHelper';
@@ -23,7 +22,7 @@ process.on('unhandledRejection', (reason) => {
         embeds: [
             {
                 title: 'UnhandledRejection',
-                description: `\`\`\`js\n${inspect(reason).slice(0, 4000)}\`\`\``,
+                description: `\`\`\`js\n${describeError(reason).slice(0, 4000)}\`\`\``,
                 color: 0xff0000,
             },
         ],
@@ -35,7 +34,7 @@ process.on('uncaughtException', (error) => {
         embeds: [
             {
                 title: 'UncaughtException',
-                description: `\`\`\`js\n${inspect(error).slice(0, 4000)}\`\`\``,
+                description: `\`\`\`js\n${describeError(error).slice(0, 4000)}\`\`\``,
                 color: 0xff0000,
             },
         ],
@@ -186,7 +185,7 @@ client.on('interactionCreate', async (interaction) => {
                     embeds: [
                         {
                             title: 'CommandExecutionError',
-                            description: `\`\`\`js\n${inspect(error).slice(0, 4000)}\`\`\``,
+                            description: `\`\`\`js\n${describeError(error).slice(0, 4000)}\`\`\``,
                             color: 0xff0000,
                         },
                     ],
@@ -196,7 +195,7 @@ client.on('interactionCreate', async (interaction) => {
                     embeds: [
                         {
                             title: 'CommandExecutionError',
-                            description: `\`\`\`js\n${inspect(replyError).slice(0, 4000)}\`\`\``,
+                            description: `\`\`\`js\n${describeError(replyError).slice(0, 4000)}\`\`\``,
                             color: 0xff0000,
                         },
                     ],
