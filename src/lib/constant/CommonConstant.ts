@@ -89,9 +89,9 @@ export const DifficultyColor = {
 export const VersionColor = {
     'CiRCLE PLUS': [
         ['#FF2A93', 0],
-        ['#48C3FF', 1]
+        ['#48C3FF', 1],
     ],
-    CiRCLE: [  
+    CiRCLE: [
         ['#F050A0', 0],
         ['#FFEE80', 1],
     ],

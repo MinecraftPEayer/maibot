@@ -90,7 +90,6 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
     const result = await PlayerDataService.getInstance().getPlayerData(interaction, interaction.user.id);
 
-
     if (!result) {
         if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({

@@ -10,7 +10,7 @@ function getErrorMessageFromError(error: unknown): string | null {
         return `Failed to fetch player data.`;
     }
 
-    return null
+    return null;
 }
 
 async function handleComponentError(interaction: MessageComponentInteraction, error: unknown): Promise<void> {

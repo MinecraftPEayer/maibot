@@ -14,10 +14,11 @@ class RatingChartUtils {
     public static ChartTypeCanvas = {
         [ChartType.DX]: (() => {
             initializeFonts();
-            
+
             const canvas = new Canvas(71, 20);
             const ctx = canvas.getContext('2d');
-            const x = 10, y = 0;
+            const x = 10,
+                y = 0;
 
             ctx.fillStyle = '#FFFFFF';
             ctx.beginPath();
@@ -39,15 +40,16 @@ class RatingChartUtils {
                 ctx.fillText(Text[i / 10], x + 1 + i, y + 5 + 8);
             }
             ctx.save();
-            
-            return canvas
+
+            return canvas;
         })(),
         [ChartType.STD]: (() => {
             initializeFonts();
-            
+
             const canvas = new Canvas(85, 20);
             const ctx = canvas.getContext('2d');
-            const x = 10, y = 0;
+            const x = 10,
+                y = 0;
 
             ctx.fillStyle = '#73ADF8';
             ctx.beginPath();
@@ -66,9 +68,9 @@ class RatingChartUtils {
             ctx.fillText('スタンダード', x + 3, y + 5 + 8);
             ctx.save();
 
-            return canvas
-        })()
-    }
+            return canvas;
+        })(),
+    };
 
     public static getInstance(): RatingChartUtils {
         if (!RatingChartUtils.instance) {

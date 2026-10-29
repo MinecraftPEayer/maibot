@@ -12,7 +12,7 @@ import { drawRoundRect, drawCustomRoundRect, createBlurredBackground } from 'src
 import PlayerDataService from 'src/lib/PlayerDataService';
 import RatingChartUtils from 'src/lib/RatingChartUtils';
 import ImageHelper from 'src/lib/ImageHelper';
-import ImageConfig from 'src/lib/ImageConfig'
+import ImageConfig from 'src/lib/ImageConfig';
 
 const TitleTypeName = {
     [TitleType.Normal]: 'Normal',
@@ -452,17 +452,17 @@ async function drawAndSendChart(
     const bgBlur = await loadImage('tmp/bg_blurred.png');
     ctx.save();
     ctx.beginPath();
-    ctx.roundRect(Margin, Margin, WIDTH - (Margin * 2), HEIGHT - (Margin * 2), CornerRadius);
+    ctx.roundRect(Margin, Margin, WIDTH - Margin * 2, HEIGHT - Margin * 2, CornerRadius);
     ctx.clip();
-    ctx.drawImage(bgBlur, Margin, Margin, WIDTH - (Margin * 2), HEIGHT - (Margin * 2));
+    ctx.drawImage(bgBlur, Margin, Margin, WIDTH - Margin * 2, HEIGHT - Margin * 2);
     ctx.restore();
 
     drawRoundRect({
         ctx,
         x: Margin,
         y: Margin,
-        width: WIDTH - (Margin * 2),
-        height: HEIGHT - (Margin * 2),
+        width: WIDTH - Margin * 2,
+        height: HEIGHT - Margin * 2,
         radius: CornerRadius,
         fillStyle: 'rgba(0, 0, 0, 0.5)',
     });
@@ -863,18 +863,18 @@ const data = new SlashCommandBuilder()
     .addUserOption((option) => option.setName('user').setDescription('要查詢的玩家').setRequired(false))
     .addBooleanOption((option) =>
         option.setName('draw_icons').setDescription('是否繪製SYNC/FC/AP圖標 (預設為否)').setRequired(false),
-    )
-    // .addStringOption((option) =>
-    //     option
-    //         .setName('version')
-    //         .setDescription('版本')
-    //         .addChoices(
-    //             Object.keys(NewSongVersion).map((item) => {
-    //                 return { name: item, value: item };
-    //             }),
-    //         )
-    //         .setRequired(false),
-    // );
+    );
+// .addStringOption((option) =>
+//     option
+//         .setName('version')
+//         .setDescription('版本')
+//         .addChoices(
+//             Object.keys(NewSongVersion).map((item) => {
+//                 return { name: item, value: item };
+//             }),
+//         )
+//         .setRequired(false),
+// );
 
 const scoreType = ScoreType.Achievement;
 

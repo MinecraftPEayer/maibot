@@ -89,7 +89,7 @@ async function sendB50(
 
     collector.on('collect', (actionInteraction: ButtonInteraction) => {
         void (async () => {
-            const lastPage = Math.max(0, Math.ceil(B50Data[currentType].length / 10) - 1)
+            const lastPage = Math.max(0, Math.ceil(B50Data[currentType].length / 10) - 1);
 
             switch (actionInteraction.customId) {
                 case 'toggle_b15b35':
@@ -149,7 +149,7 @@ async function sendB50(
             .catch(async (error) => await handleComponentError(actionInteraction, error))
             .catch(async (error) => {
                 console.error('Error handling component interaction:', error);
-            })
+            });
     });
 
     collector.on('end', async () => {

@@ -5,7 +5,13 @@ import { writeFileAtomic } from 'src/lib/Utils';
 export async function POST(req: Request, res: Response) {
     let body = req.body;
 
-    if (!body || !body.userData || !body.userData.token || !body.data || !Array.isArray(body.data?.recentCreditDetail)) {
+    if (
+        !body ||
+        !body.userData ||
+        !body.userData.token ||
+        !body.data ||
+        !Array.isArray(body.data?.recentCreditDetail)
+    ) {
         return res.status(400).json({ error: 'Bad request' });
     }
 

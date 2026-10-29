@@ -9,7 +9,7 @@ import { Canvas, loadImage } from 'skia-canvas';
 import { TitleTypeName } from 'src/lib/constant/CommonConstant';
 import Chart from 'chart.js/auto';
 import PlayerDataService from 'src/lib/PlayerDataService';
-import ImageConfig from 'src/lib/ImageConfig'
+import ImageConfig from 'src/lib/ImageConfig';
 
 let logger;
 
@@ -240,19 +240,19 @@ async function drawAndSendGraph(
     const Margin = ImageConfig.backgroundDim.margin,
         CornerRadius = ImageConfig.backgroundDim.cornerRadius;
     const bgBlur = await loadImage('tmp/bg_blurred.png');
-        ctx.save();
-        ctx.beginPath();
-        ctx.roundRect(Margin, Margin, WIDTH - (Margin * 2), HEIGHT - (Margin * 2), CornerRadius);
-        ctx.clip();
-        ctx.drawImage(bgBlur, Margin, Margin, WIDTH - (Margin * 2), HEIGHT - (Margin * 2));
-        ctx.restore();
-    
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(Margin, Margin, WIDTH - Margin * 2, HEIGHT - Margin * 2, CornerRadius);
+    ctx.clip();
+    ctx.drawImage(bgBlur, Margin, Margin, WIDTH - Margin * 2, HEIGHT - Margin * 2);
+    ctx.restore();
+
     drawRoundRect({
         ctx,
         x: Margin,
         y: Margin,
-        width: WIDTH - (Margin * 2),
-        height: HEIGHT - (Margin * 2),
+        width: WIDTH - Margin * 2,
+        height: HEIGHT - Margin * 2,
         radius: CornerRadius,
         fillStyle: 'rgba(0, 0, 0, 0.5)',
     });

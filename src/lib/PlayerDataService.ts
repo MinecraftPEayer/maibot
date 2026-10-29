@@ -110,11 +110,12 @@ class PlayerDataService {
 
                 const reply = await interaction.fetchReply();
 
-                const btnI = await reply.awaitMessageComponent({
-                    filter: (i) => i.user.id === interaction.user.id,
-                    time: 60 * 1000,
-                })
-                .catch(() => null);
+                const btnI = await reply
+                    .awaitMessageComponent({
+                        filter: (i) => i.user.id === interaction.user.id,
+                        time: 60 * 1000,
+                    })
+                    .catch(() => null);
 
                 if (!btnI) {
                     return await this.fetchNewData(interaction, userId, {

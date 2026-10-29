@@ -16,10 +16,7 @@ export async function POST(req: Request, res: Response) {
     let generatedToken = fs.readFileSync('data/api/token.json');
     let tokenData = JSON.parse(generatedToken.toString());
 
-    writeFileAtomic(
-        'data/api/token.json',
-        JSON.stringify([...tokenData, { id: body.id, token: body.token }], null, 2),
-    );
+    writeFileAtomic('data/api/token.json', JSON.stringify([...tokenData, { id: body.id, token: body.token }], null, 2));
 
     return res.status(200).json({ success: true });
 }
