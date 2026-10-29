@@ -23,7 +23,8 @@
     },
     "scripts": {
         "start": "tsx .",
-        "typecheck": "tsc --noEmit"
+        "typecheck": "tsc --noEmit",
+        "format": "prettier --write src"
     },
     "main": "src/index.ts",
     "devDependencies": {
