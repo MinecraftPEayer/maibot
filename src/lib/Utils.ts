@@ -439,7 +439,7 @@ function setupSongDataAutoUpdateCronJob() {
                 embeds: [
                     {
                         title: 'Error Details',
-                        description: `\`\`\`${util.inspect(error, { depth: null })}\`\`\``,
+                        description: `\`\`\`${describeError(error).slice(0, 4000)}\`\`\``,
                     },
                 ],
             });
