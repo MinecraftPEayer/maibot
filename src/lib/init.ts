@@ -1,6 +1,14 @@
-import axios from 'axios';
 import fs from 'fs';
 import { writeFileAtomic } from './Utils';
+import { execSync } from 'child_process';
+
+function git(args: string): string | null {
+    try {
+        return execSync(`git ${args}`, { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    } catch (error) {
+        return null;
+    }
+}
 
 export default async () => {
     if (!fs.existsSync('tmp')) fs.mkdirSync('tmp', { recursive: true });
@@ -14,14 +22,13 @@ export default async () => {
     if (!fs.existsSync('data/api/token.json')) {
         writeFileAtomic('data/api/token.json', JSON.stringify([], null, 2));
     }
-    if (!fs.existsSync('commit_hash.txt')) {
-        const { data } = await axios.get('https://api.github.com/repos/MinecraftPEayer/maibot/commits/master');
-        writeFileAtomic('commit_hash.txt', data.sha);
-    }
 
-    process.BuildVersion = process.env.DEVELOPMENT
-        ? 'dev'
-        : `git-master-${fs.readFileSync('commit_hash.txt', 'utf-8').slice(0, 7)}`;
+    const hash = git('rev-parse --short HEAD');
+    const branch = git('rev-parse --abbrev-ref HEAD');
+    const dirty = git('status --porcelain -uno') ? '-dirty' : '';
+    const prefix = process.env.DEVELOPMENT ? 'dev' : 'git';
+
+    process.BuildVersion = hash ? `${prefix}-${branch}-${hash}${dirty}` : prefix === 'dev' ? 'dev' : 'unknown';
 
     process.logger.log(`Starting bot (${process.BuildVersion})`);
 };
