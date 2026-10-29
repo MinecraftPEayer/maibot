@@ -65,7 +65,7 @@ const data = new SlashCommandBuilder()
 const execute = async (interaction: ChatInputCommandInteraction) => {
     let optionId = interaction.options.getUser('user')?.id;
     let userId = optionId ? optionId : interaction.user.id;
-    if (!fs.existsSync(`data/user/${userId}/detailed.json`)) {
+    if (!fs.existsSync(`data/user/${userId}/detailed.json`) || !fs.existsSync(`data/user/${userId}/latest.json`)) {
         return await interaction.reply('Sorry, but this feature is only available for bookmark script users.');
     }
 
@@ -75,12 +75,17 @@ const execute = async (interaction: ChatInputCommandInteraction) => {
         (a: any, b: any) => new Date(b.time).getTime() - new Date(a.time).getTime(),
     );
     let splitedByCredit: any[] = [];
-    for (let i = 0; i < detailedData.length; i++) {
-        let track = detailedData[i].track;
+    for (let i = 0; i < detailedData.length;) {
+        let track = Math.max(1, Math.floor(Number(detailedData[i].track)) || 1);
         let thisCredit = detailedData.slice(i, i + track);
         splitedByCredit.push(thisCredit);
-        i += track - 1;
+        i += track;
     }
+
+    if (splitedByCredit.length === 0) {
+        return await interaction.reply('No recent play data found for this user.');
+    }
+
     splitedByCredit.sort((a, b) => new Date(b[0].time).getTime() - new Date(a[0].time).getTime());
 
     let buttonState = [true, true]; // [previous, next]
