@@ -17,20 +17,34 @@ import { getErrorMessageFromError } from './lib/handleInteractionError';
 const mainLogger = new Logger('main');
 process.logger = mainLogger;
 
-init();
+process.on('unhandledRejection', (reason) => {
+    mainLogger.error('[UnhandledRejection]', reason);
+    sendMessageToWebhook({
+        embeds: [
+            {
+                title: 'UnhandledRejection',
+                description: `\`\`\`js\n${inspect(reason).slice(0, 4000)}\`\`\``,
+                color: 0xff0000,
+            },
+        ],
+    });
+});
 
 process.on('uncaughtException', (error) => {
-    if (config.error_log_webhook_url)
-        sendMessageToWebhook({
-            embeds: [
-                {
-                    title: 'UncaughtException',
-                    description: `\`\`\`js\n${inspect(error).slice(0, 4000)}\`\`\``,
-                    color: 0xff0000,
-                },
-            ],
-        });
+    sendMessageToWebhook({
+        embeds: [
+            {
+                title: 'UncaughtException',
+                description: `\`\`\`js\n${inspect(error).slice(0, 4000)}\`\`\``,
+                color: 0xff0000,
+            },
+        ],
+    });
     mainLogger.error(`[UncaughtException]`, error);
+});
+
+init().catch((error) => {
+    mainLogger.error('[Init] Failed to initialize', error);
 });
 
 const client = new Client({
@@ -54,12 +68,16 @@ client.on('clientReady', async () => {
     const files = fs.readdirSync('./src/commands').filter((file) => file.endsWith('.command.ts'));
 
     for (const file of files) {
-        const command = await import(`./commands/${file}`);
-        if (command.data && command.execute) {
-            client.commands.set(command.data.name, command);
-            commands.push(command.data.toJSON());
-        } else {
-            client.logger.error(`Command file ${file} is missing data or execute properties.`);
+        try {
+            const command = await import(`./commands/${file}`);
+            if (command.data && command.execute) {
+                client.commands.set(command.data.name, command);
+                commands.push(command.data.toJSON());
+            } else {
+                client.logger.error(`Command file ${file} is missing data or execute properties.`);
+            }
+        } catch (error) {
+            client.logger.error(`Failed to load command file ${file}:`, error);
         }
     }
 
@@ -83,7 +101,12 @@ client.on('clientReady', async () => {
             client.logger.error('[CommandRegister] Failed to register guild commands.', error);
         }
     }
-    await fetcher.login();
+
+    try {
+        await fetcher.login();
+    } catch (error) {
+        client.logger.warn('[maimaiDXNetFetcher] Initial login failed, will retry on demand');
+    }
 
     setupSongDataAutoUpdateCronJob();
 
@@ -146,7 +169,6 @@ client.on('interactionCreate', async (interaction) => {
                     return;
                 }
 
-                
                 client.logger.error(`Error executing command ${interaction.commandName}:`, error);
                 if (!interaction.isRepliable()) return;
 

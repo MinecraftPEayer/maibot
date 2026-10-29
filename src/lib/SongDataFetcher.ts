@@ -89,10 +89,10 @@ class SongDataFetcher {
 
     private data: SongDatabase;
 
-    static genres: string[];
-    static difficulties: SongDatabaseDifficulties[];
-    static versions: SongDatabaseVersions[];
-    static regions: SongDatabaseRegions[];
+    static genres: string[] = [];
+    static difficulties: SongDatabaseDifficulties[] = [];
+    static versions: SongDatabaseVersions[] = [];
+    static regions: SongDatabaseRegions[] = [];
 
     private constructor() {
         this.filePath = 'tmp/data.json';
@@ -241,6 +241,8 @@ class SongDataFetcher {
                 SongDataFetcher.regions = outputData.regions;
 
                 writeFileAtomic(this.filePath, JSON.stringify(outputData));
+
+                this.data = outputData;
             }
         } catch (error) {
             console.error('Error fetching song data:', error);
@@ -267,8 +269,27 @@ class SongDataFetcher {
 
     private getData(): SongDatabase {
         if (this.data) return this.data;
-        let data = fs.readFileSync(this.filePath, 'utf-8');
-        return JSON.parse(data);
+
+        if (!fs.existsSync(this.filePath)) {
+            return {
+                songs: [],
+                categories: [],
+                versions: [],
+                types: [],
+                difficulties: [],
+                regions: [],
+                updateTime: '',
+            };
+        }
+
+        const data = fs.readFileSync(this.filePath, 'utf-8');
+        const parsed = JSON.parse(data) as SongDatabase;
+        SongDataFetcher.genres = parsed.categories.map((category: { category: string }) => category.category);
+
+        SongDataFetcher.versions = parsed.versions;
+        SongDataFetcher.difficulties = parsed.difficulties;
+        SongDataFetcher.regions = parsed.regions;
+        return parsed;
     }
 
     search(query: string) {
