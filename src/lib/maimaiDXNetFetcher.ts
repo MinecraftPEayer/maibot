@@ -21,6 +21,8 @@ class MaimaiDXNetFetcher {
     http: AxiosInstance;
     cookieJar: CookieJar;
 
+    private loginPromise: Promise<void> | null = null
+
     static getInstance() {
         if (!MaimaiDXNetFetcher.instance) {
             MaimaiDXNetFetcher.instance = new MaimaiDXNetFetcher();
@@ -67,7 +69,14 @@ class MaimaiDXNetFetcher {
         }
     }
 
-    public async login(): Promise<void> {
+    public login(): Promise<void> {
+        this.loginPromise ??= this.doLogin().finally(() => {
+            this.loginPromise = null;
+        });
+        return this.loginPromise;
+    }
+
+    private async doLogin(): Promise<void> {
         this.cookieJar.removeAllCookiesSync();
         this.loginFinished = false;
 
