@@ -9,7 +9,7 @@ import {
 import fs from 'fs';
 import MaimaiDXNetFetcher from './maimaiDXNetFetcher';
 import { ComboType, Difficulty, ScoreType, SyncType } from './CommonEnums';
-import { convertDXScoreToStar } from './Utils';
+import { convertDXScoreToStar, replyOrEdit } from './Utils';
 import { PlayerInfo } from 'types/main';
 import { ScoreData } from 'types/SongDatabase';
 
@@ -56,13 +56,13 @@ class PlayerDataService {
         const friendCode = fetcher.getFriendCodeByDiscordId(userId);
 
         if (!friendCode) {
-            await interaction.reply('No linked account found. Please link your account first.');
+            await replyOrEdit(interaction, 'No linked account found. Please link your account first.');
             return null;
         }
 
         if (fs.existsSync(`./data/user/${userId}/latest.json`)) {
             // Bookmarklet data exists
-            await interaction.reply('Processing...');
+            await replyOrEdit(interaction, 'Processing...');
 
             const latestData = JSON.parse(fs.readFileSync(`./data/user/${userId}/latest.json`, 'utf-8'));
 
@@ -99,7 +99,7 @@ class PlayerDataService {
             const cacheDataDate = fetcher.getLatestCacheDataDate(friendCode);
 
             if (cacheDataExists && cacheDataDate && Date.now() - cacheDataDate.getTime() <= 24 * 60 * 60 * 1000) {
-                await interaction.reply({
+                await replyOrEdit(interaction, {
                     embeds: [
                         new EmbedBuilder()
                             .setTitle('We found cached score data. Would you like to use it or fetch new data?')
@@ -157,11 +157,7 @@ class PlayerDataService {
             };
 
         let message = 'Fetching player info...';
-        if (interaction.replied || interaction.deferred) {
-            await interaction.editReply({ content: message, embeds: [], components: [] });
-        } else {
-            await interaction.reply({ content: message, embeds: [], components: [] });
-        }
+        await replyOrEdit(interaction, { content: message, embeds: [], components: [] });
 
         const friendCode = fetcher.getFriendCodeByDiscordId(userId);
 

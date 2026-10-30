@@ -17,7 +17,13 @@ import { FontLibrary } from 'skia-canvas';
 import SongDataFetcher from './SongDataFetcher';
 import axios from 'axios';
 import config from 'config/config.json';
-import { ButtonInteraction, ChatInputCommandInteraction } from 'discord.js';
+import {
+    ButtonInteraction,
+    ChatInputCommandInteraction,
+    InteractionEditReplyOptions,
+    InteractionReplyOptions,
+    RepliableInteraction,
+} from 'discord.js';
 import overrideConstant from 'config/constant_override.json';
 import { PlayerInfo } from 'types/main';
 import cron from 'node-cron';
@@ -480,6 +486,12 @@ function summarizeRatings(list: B50Data[]): { total: number; avg: number; range:
     };
 }
 
+function replyOrEdit(interaction: RepliableInteraction, payload: string | InteractionEditReplyOptions) {
+    return interaction.replied || interaction.deferred
+        ? interaction.editReply(payload)
+        : interaction.reply(payload as string | InteractionReplyOptions);
+}
+
 const FontStack = '"SEGAMaruGothic", "Noto Sans", "Noto Sans JP", sans-serif';
 
 export {
@@ -502,5 +514,6 @@ export {
     writeFileAtomic,
     describeError,
     summarizeRatings,
+    replyOrEdit,
     FontStack,
 };
