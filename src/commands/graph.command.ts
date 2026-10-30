@@ -43,7 +43,7 @@ const DrawGraph: {
         ctx.fillText(String(b15Summary.avg), 773, 136 + 16);
 
         const chart = new Canvas(1792, 844);
-        new Chart(chart as any, {
+        const chartObj = new Chart(chart as any, {
             type: 'line',
             data: {
                 labels: Array.from({ length: drawingData.B15.length }, (_, i) => i + 1),
@@ -106,6 +106,7 @@ const DrawGraph: {
         });
 
         ctx.drawImage(chart, 64, 172, 1792, 844);
+        chartObj.destroy();
     },
     B35: async (
         canvas: Canvas,
@@ -132,7 +133,7 @@ const DrawGraph: {
         ctx.fillText(String(b35Summary.avg), 773, 136 + 16);
 
         const chart = new Canvas(1792, 844);
-        new Chart(chart as any, {
+        const chartObj = new Chart(chart as any, {
             type: 'line',
             data: {
                 labels: Array.from({ length: drawingData.B35.length }, (_, i) => i + 1),
@@ -195,6 +196,7 @@ const DrawGraph: {
         });
 
         ctx.drawImage(chart, 64, 172, 1792, 844);
+        chartObj.destroy();
     },
 };
 
