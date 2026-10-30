@@ -93,7 +93,7 @@ function calculateB50(
     B15Data: B50Data[];
     B35Data: B50Data[];
 } {
-    let database = JSON.parse(fs.readFileSync('tmp/data.json').toString()) as SongDatabase;
+    const database = SongDataFetcher.getInstance().getRawData();
 
     let B15Data: B50Data[] = [],
         B35Data: B50Data[] = [];
