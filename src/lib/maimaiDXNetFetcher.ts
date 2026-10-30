@@ -21,7 +21,7 @@ class MaimaiDXNetFetcher {
     http: AxiosInstance;
     cookieJar: CookieJar;
 
-    private loginPromise: Promise<void> | null = null
+    private loginPromise: Promise<void> | null = null;
 
     static getInstance() {
         if (!MaimaiDXNetFetcher.instance) {

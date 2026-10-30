@@ -191,6 +191,8 @@ async function drawRankCountBox(
     return TotalWidth;
 }
 
+const coverUrl = (score: B50Data) => `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${score.backgroundImg}`;
+
 async function drawSongBox(
     ctx: CanvasRenderingContext2D,
     x: number,
@@ -209,9 +211,7 @@ async function drawSongBox(
 
     if (!score) return;
 
-    let songBackgroundImg = await loadImage(
-        `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${score.backgroundImg}`,
-    );
+    let songBackgroundImg = await loadImage(coverUrl(score));
 
     const scaleWidth = songBoxDim.width / songBackgroundImg.width;
     const scaleHeight = songBoxDim.height / songBackgroundImg.height;
@@ -373,12 +373,14 @@ async function drawSongBox(
         }
     }
 
-    ctx.font = `28px ${FontStack}`;
     ctx.save();
+    ctx.font = `28px ${FontStack}`;
     ctx.lineWidth = 0.5;
+    ctx.fillStyle = 'white';
     ctx.strokeStyle = 'white';
     ctx.fillText(score.rating.toString(), X + songBoxDim.width - 55 - 4 - 2, Y + songBoxDim.height - 2 - 4 - 2);
     ctx.strokeText(score.rating.toString(), X + songBoxDim.width - 55 - 4 - 2, Y + songBoxDim.height - 2 - 4 - 2);
+    ctx.restore();
 }
 
 const WIDTH = 1920,
@@ -740,17 +742,19 @@ async function drawAndSendChart(
         height: 152,
     };
 
-    const b35Tasks = B35Data.map((score, index) => {
+    await Promise.all([...B35Data, ...B15Data].map((score) => loadImage(coverUrl(score))));
+
+    for (const [index, score] of B35Data.entries()) {
         const i = Math.floor(index / 7);
         const j = index % 7;
 
         const X = B35BaseX + j * (songBoxDim.width + Gap);
         const Y = B35BaseY + i * (songBoxDim.height + Gap);
 
-        return drawSongBox(ctx, X, Y, score, songBoxDim, index, {
+        await drawSongBox(ctx, X, Y, score, songBoxDim, index, {
             drawSyncAndCombo: drawIcons,
         });
-    });
+    }
 
     ctx.fillStyle = 'white';
     ctx.font = `8px ${FontStack}`;
@@ -777,6 +781,7 @@ async function drawAndSendChart(
     ctx.strokeStyle = 'white';
     ctx.lineWidth = 2;
     ctx.stroke();
+    ctx.restore();
 
     const B15BaseX = 1332,
         B15BaseY = 216;
@@ -797,21 +802,18 @@ async function drawAndSendChart(
         ctx.fillText(chartText[i / 10], B15BaseX + 42 + i, B15BaseY - 8 - 20 + 15);
     }
 
-    const b15Tasks = B15Data.map((score, index) => {
+    for (const [index, score] of B15Data.entries()) {
         const i = Math.floor(index / 3);
         const j = index % 3;
 
         const X = B15BaseX + j * (songBoxDim.width + Gap);
         const Y = B15BaseY + i * (songBoxDim.height + Gap);
 
-        return drawSongBox(ctx, X, Y, score, songBoxDim, index, {
+        await drawSongBox(ctx, X, Y, score, songBoxDim, index, {
             drawSyncAndCombo: drawIcons,
             drawVersion: true,
         });
-    });
-
-    await Promise.all(b35Tasks);
-    await Promise.all(b15Tasks);
+    }
 
     ctx.fillStyle = 'white';
     ctx.font = `8px ${FontStack}`;
