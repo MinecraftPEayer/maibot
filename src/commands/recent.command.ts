@@ -51,10 +51,6 @@ const ChartTypeEmojiName: Record<ChartType, 'STD' | 'DX'> = {
     [ChartType.UTAGE]: 'DX',
 };
 
-const ActionRow = new ActionRowBuilder<ButtonBuilder>()
-    .addComponents(new ButtonBuilder().setCustomId('previous').setLabel('Previous').setStyle(ButtonStyle.Primary))
-    .addComponents(new ButtonBuilder().setCustomId('next').setLabel('Next').setStyle(ButtonStyle.Primary));
-
 const data = new SlashCommandBuilder()
     .setName('recent')
     .setDescription('Show the information of recent play (only available for bookmark script user)')
@@ -87,6 +83,10 @@ const execute = async (interaction: ChatInputCommandInteraction) => {
     }
 
     splitedByCredit.sort((a, b) => new Date(b[0].time).getTime() - new Date(a[0].time).getTime());
+
+    const ActionRow = new ActionRowBuilder<ButtonBuilder>()
+        .addComponents(new ButtonBuilder().setCustomId('previous').setLabel('Previous').setStyle(ButtonStyle.Primary))
+        .addComponents(new ButtonBuilder().setCustomId('next').setLabel('Next').setStyle(ButtonStyle.Primary));
 
     let buttonState = [true, true]; // [previous, next]
 
