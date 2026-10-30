@@ -14,6 +14,7 @@ export default async () => {
     const app = express();
 
     app.use(express.json());
+    app.use('/api/user/data-upload', express.json({ limit: '10mb' }));
 
     const noAuthPaths = ['/img/dynamic/noteTable', '/api/status'];
 
