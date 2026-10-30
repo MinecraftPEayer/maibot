@@ -5,7 +5,7 @@ import { calculateB50, getRatingBaseImage, initializeFonts, summarizeRatings, Fo
 import fs from 'fs';
 import { ChartType, ComboType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
 import { B50Data, Rank, ScoreData } from 'types/SongDatabase';
-import { DifficultyColor, VersionColor } from 'src/lib/constant/CommonConstant';
+import { CurrentVersion, DifficultyColor, VersionColor } from 'src/lib/constant/CommonConstant';
 import Logger from 'src/lib/logger';
 import { PlayerInfo } from 'types/main';
 import { drawRoundRect, drawCustomRoundRect, createBlurredBackground } from 'src/lib/DrawImageUtils';
@@ -899,7 +899,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
     let optionUser = interaction.options.getUser('user');
     let optionDrawIcons = interaction.options.getBoolean('draw_icons') ?? false;
     // let optionVersion = interaction.options.getString('version') ?? 'CiRCLE';
-    let optionVersion = 'CiRCLE PLUS';
+    let optionVersion = CurrentVersion;
 
     if (optionUser && !db.has(optionUser.id)) {
         return await interaction.reply(`${optionUser.username} 還沒綁定帳號`);

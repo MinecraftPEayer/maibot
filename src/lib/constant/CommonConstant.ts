@@ -101,6 +101,8 @@ export const VersionColor = {
     ],
 };
 
-export const NewSongVersion = {
+export const CurrentVersion = 'CiRCLE PLUS';
+
+export const NewSongVersion: Record<string, string[]> = {
     'CiRCLE PLUS': ['CiRCLE PLUS', 'CiRCLE'],
 };

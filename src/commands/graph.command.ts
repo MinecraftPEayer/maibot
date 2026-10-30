@@ -5,7 +5,7 @@ import fs from 'fs';
 import { calculateB50, FontStack, getRatingBaseImage, initializeFonts, summarizeRatings } from 'src/lib/Utils';
 import { getImageBuffer, drawRoundRect, createBlurredBackground } from 'src/lib/DrawImageUtils';
 import { Canvas, loadImage } from 'skia-canvas';
-import { TitleTypeName } from 'src/lib/constant/CommonConstant';
+import { CurrentVersion, TitleTypeName } from 'src/lib/constant/CommonConstant';
 import Chart from 'chart.js/auto';
 import PlayerDataService from 'src/lib/PlayerDataService';
 import ImageConfig from 'src/lib/ImageConfig';
@@ -208,7 +208,7 @@ async function drawAndSendGraph(
     graphType: keyof typeof DrawGraph,
 ) {
     initializeFonts();
-    const { B15Data, B35Data } = calculateB50(Object.values(scores).flat(), 'CiRCLE PLUS');
+    const { B15Data, B35Data } = calculateB50(Object.values(scores).flat(), CurrentVersion);
 
     const canvas = new Canvas(1920, 1080);
     const ctx = canvas.getContext('2d');
