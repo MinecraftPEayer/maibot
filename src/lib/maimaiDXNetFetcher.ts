@@ -439,7 +439,7 @@ class MaimaiDXNetFetcher {
         const dataPath = `data/playerData/${friendCode}/latest.json`;
         if (fs.existsSync(dataPath)) {
             const latestData = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
-            return new Date(parseInt(latestData.date.replace(/,/g, '')));
+            return new Date(latestData.date);
         }
         return null;
     }
@@ -481,14 +481,13 @@ class MaimaiDXNetFetcher {
             `data/playerData/${friendCode}/latest.json`,
             JSON.stringify(
                 {
-                    date: Date.now().toLocaleString(),
+                    date: Date.now(),
                     data: data,
                 },
                 null,
                 2,
             ),
         );
-        new Date().toDateString();
     }
 
     getPlayerCacheData(friendCode: string): {
@@ -521,7 +520,7 @@ class MaimaiDXNetFetcher {
         return {
             playerData: data.data.playerData,
             scoreData: data.data.scoreData,
-            date: new Date(parseInt(data.date.replace(/[,]/g, ''))),
+            date: new Date(data.date),
         };
     }
 
