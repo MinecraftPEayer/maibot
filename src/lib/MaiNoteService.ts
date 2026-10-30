@@ -1,8 +1,7 @@
 import axios from 'axios';
-import fs from 'fs';
-import { MaiNoteManifest, MaiNoteSongData } from 'types/main';
+import { MaiNoteChartData, MaiNoteManifest, MaiNoteSongData } from 'types/main';
 import { Difficulty } from './CommonEnums';
-import { writeFileAtomic } from './Utils';
+import Logger from './logger';
 
 const DifficultyReflect = {
     BASIC: Difficulty.Basic,
@@ -15,7 +14,9 @@ const DifficultyReflect = {
 class MaiNoteService {
     private dataURL = 'https://mai-notes.com/data/manifest.json';
 
+    private logger = new Logger('MaiNoteService');
     private songsMap = new Map<string, MaiNoteSongData>();
+    private charts: MaiNoteChartData[] = [];
 
     static getInstance(): MaiNoteService {
         if (!MaiNoteService.instance) {
@@ -27,15 +28,13 @@ class MaiNoteService {
     private static instance: MaiNoteService;
 
     private constructor() {
-        this.updateData();
+        this.updateData().catch((error) => {
+            this.logger.error('Failed to update mai-notes data:', error);
+        });
     }
 
     private async updateData() {
         const response = await axios.get(this.dataURL);
-
-        if (response.status !== 200) {
-            throw new Error(`Failed to fetch data from ${this.dataURL}`);
-        }
 
         const data = response.data as MaiNoteManifest;
 
@@ -44,7 +43,7 @@ class MaiNoteService {
             this.songsMap.set(song.title, song);
         }
 
-        writeFileAtomic('./tmp/mai-notes_data.json', JSON.stringify(data, null, 2));
+        this.charts = data.charts;
     }
 
     public getSongUUIDByTitle(title: string) {
@@ -55,9 +54,7 @@ class MaiNoteService {
     public getSongChartUUIDsBySongID(songID: string) {
         const charts = new Map<Difficulty, string>();
 
-        const data = JSON.parse(fs.readFileSync('./tmp/mai-notes_data.json', 'utf-8')) as MaiNoteManifest;
-
-        for (const chart of data.charts) {
+        for (const chart of this.charts) {
             if (chart.song_id === songID && chart.has_chart_data) {
                 charts.set(DifficultyReflect[chart.difficulty], chart.id);
             }
