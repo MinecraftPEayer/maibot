@@ -8,7 +8,7 @@ export async function GET(req: Request, res: Response) {
     const { tap, hold, slide, touch, break: breakNote } = req.query;
 
     if (!tap || !hold || !slide || !touch || !breakNote) {
-        res.status(400).send({
+        return res.status(400).send({
             code: 400,
             message: 'Bad request',
         });
@@ -16,7 +16,7 @@ export async function GET(req: Request, res: Response) {
 
     const notes = [tap, hold, slide, touch, breakNote].map((note) => String(note));
     if (notes.some((note) => note.split(',').length !== 5)) {
-        res.status(400).send({
+        return res.status(400).send({
             code: 400,
             message: 'Bad request',
         });
