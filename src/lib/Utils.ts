@@ -155,7 +155,7 @@ function calculateScore(
 ): {
     data: B50Data[];
 } {
-    let database = JSON.parse(fs.readFileSync('tmp/data.json').toString()) as SongDatabase;
+    const database = SongDataFetcher.getInstance().getRawData();
 
     let data: B50Data[] = [];
     for (const item of scoreData) {
