@@ -148,7 +148,7 @@ const data = new SlashCommandBuilder()
     );
 
 async function execute(interaction: ChatInputCommandInteraction) {
-    let songId = interaction.options.getString('name');
+    let songId = interaction.options.getString('name', true);
 
     const maiNotes = MaiNoteService.getInstance();
 
@@ -170,9 +170,9 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
     let song;
     try {
-        song =
-            SongDataFetcher.getInstance().getSong(parseInt(songId || '0')) ??
-            SongDataFetcher.getInstance().getSongByName(songId || '');
+        song = /^\d+$/.test(songId)
+            ? SongDataFetcher.getInstance().getSong(parseInt(songId))
+            : SongDataFetcher.getInstance().getSongByName(songId);
     } catch (error) {
         return await interaction.reply({
             embeds: [

@@ -37,13 +37,13 @@ function autocomplete(interaction: AutocompleteInteraction) {
 }
 
 async function execute(interaction: ChatInputCommandInteraction) {
-    const songId = interaction.options.getString('song');
+    const songId = interaction.options.getString('song', true);
 
     let song;
     try {
-        song =
-            SongDataFetcher.getInstance().getSong(parseInt(songId || '0')) ??
-            SongDataFetcher.getInstance().getSongByName(songId || '');
+        song = /^\d+$/.test(songId)
+            ? SongDataFetcher.getInstance().getSong(parseInt(songId))
+            : SongDataFetcher.getInstance().getSongByName(songId);
     } catch (error) {
         return await interaction.reply({
             embeds: [
