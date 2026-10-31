@@ -5,6 +5,7 @@ import {
     ButtonStyle,
     ChatInputCommandInteraction,
     EmbedBuilder,
+    MessageFlags,
 } from 'discord.js';
 import fs from 'fs';
 import MaimaiDXNetFetcher from './maimaiDXNetFetcher';
@@ -12,6 +13,9 @@ import { ComboType, Difficulty, ScoreType, SyncType } from './CommonEnums';
 import { convertDXScoreToStar, replyOrEdit } from './Utils';
 import { PlayerInfo } from 'types/main';
 import { ScoreData } from 'types/SongDatabase';
+import Logger from './logger';
+
+const logger = new Logger('PlayerDataService');
 
 const fetcher = MaimaiDXNetFetcher.getInstance();
 
@@ -166,34 +170,46 @@ class PlayerDataService {
             return null;
         }
 
-        let playerInfo = await fetcher.getPlayer(friendCode);
+        try {
+            let playerInfo = await fetcher.getPlayer(friendCode);
 
-        if (!playerInfo) {
-            await interaction.editReply('Failed to fetch player info. Please try again later.');
-            return null;
-        }
+            if (!playerInfo) {
+                await interaction.editReply('Failed to fetch player info. Please try again later.');
+                return null;
+            }
 
-        message += 'OK\nFetching scores...';
+            message += 'OK\nFetching scores...';
 
-        await interaction.editReply(message);
-
-        const scores: Record<string, ScoreData[]> = {};
-        for (const [difficulty, displayName] of Object.entries(this.DifficultyDisplayNames)) {
-            if (!this.Difficulties.includes(parseInt(difficulty))) continue;
-
-            message += `\n > Fetching ${displayName} scores...`;
             await interaction.editReply(message);
-            const scoreData = await fetcher.getScores(options.scoreType, friendCode, parseInt(difficulty));
-            scores[displayName] = scoreData.data;
-            message += ' OK';
+
+            const scores: Record<string, ScoreData[]> = {};
+            for (const [difficulty, displayName] of Object.entries(this.DifficultyDisplayNames)) {
+                if (!this.Difficulties.includes(parseInt(difficulty))) continue;
+
+                message += `\n > Fetching ${displayName} scores...`;
+                await interaction.editReply(message);
+                const scoreData = await fetcher.getScores(options.scoreType, friendCode, parseInt(difficulty));
+                scores[displayName] = scoreData.data;
+                message += ' OK';
+            }
+
+            fetcher.savePlayerCacheData(friendCode, {
+                playerData: playerInfo,
+                scoreData: scores,
+            });
+
+            return { playerData: playerInfo, scoreData: scores };
+        } catch (error) {
+            if (!fetcher.playerCacheDataExists(friendCode)) throw error;
+
+            const cache = fetcher.getPlayerCacheData(friendCode);
+            logger.warn('Failed to fetch new data, using cached data:', error);
+            await interaction.followUp({
+                content: `Something went wrong when fetching data. Using cached data from <t:${Math.floor(cache.date.getTime() / 1000)}:F>.`,
+                flags: MessageFlags.Ephemeral,
+            });
+            return cache;
         }
-
-        fetcher.savePlayerCacheData(friendCode, {
-            playerData: playerInfo,
-            scoreData: scores,
-        });
-
-        return { playerData: playerInfo, scoreData: scores };
     }
 }
 
