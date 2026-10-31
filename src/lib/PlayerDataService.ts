@@ -23,6 +23,12 @@ const ConfirmActionRow = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(new ButtonBuilder().setLabel('Yes').setStyle(ButtonStyle.Success).setCustomId('yes'))
     .addComponents(new ButtonBuilder().setLabel('No').setStyle(ButtonStyle.Danger).setCustomId('no'));
 
+export type PlayerDataResult = {
+    playerData: PlayerInfo;
+    scoreData: Record<string, ScoreData[]>;
+    fetchedAt: Date;
+};
+
 class PlayerDataService {
     private static instance: PlayerDataService;
     private DifficultyDisplayNames = {
@@ -54,7 +60,7 @@ class PlayerDataService {
     public async getPlayerData(
         interaction: ChatInputCommandInteraction | ButtonInteraction,
         userId: string,
-    ): Promise<{ playerData: PlayerInfo; scoreData: Record<string, ScoreData[]> } | null> {
+    ): Promise<PlayerDataResult | null> {
         if (!userId) userId = interaction.user.id;
 
         const friendCode = fetcher.getFriendCodeByDiscordId(userId);
@@ -97,7 +103,13 @@ class PlayerDataService {
                 classRank: latestData.playerData['class'],
             };
 
-            return { playerData: playerInfo, scoreData: scores };
+            return {
+                playerData: playerInfo,
+                scoreData: scores,
+                fetchedAt: latestData.date
+                    ? new Date(latestData.date)
+                    : fs.statSync(`./data/user/${userId}/latest.json`).mtime,
+            };
         } else {
             const cacheDataExists = fetcher.playerCacheDataExists(friendCode);
             const cacheDataDate = fetcher.getLatestCacheDataDate(friendCode);
@@ -132,7 +144,8 @@ class PlayerDataService {
 
                 if (btnI.customId === 'yes') {
                     // use cached data
-                    return fetcher.getPlayerCacheData(friendCode);
+                    const cache = fetcher.getPlayerCacheData(friendCode);
+                    return { playerData: cache.playerData, scoreData: cache.scoreData, fetchedAt: cache.date };
                 } else {
                     // fetch new data
                     return await this.fetchNewData(interaction, userId, {
@@ -154,7 +167,7 @@ class PlayerDataService {
         options?: {
             scoreType: ScoreType;
         },
-    ): Promise<{ playerData: PlayerInfo; scoreData: Record<string, ScoreData[]> } | null> {
+    ): Promise<PlayerDataResult | null> {
         if (!options)
             options = {
                 scoreType: ScoreType.Achievement,
@@ -198,7 +211,7 @@ class PlayerDataService {
                 scoreData: scores,
             });
 
-            return { playerData: playerInfo, scoreData: scores };
+            return { playerData: playerInfo, scoreData: scores, fetchedAt: new Date() };
         } catch (error) {
             if (!fetcher.playerCacheDataExists(friendCode)) throw error;
 
@@ -208,7 +221,7 @@ class PlayerDataService {
                 content: `Something went wrong when fetching data. Using cached data from <t:${Math.floor(cache.date.getTime() / 1000)}:F>.`,
                 flags: MessageFlags.Ephemeral,
             });
-            return cache;
+            return { playerData: cache.playerData, scoreData: cache.scoreData, fetchedAt: cache.date };
         }
     }
 }

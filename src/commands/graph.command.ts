@@ -202,7 +202,6 @@ const DrawGraph: {
 
 async function drawAndSendGraph(
     interaction: ChatInputCommandInteraction,
-    updateTime: Date,
     playerData: PlayerInfo,
     scores: { [key: string]: ScoreData[] },
     graphType: keyof typeof DrawGraph,
@@ -371,7 +370,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
     await interaction.editReply({ content: 'Drawing...', embeds: [], components: [] });
 
-    await drawAndSendGraph(interaction, new Date(), playerData, scoreData, type);
+    await drawAndSendGraph(interaction, playerData, scoreData, type);
 }
 
 export { data, execute };
