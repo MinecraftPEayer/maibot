@@ -73,8 +73,8 @@ const sortFunction: { [key: string]: (a: ScoreData, b: ScoreData) => number } = 
         const songA = dataFetcher.getSongByName(a.title);
         const songB = dataFetcher.getSongByName(b.title);
 
-        const sheetA = songA.sheets.find((sheet) => sheet.difficulty === a.difficulty);
-        const sheetB = songB.sheets.find((sheet) => sheet.difficulty === b.difficulty);
+        const sheetA = songA.sheets.find((sheet) => sheet.type === a.type && sheet.difficulty === a.difficulty);
+        const sheetB = songB.sheets.find((sheet) => sheet.type === b.type && sheet.difficulty === b.difficulty);
 
         if (sheetA && sheetB) {
             return sheetB.internalLevelValue - sheetA.internalLevelValue;
@@ -87,8 +87,8 @@ const sortFunction: { [key: string]: (a: ScoreData, b: ScoreData) => number } = 
         const songA = dataFetcher.getSongByName(a.title);
         const songB = dataFetcher.getSongByName(b.title);
 
-        const sheetA = songA.sheets.find((sheet) => sheet.difficulty === a.difficulty);
-        const sheetB = songB.sheets.find((sheet) => sheet.difficulty === b.difficulty);
+        const sheetA = songA.sheets.find((sheet) => sheet.type === a.type && sheet.difficulty === a.difficulty);
+        const sheetB = songB.sheets.find((sheet) => sheet.type === b.type && sheet.difficulty === b.difficulty);
 
         if (sheetA && sheetB) {
             return sheetA.internalLevelValue - sheetB.internalLevelValue;
@@ -199,7 +199,9 @@ async function execute(interaction: ChatInputCommandInteraction) {
         const filteredScores = (scores[diff] ?? []).filter((score) => {
             const song = dataFetcher.getSongByName(score.title);
 
-            const scoreSheet = song.sheets.find((sheet) => sheet.difficulty === score.difficulty);
+            const scoreSheet = song.sheets.find(
+                (sheet) => sheet.type === score.type && sheet.difficulty === score.difficulty,
+            );
 
             if (!scoreSheet) return false;
 
@@ -262,7 +264,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                 .map((score) => {
                     const sheet = dataFetcher
                         .getSongByName(score.title)
-                        .sheets.find((s) => s.difficulty === score.difficulty);
+                        .sheets.find((s) => s.type === score.type && s.difficulty === score.difficulty);
                     return {
                         name: score.title.length > 100 ? score.title.substring(0, 97) + '...' : score.title,
                         value: `${score.type !== ChartType.UTAGE ? Emojis[score.type === ChartType.STD ? 'STD' : 'DX'] + ' ' : ''}${getDifficultyEmoji(score.difficulty)} ${sheet?.level ?? ''} (${sheet?.internalLevelValue.toFixed(1) ?? 'N/A'})\n${score.achievement.toFixed(4)}%\n${comboTypeReflection[score.comboType]}${score.comboType === ComboType.None ? '' : ' '}${syncTypeReflection[score.syncType]}`,
@@ -312,7 +314,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                                 .map((score) => {
                                     const sheet = dataFetcher
                                         .getSongByName(score.title)
-                                        .sheets.find((s) => s.difficulty === score.difficulty);
+                                        .sheets.find((s) => s.type === score.type && s.difficulty === score.difficulty);
                                     return {
                                         name:
                                             score.title.length > 100
@@ -348,7 +350,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                             .map((score) => {
                                 const sheet = dataFetcher
                                     .getSongByName(score.title)
-                                    .sheets.find((s) => s.difficulty === score.difficulty);
+                                    .sheets.find((s) => s.type === score.type && s.difficulty === score.difficulty);
                                 return {
                                     name: score.title.length > 100 ? score.title.substring(0, 97) + '...' : score.title,
                                     value: `${score.type !== ChartType.UTAGE ? Emojis[score.type === ChartType.STD ? 'STD' : 'DX'] + ' ' : ''}${getDifficultyEmoji(score.difficulty)} ${sheet?.level ?? ''} (${sheet?.internalLevelValue.toFixed(1) ?? 'N/A'})\n${score.achievement.toFixed(4)}%\n${comboTypeReflection[score.comboType]}${score.comboType === ComboType.None ? '' : ' '}${syncTypeReflection[score.syncType]}`,
