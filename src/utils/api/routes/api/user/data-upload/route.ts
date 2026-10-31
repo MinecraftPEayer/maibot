@@ -1,11 +1,22 @@
 import { Request, Response } from 'express';
 import fs from 'fs';
+import { writeFileAtomic } from 'src/lib/Utils';
 
 export async function POST(req: Request, res: Response) {
     let body = req.body;
 
-    if (!body || !body.userData || !body.userData.token || !body.data) {
+    if (
+        !body ||
+        !body.userData ||
+        !body.userData.token ||
+        !body.data ||
+        !Array.isArray(body.data?.recentCreditDetail)
+    ) {
         return res.status(400).json({ error: 'Bad request' });
+    }
+
+    if (!body.userData.id || !/^\d+$/.test(body.userData.id)) {
+        return res.status(400).json({ error: 'Invalid id' });
     }
 
     let generatedToken = fs.readFileSync('data/api/token.json');
@@ -30,9 +41,9 @@ export async function POST(req: Request, res: Response) {
 
     if (tokenData.some((item: { id: string; token: string }) => item.id === id && item.token === body.userData.token)) {
         if (!fs.existsSync(`data/user/${id}`)) fs.mkdirSync(`data/user/${id}`);
-        fs.writeFileSync(`data/user/${id}/${formattedDate}.json`, JSON.stringify(body.data, null, 2));
-        fs.writeFileSync(`data/user/${id}/latest.json`, JSON.stringify(body.data, null, 2));
-        fs.writeFileSync(
+        writeFileAtomic(`data/user/${id}/${formattedDate}.json`, JSON.stringify(body.data, null, 2));
+        writeFileAtomic(`data/user/${id}/latest.json`, JSON.stringify(body.data, null, 2));
+        writeFileAtomic(
             `data/api/token.json`,
             JSON.stringify(
                 tokenData.filter((item: { id: string; token: string }) => item.id !== id),
@@ -41,7 +52,7 @@ export async function POST(req: Request, res: Response) {
             ),
         );
 
-        if (!fs.existsSync(`data/user/${id}/detailed.json`)) fs.writeFileSync(`data/user/${id}/detailed.json`, '[]');
+        if (!fs.existsSync(`data/user/${id}/detailed.json`)) writeFileAtomic(`data/user/${id}/detailed.json`, '[]');
         fs.readFileSync(`data/user/${id}/detailed.json`, 'utf8');
         let detailedData = JSON.parse(fs.readFileSync(`data/user/${id}/detailed.json`, 'utf8'));
 
@@ -58,8 +69,10 @@ export async function POST(req: Request, res: Response) {
                 detailedData.unshift(item);
         });
 
-        fs.writeFileSync(`data/user/${id}/detailed.json`, JSON.stringify(detailedData, null, 2));
+        writeFileAtomic(`data/user/${id}/detailed.json`, JSON.stringify(detailedData, null, 2));
 
         return res.status(200).json({ success: true });
+    } else {
+        return res.status(401).send({ error: 'Invalid token' });
     }
 }

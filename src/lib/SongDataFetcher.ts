@@ -12,6 +12,7 @@ import {
     SongDatabaseRegions,
     SongDatabaseVersions,
 } from 'types/SongDatabase';
+import { writeFileAtomic } from './Utils';
 import yaml from 'js-yaml';
 import { ChartType, Difficulty } from './CommonEnums';
 import exception from 'config/exception.json';
@@ -88,10 +89,10 @@ class SongDataFetcher {
 
     private data: SongDatabase;
 
-    static genres: string[];
-    static difficulties: SongDatabaseDifficulties[];
-    static versions: SongDatabaseVersions[];
-    static regions: SongDatabaseRegions[];
+    static genres: string[] = [];
+    static difficulties: SongDatabaseDifficulties[] = [];
+    static versions: SongDatabaseVersions[] = [];
+    static regions: SongDatabaseRegions[] = [];
 
     private constructor() {
         this.filePath = 'tmp/data.json';
@@ -239,7 +240,9 @@ class SongDataFetcher {
                 SongDataFetcher.difficulties = outputData.difficulties;
                 SongDataFetcher.regions = outputData.regions;
 
-                fs.writeFileSync(this.filePath, JSON.stringify(outputData));
+                writeFileAtomic(this.filePath, JSON.stringify(outputData));
+
+                this.data = outputData;
             }
         } catch (error) {
             console.error('Error fetching song data:', error);
@@ -250,9 +253,9 @@ class SongDataFetcher {
         try {
             const response = await axios.get('https://dp4p6x0xfi5o9.cloudfront.net/maimai/gallery.yaml');
             if (response.status === 200) {
-                fs.writeFileSync('tmp/course.yaml', response.data);
+                writeFileAtomic('tmp/course.yaml', response.data);
                 const yamlProcessed = yaml.load(response.data);
-                fs.writeFileSync('tmp/course.json', JSON.stringify(yamlProcessed));
+                writeFileAtomic('tmp/course.json', JSON.stringify(yamlProcessed));
             }
         } catch (error) {
             console.error('Error fetching course data:', error);
@@ -266,8 +269,27 @@ class SongDataFetcher {
 
     private getData(): SongDatabase {
         if (this.data) return this.data;
-        let data = fs.readFileSync(this.filePath, 'utf-8');
-        return JSON.parse(data);
+
+        if (!fs.existsSync(this.filePath)) {
+            return {
+                songs: [],
+                categories: [],
+                versions: [],
+                types: [],
+                difficulties: [],
+                regions: [],
+                updateTime: '',
+            };
+        }
+
+        const data = fs.readFileSync(this.filePath, 'utf-8');
+        const parsed = JSON.parse(data) as SongDatabase;
+        SongDataFetcher.genres = parsed.categories.map((category: { category: string }) => category.category);
+
+        SongDataFetcher.versions = parsed.versions;
+        SongDataFetcher.difficulties = parsed.difficulties;
+        SongDataFetcher.regions = parsed.regions;
+        return parsed;
     }
 
     search(query: string) {

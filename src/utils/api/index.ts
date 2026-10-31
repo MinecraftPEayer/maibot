@@ -7,16 +7,28 @@ import Logger from 'src/lib/logger';
 export default async () => {
     const logger = new Logger('API');
 
+    if (!process.env.API_KEY) {
+        return logger.error('API_KEY is empty, API server not started.');
+    }
+
     const app = express();
 
     app.use(express.json());
+    app.use('/api/user/data-upload', express.json({ limit: '10mb' }));
 
     const noAuthPaths = ['/img/dynamic/noteTable', '/api/status'];
 
     let dynamicLoadingList: string[] = [];
 
     app.use(async (req, res, next) => {
-        if ((process.env.DEVELOPMENT || config.api.debug_route.enabled) && dynamicLoadingList.includes(req.path)) {
+        const dynamicRoute =
+            (process.env.DEVELOPMENT || config.api.debug_route.enabled) && dynamicLoadingList.includes(req.path);
+
+        res.on('finish', () => {
+            logger.log(`${req.method} ${req.path} ${res.statusCode}${dynamicRoute ? ' (dynamic)' : ''}`);
+        });
+
+        if (dynamicRoute) {
             const routePath = `src/utils/api/routes${req.path}/route.ts`;
             delete require.cache[require.resolve(routePath)];
             let route = await import(`${routePath}?t=${Date.now()}`);
@@ -26,8 +38,12 @@ export default async () => {
                 return;
             }
 
-            route[req.method](req, res);
-            logger.log(`${req.method} ${req.path} ${res.statusCode} (dynamic)`);
+            try {
+                await route[req.method](req, res);
+            } catch (error) {
+                logger.error(`Error in dynamic route ${req.path}:`, error);
+                if (!res.headersSent) res.status(500).json({ error: 'Internal Server Error' });
+            }
             return;
         }
 
@@ -36,14 +52,13 @@ export default async () => {
         } else {
             next();
         }
-        logger.log(`${req.method} ${req.path} ${res.statusCode}`);
     });
     const basePath = 'src/utils/api/routes';
     async function loadPath(path: string) {
         let items = fs.readdirSync(path);
 
         for (const item of items) {
-            if (fs.statSync(`${path}/${item}`).isDirectory()) loadPath(`${path}/${item}`);
+            if (fs.statSync(`${path}/${item}`).isDirectory()) await loadPath(`${path}/${item}`);
             if (fs.existsSync(`${path}/${item}/route.ts`)) {
                 let route = await import(`${path}/${item}/route.ts`);
 
@@ -51,7 +66,7 @@ export default async () => {
                     // 動態載入，而非啟動時載入
                     dynamicLoadingList.push(`${path.replace(basePath, '')}/${item}`);
                     logger.log(`Loaded debug route: ${path.replace(basePath, '')}/${item}`);
-                    return;
+                    continue;
                 }
 
                 if (route.GET) {

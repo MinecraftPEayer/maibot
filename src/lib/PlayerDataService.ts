@@ -5,19 +5,29 @@ import {
     ButtonStyle,
     ChatInputCommandInteraction,
     EmbedBuilder,
+    MessageFlags,
 } from 'discord.js';
 import fs from 'fs';
 import MaimaiDXNetFetcher from './maimaiDXNetFetcher';
 import { ComboType, Difficulty, ScoreType, SyncType } from './CommonEnums';
-import { convertDXScoreToStar } from './Utils';
+import { convertDXScoreToStar, replyOrEdit } from './Utils';
 import { PlayerInfo } from 'types/main';
 import { ScoreData } from 'types/SongDatabase';
+import Logger from './logger';
+
+const logger = new Logger('PlayerDataService');
 
 const fetcher = MaimaiDXNetFetcher.getInstance();
 
 const ConfirmActionRow = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(new ButtonBuilder().setLabel('Yes').setStyle(ButtonStyle.Success).setCustomId('yes'))
     .addComponents(new ButtonBuilder().setLabel('No').setStyle(ButtonStyle.Danger).setCustomId('no'));
+
+export type PlayerDataResult = {
+    playerData: PlayerInfo;
+    scoreData: Record<string, ScoreData[]>;
+    fetchedAt: Date;
+};
 
 class PlayerDataService {
     private static instance: PlayerDataService;
@@ -50,19 +60,19 @@ class PlayerDataService {
     public async getPlayerData(
         interaction: ChatInputCommandInteraction | ButtonInteraction,
         userId: string,
-    ): Promise<{ playerData: PlayerInfo; scoreData: Record<string, ScoreData[]> } | null> {
+    ): Promise<PlayerDataResult | null> {
         if (!userId) userId = interaction.user.id;
 
         const friendCode = fetcher.getFriendCodeByDiscordId(userId);
 
         if (!friendCode) {
-            await interaction.reply('No linked account found. Please link your account first.');
+            await replyOrEdit(interaction, 'No linked account found. Please link your account first.');
             return null;
         }
 
         if (fs.existsSync(`./data/user/${userId}/latest.json`)) {
             // Bookmarklet data exists
-            await interaction.reply('Processing...');
+            await replyOrEdit(interaction, 'Processing...');
 
             const latestData = JSON.parse(fs.readFileSync(`./data/user/${userId}/latest.json`, 'utf-8'));
 
@@ -73,10 +83,10 @@ class PlayerDataService {
                     return {
                         title: score.name,
                         type: score.chartType,
-                        difficulty: score.difficulty || Difficulty.Basic,
+                        difficulty: score.difficulty ?? Difficulty.Basic,
                         achievement: score.achievement,
-                        comboType: score.comboType || ComboType.None,
-                        syncType: score.syncType || SyncType.None,
+                        comboType: score.comboType ?? ComboType.None,
+                        syncType: score.syncType ?? SyncType.None,
                         dxScore: score.dxScore[0],
                         dxStar: convertDXScoreToStar(score.dxScore[0], score.dxScore[1]),
                     };
@@ -93,13 +103,19 @@ class PlayerDataService {
                 classRank: latestData.playerData['class'],
             };
 
-            return { playerData: playerInfo, scoreData: scores };
+            return {
+                playerData: playerInfo,
+                scoreData: scores,
+                fetchedAt: latestData.date
+                    ? new Date(latestData.date)
+                    : fs.statSync(`./data/user/${userId}/latest.json`).mtime,
+            };
         } else {
             const cacheDataExists = fetcher.playerCacheDataExists(friendCode);
             const cacheDataDate = fetcher.getLatestCacheDataDate(friendCode);
 
             if (cacheDataExists && cacheDataDate && Date.now() - cacheDataDate.getTime() <= 24 * 60 * 60 * 1000) {
-                await interaction.reply({
+                await replyOrEdit(interaction, {
                     embeds: [
                         new EmbedBuilder()
                             .setTitle('We found cached score data. Would you like to use it or fetch new data?')
@@ -110,15 +126,26 @@ class PlayerDataService {
 
                 const reply = await interaction.fetchReply();
 
-                const btnI = await reply.awaitMessageComponent({
-                    filter: (i) => i.user.id === interaction.user.id,
-                });
+                const btnI = await reply
+                    .awaitMessageComponent({
+                        filter: (i) => i.user.id === interaction.user.id,
+                        time: 60 * 1000,
+                    })
+                    .catch(() => null);
+
+                if (!btnI) {
+                    return await this.fetchNewData(interaction, userId, {
+                        scoreType: ScoreType.Achievement,
+                    });
+                }
 
                 await btnI.deferUpdate();
+                await btnI.editReply({ components: [] });
 
                 if (btnI.customId === 'yes') {
                     // use cached data
-                    return fetcher.getPlayerCacheData(friendCode);
+                    const cache = fetcher.getPlayerCacheData(friendCode);
+                    return { playerData: cache.playerData, scoreData: cache.scoreData, fetchedAt: cache.date };
                 } else {
                     // fetch new data
                     return await this.fetchNewData(interaction, userId, {
@@ -140,18 +167,14 @@ class PlayerDataService {
         options?: {
             scoreType: ScoreType;
         },
-    ): Promise<{ playerData: PlayerInfo; scoreData: Record<string, ScoreData[]> } | null> {
+    ): Promise<PlayerDataResult | null> {
         if (!options)
             options = {
                 scoreType: ScoreType.Achievement,
             };
 
         let message = 'Fetching player info...';
-        if (interaction.replied || interaction.deferred) {
-            await interaction.editReply({ content: message, embeds: [], components: [] });
-        } else {
-            await interaction.reply({ content: message, embeds: [], components: [] });
-        }
+        await replyOrEdit(interaction, { content: message, embeds: [], components: [] });
 
         const friendCode = fetcher.getFriendCodeByDiscordId(userId);
 
@@ -160,34 +183,46 @@ class PlayerDataService {
             return null;
         }
 
-        let playerInfo = await fetcher.getPlayer(friendCode);
+        try {
+            let playerInfo = await fetcher.getPlayer(friendCode);
 
-        if (!playerInfo) {
-            await interaction.editReply('Failed to fetch player info. Please try again later.');
-            return null;
-        }
+            if (!playerInfo) {
+                await interaction.editReply('Failed to fetch player info. Please try again later.');
+                return null;
+            }
 
-        message += 'OK\nFetching scores...';
+            message += 'OK\nFetching scores...';
 
-        await interaction.editReply(message);
-
-        const scores: Record<string, ScoreData[]> = {};
-        for (const [difficulty, displayName] of Object.entries(this.DifficultyDisplayNames)) {
-            if (!this.Difficulties.includes(parseInt(difficulty))) continue;
-
-            message += `\n > Fetching ${displayName} scores...`;
             await interaction.editReply(message);
-            const scoreData = await fetcher.getScores(options.scoreType, friendCode, parseInt(difficulty));
-            scores[displayName] = scoreData.data;
-            message += ' OK';
+
+            const scores: Record<string, ScoreData[]> = {};
+            for (const [difficulty, displayName] of Object.entries(this.DifficultyDisplayNames)) {
+                if (!this.Difficulties.includes(parseInt(difficulty))) continue;
+
+                message += `\n > Fetching ${displayName} scores...`;
+                await interaction.editReply(message);
+                const scoreData = await fetcher.getScores(options.scoreType, friendCode, parseInt(difficulty));
+                scores[displayName] = scoreData.data;
+                message += ' OK';
+            }
+
+            fetcher.savePlayerCacheData(friendCode, {
+                playerData: playerInfo,
+                scoreData: scores,
+            });
+
+            return { playerData: playerInfo, scoreData: scores, fetchedAt: new Date() };
+        } catch (error) {
+            if (!fetcher.playerCacheDataExists(friendCode)) throw error;
+
+            const cache = fetcher.getPlayerCacheData(friendCode);
+            logger.warn('Failed to fetch new data, using cached data:', error);
+            await interaction.followUp({
+                content: `Something went wrong when fetching data. Using cached data from <t:${Math.floor(cache.date.getTime() / 1000)}:F>.`,
+                flags: MessageFlags.Ephemeral,
+            });
+            return { playerData: cache.playerData, scoreData: cache.scoreData, fetchedAt: cache.date };
         }
-
-        fetcher.savePlayerCacheData(friendCode, {
-            playerData: playerInfo,
-            scoreData: scores,
-        });
-
-        return { playerData: playerInfo, scoreData: scores };
     }
 }
 

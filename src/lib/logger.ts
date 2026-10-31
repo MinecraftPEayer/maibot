@@ -1,3 +1,4 @@
+import axios, { AxiosError } from 'axios';
 import { timezone } from 'config/config.json';
 import util from 'util';
 
@@ -150,6 +151,8 @@ class Logger {
             return arg;
         }
 
+        if (axios.isAxiosError(arg)) return summarizeAxiosError(arg);
+
         if (this.isErrorLike(arg)) {
             return this.formatError(arg, colors);
         }
@@ -216,3 +219,17 @@ class Logger {
 }
 
 export default Logger;
+
+export function summarizeAxiosError(error: AxiosError): string {
+    const method = error.config?.method?.toUpperCase() ?? '?';
+    const url = error.config?.url ?? '?';
+    const status = error.response?.status ?? error.code ?? 'no response';
+
+    const stack = (error.stack ?? '')
+        .split('\n')
+        .slice(1)
+        .filter((line) => !line.includes('node_modules') && !line.includes('node:'))
+        .join('\n');
+
+    return `AxiosError: ${error.message} (${method} ${url} -> ${status})\n${stack}`;
+}

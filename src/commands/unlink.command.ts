@@ -9,10 +9,10 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
     let db = new JSONdb('data/linking.json');
     if (!db.has(interaction.user.id)) {
-        interaction.reply(`你還不是機器人的好友`);
+        await interaction.reply(`你還不是機器人的好友`);
     } else {
         db.delete(interaction.user.id);
-        interaction.reply(`已取消連結，你可以使用 /link 重新連結好友代碼`);
+        await interaction.reply(`已取消連結，你可以使用 /link 重新連結好友代碼`);
     }
 }
 

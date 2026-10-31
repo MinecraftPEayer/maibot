@@ -5,17 +5,29 @@ import exception from 'config/exception.json';
 import { timezone } from 'config/config.json';
 import { ChartType, ComboType, Difficulty, SyncType } from './CommonEnums';
 import longSongs from 'config/longSong.json';
-import { RatingBaseImageName, RankFactor, ChartTypeName, NewSongVersion } from './constant/CommonConstant';
+import {
+    RatingBaseImageName,
+    RankFactor,
+    ChartTypeName,
+    NewSongVersion,
+    CurrentVersion,
+} from './constant/CommonConstant';
 import { Emojis } from './constant/emojis';
 import { FontLibrary } from 'skia-canvas';
 import SongDataFetcher from './SongDataFetcher';
 import axios from 'axios';
 import config from 'config/config.json';
-import { ButtonInteraction, ChatInputCommandInteraction } from 'discord.js';
+import {
+    ButtonInteraction,
+    ChatInputCommandInteraction,
+    InteractionEditReplyOptions,
+    InteractionReplyOptions,
+    RepliableInteraction,
+} from 'discord.js';
 import overrideConstant from 'config/constant_override.json';
 import { PlayerInfo } from 'types/main';
-import cron from 'node-cron'
-import Logger from './logger';
+import cron from 'node-cron';
+import Logger, { summarizeAxiosError } from './logger';
 
 function convertAchievementToRank(achievement: number) {
     if (achievement >= 100.5) return 'SSS+';
@@ -88,12 +100,12 @@ function calculateB50(
         comboType: ComboType;
         syncType: SyncType;
     }[],
-    calculateVersion: string = 'CiRCLE PLUS',
+    calculateVersion: string = CurrentVersion,
 ): {
     B15Data: B50Data[];
     B35Data: B50Data[];
 } {
-    let database = JSON.parse(fs.readFileSync('tmp/data.json').toString()) as SongDatabase;
+    const database = SongDataFetcher.getInstance().getRawData();
 
     let B15Data: B50Data[] = [],
         B35Data: B50Data[] = [];
@@ -103,16 +115,13 @@ function calculateB50(
             let sheet = song.sheets.find((sht) => sht.type === item.type && sht.difficulty === item.difficulty);
             if (sheet) {
                 const constant =
-                        (overrideConstant as any)[calculateVersion][
+                        (overrideConstant as any)[calculateVersion]?.[
                             `${song.title}:${ChartTypeName[sheet.type]}:${DifficultyName[sheet.difficulty]}`
                         ] ?? sheet.internalLevelValue,
                     rating = calculateRating(item.achievement, constant, item.comboType >= ComboType.AP),
                     imageURL = song.imageName;
-                const version = (sheet.regionOverrides.intl.version as string) ?? sheet.version ?? song.version;
-                (NewSongVersion[calculateVersion as keyof typeof NewSongVersion].includes(version)
-                    ? B15Data
-                    : B35Data
-                ).push({
+                const version = sheet.regionOverrides.intl.version ?? sheet.version ?? song.version;
+                ((NewSongVersion[calculateVersion] ?? []).includes(version) ? B15Data : B35Data).push({
                     type: item.type,
                     title: (exception as any)[item.title] ?? item.title,
                     achievement: item.achievement,
@@ -124,7 +133,7 @@ function calculateB50(
                     difficulty: item.difficulty,
                     comboType: item.comboType,
                     syncType: item.syncType,
-                    version: sheet.regionOverrides.intl.version ?? sheet.version ?? song.version,
+                    version: version,
                 });
             }
         }
@@ -155,7 +164,7 @@ function calculateScore(
 ): {
     data: B50Data[];
 } {
-    let database = JSON.parse(fs.readFileSync('tmp/data.json').toString()) as SongDatabase;
+    const database = SongDataFetcher.getInstance().getRawData();
 
     let data: B50Data[] = [];
     for (const item of scoreData) {
@@ -278,15 +287,13 @@ function writeErrorToFile(error: any) {
         time.getUTCSeconds().toString().padStart(2, '0'),
     ];
     const fileName = `tmp/error_${nowTime[0]}${nowTime[1]}${nowTime[2]}_${nowTime[3]}${nowTime[4]}${nowTime[5]}.log`;
-    const errorContent = `${util.inspect(error, { depth: null })}`;
+    const errorContent = axios.isAxiosError(error)
+        ? `${summarizeAxiosError(error)}\n\nResponse body:\n${String(error.response?.data ?? '').slice(0, 5000)}`
+        : util.inspect(error, { depth: null });
 
     fs.writeFileSync(fileName, errorContent);
 }
 
-const Difficulties = SongDataFetcher.difficulties;
-const Genres = SongDataFetcher.genres;
-const Versions = SongDataFetcher.versions;
-const Regions = SongDataFetcher.regions;
 const Levels = [
     '1',
     '2',
@@ -441,7 +448,7 @@ function setupSongDataAutoUpdateCronJob() {
                 embeds: [
                     {
                         title: 'Error Details',
-                        description: `\`\`\`${util.inspect(error, { depth: null })}\`\`\``,
+                        description: `\`\`\`${describeError(error).slice(0, 4000)}\`\`\``,
                     },
                 ],
             });
@@ -449,8 +456,40 @@ function setupSongDataAutoUpdateCronJob() {
     });
 }
 
+const webhookLogger = new Logger('Webhook');
 async function sendMessageToWebhook(messagePayload: any) {
-    await axios.post(config.error_log_webhook_url, messagePayload);
+    if (!config.error_log_webhook_url)
+        return webhookLogger.warn('Error log webhook URL is not configured. Skipping sending message to webhook.');
+    try {
+        await axios.post(config.error_log_webhook_url, messagePayload, { timeout: 5000 });
+    } catch (error) {
+        webhookLogger.error('Failed to send message to webhook:', error);
+    }
+}
+
+function writeFileAtomic(path: string, data: string) {
+    const tmp = `${path}.tmp`;
+    fs.writeFileSync(tmp, data);
+    fs.renameSync(tmp, path);
+}
+
+function describeError(error: unknown): string {
+    return axios.isAxiosError(error) ? summarizeAxiosError(error) : util.inspect(error);
+}
+
+function summarizeRatings(list: B50Data[]): { total: number; avg: number; range: string } {
+    const total = list.reduce((sum, score) => sum + score.rating, 0);
+    return {
+        total,
+        avg: list.length ? Math.floor(total / list.length) : 0,
+        range: list.length ? `${list[0].rating} / ${list[list.length - 1].rating}` : '-',
+    };
+}
+
+function replyOrEdit(interaction: RepliableInteraction, payload: string | InteractionEditReplyOptions) {
+    return interaction.replied || interaction.deferred
+        ? interaction.editReply(payload)
+        : interaction.reply(payload as string | InteractionReplyOptions);
 }
 
 const FontStack = '"SEGAMaruGothic", "Noto Sans", "Noto Sans JP", sans-serif';
@@ -472,5 +511,9 @@ export {
     setupSongDataAutoUpdateCronJob,
     writeErrorToFile,
     sendMessageToWebhook,
+    writeFileAtomic,
+    describeError,
+    summarizeRatings,
+    replyOrEdit,
     FontStack,
 };

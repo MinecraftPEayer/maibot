@@ -12,6 +12,7 @@ import {
 } from 'discord.js';
 import { ChartType, ComboType, SyncType } from 'src/lib/CommonEnums';
 import { Emojis } from 'src/lib/constant/emojis';
+import { handleComponentError } from 'src/lib/handleInteractionError';
 import PlayerDataService from 'src/lib/PlayerDataService';
 import SongDataFetcher from 'src/lib/SongDataFetcher';
 import { getDifficultyEmoji } from 'src/lib/Utils';
@@ -188,11 +189,14 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
     const PSService = PlayerDataService.getInstance();
     const playerData = await PSService.getPlayerData(interaction, user.id);
+
+    if (!playerData) return; // playerData is null if account is not linked, pending changes
+
     const scores = playerData?.scoreData || {};
     const allFilteredScores: ScoreData[] = [];
 
     for (const diff of difficulty ?? Object.keys(scores)) {
-        const filteredScores = scores[diff].filter((score) => {
+        const filteredScores = (scores[diff] ?? []).filter((score) => {
             const song = dataFetcher.getSongByName(score.title);
 
             const scoreSheet = song.sheets.find((sheet) => sheet.difficulty === score.difficulty);
@@ -267,29 +271,69 @@ async function execute(interaction: ChatInputCommandInteraction) {
         )
         .setFooter({ text: `Page ${page + 1} of ${Math.ceil(allFilteredScores.length / 5)}` });
 
+    if (allFilteredScores.length === 0) {
+        await interaction.editReply({
+            content: `No scores found for the specified filters.\n\n${FilterDisplayText}`,
+            embeds: [],
+            components: [],
+        });
+        return;
+    }
+
     const reply = await interaction.editReply({
         content: '',
         embeds: [embed],
         components: [sortMethodSelector, pageActionRow],
     });
 
-    const collector = reply.createMessageComponentCollector({ filter: (i) => i.user.id === interaction.user.id });
+    const collector = reply.createMessageComponentCollector({
+        filter: (i) => i.user.id === interaction.user.id,
+        idle: 60_000,
+    });
 
-    let stopTimeout = setTimeout(() => {
-        collector.stop();
-    }, 60000);
+    collector.on('collect', (i: StringSelectMenuInteraction | ButtonInteraction) => {
+        void (async () => {
+            if (i.isStringSelectMenu()) {
+                if (i.customId === 'sort_method') {
+                    currentSortMethod = i.values[0];
 
-    collector.on('collect', async (i: StringSelectMenuInteraction | ButtonInteraction) => {
-        clearTimeout(stopTimeout);
-        stopTimeout = setTimeout(() => {
-            collector.stop();
-        }, 60000);
+                    page = 0;
+                    pageActionRow.components[0].setDisabled(page === 0);
+                    pageActionRow.components[1].setDisabled(page === maxPage);
 
-        if (i.isStringSelectMenu()) {
-            if (i.customId === 'sort_method') {
-                currentSortMethod = i.values[0];
+                    embed
+                        .setDescription(
+                            `Sort by: ${SortMethodDisplayName[currentSortMethod as keyof typeof SortMethodDisplayName] || 'Unknown'}\n\n${FilterDisplayText}`,
+                        )
+                        .setFields(
+                            allFilteredScores
+                                .sort(sortFunction[currentSortMethod])
+                                .slice(5 * page, 5 * (page + 1))
+                                .map((score) => {
+                                    const sheet = dataFetcher
+                                        .getSongByName(score.title)
+                                        .sheets.find((s) => s.difficulty === score.difficulty);
+                                    return {
+                                        name:
+                                            score.title.length > 100
+                                                ? score.title.substring(0, 97) + '...'
+                                                : score.title,
+                                        value: `${score.type !== ChartType.UTAGE ? Emojis[score.type === ChartType.STD ? 'STD' : 'DX'] + ' ' : ''}${getDifficultyEmoji(score.difficulty)} ${sheet?.level ?? ''} (${sheet?.internalLevelValue.toFixed(1) ?? 'N/A'})\n${score.achievement.toFixed(4)}%\n${comboTypeReflection[score.comboType]}${score.comboType === ComboType.None ? '' : ' '}${syncTypeReflection[score.syncType]}`,
+                                    };
+                                }),
+                        )
+                        .setFooter({ text: `Page ${page + 1} of ${Math.ceil(allFilteredScores.length / 5)}` });
+                    await i.update({ embeds: [embed], components: [sortMethodSelector, pageActionRow] });
+                }
+            }
 
-                page = 0;
+            if (i.isButton()) {
+                if (i.customId === 'prev_page') {
+                    page = Math.max(0, page - 1);
+                } else if (i.customId === 'next_page') {
+                    page = Math.min(maxPage, page + 1);
+                }
+
                 pageActionRow.components[0].setDisabled(page === 0);
                 pageActionRow.components[1].setDisabled(page === maxPage);
 
@@ -314,43 +358,19 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     .setFooter({ text: `Page ${page + 1} of ${Math.ceil(allFilteredScores.length / 5)}` });
                 await i.update({ embeds: [embed], components: [sortMethodSelector, pageActionRow] });
             }
-        }
-
-        if (i.isButton()) {
-            if (i.customId === 'prev_page') {
-                page = Math.max(0, page - 1);
-            } else if (i.customId === 'next_page') {
-                page = Math.min(maxPage, page + 1);
-            }
-
-            pageActionRow.components[0].setDisabled(page === 0);
-            pageActionRow.components[1].setDisabled(page === maxPage);
-
-            embed
-                .setDescription(
-                    `Sort by: ${SortMethodDisplayName[currentSortMethod as keyof typeof SortMethodDisplayName] || 'Unknown'}\n\n${FilterDisplayText}`,
-                )
-                .setFields(
-                    allFilteredScores
-                        .sort(sortFunction[currentSortMethod])
-                        .slice(5 * page, 5 * (page + 1))
-                        .map((score) => {
-                            const sheet = dataFetcher
-                                .getSongByName(score.title)
-                                .sheets.find((s) => s.difficulty === score.difficulty);
-                            return {
-                                name: score.title.length > 100 ? score.title.substring(0, 97) + '...' : score.title,
-                                value: `${score.type !== ChartType.UTAGE ? Emojis[score.type === ChartType.STD ? 'STD' : 'DX'] + ' ' : ''}${getDifficultyEmoji(score.difficulty)} ${sheet?.level ?? ''} (${sheet?.internalLevelValue.toFixed(1) ?? 'N/A'})\n${score.achievement.toFixed(4)}%\n${comboTypeReflection[score.comboType]}${score.comboType === ComboType.None ? '' : ' '}${syncTypeReflection[score.syncType]}`,
-                            };
-                        }),
-                )
-                .setFooter({ text: `Page ${page + 1} of ${Math.ceil(allFilteredScores.length / 5)}` });
-            await i.update({ embeds: [embed], components: [sortMethodSelector, pageActionRow] });
-        }
+        })()
+            .catch(async (error) => await handleComponentError(i, error))
+            .catch(async (error) => {
+                console.error('Error handling component interaction:', error);
+            });
     });
 
     collector.on('end', async () => {
-        await interaction.editReply({ components: [] });
+        try {
+            await interaction.editReply({ components: [] });
+        } catch (e) {
+            console.error('Error clearing up components:', e);
+        }
     });
 }
 

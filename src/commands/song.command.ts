@@ -22,6 +22,7 @@ import { DifficultyColor, DifficultyDisplayName } from 'src/lib/constant/CommonC
 import PlayerDataService from 'src/lib/PlayerDataService';
 import { Canvas, loadImage } from 'skia-canvas';
 import MaiNoteService from 'src/lib/MaiNoteService';
+import { handleComponentError } from 'src/lib/handleInteractionError';
 
 async function drawScoreTable(notes: {
     tap?: number | null;
@@ -147,7 +148,7 @@ const data = new SlashCommandBuilder()
     );
 
 async function execute(interaction: ChatInputCommandInteraction) {
-    let songId = interaction.options.getString('name');
+    let songId = interaction.options.getString('name', true);
 
     const maiNotes = MaiNoteService.getInstance();
 
@@ -169,9 +170,9 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
     let song;
     try {
-        song =
-            SongDataFetcher.getInstance().getSong(parseInt(songId || '0')) ??
-            SongDataFetcher.getInstance().getSongByName(songId || '');
+        song = /^\d+$/.test(songId)
+            ? SongDataFetcher.getInstance().getSong(parseInt(songId))
+            : SongDataFetcher.getInstance().getSongByName(songId);
     } catch (error) {
         return await interaction.reply({
             embeds: [
@@ -263,13 +264,9 @@ async function execute(interaction: ChatInputCommandInteraction) {
         components,
     });
 
-    const timeoutFunction = () => {
-        collector.emit('end');
-    };
-    const collector = owo.createMessageComponentCollector({ max: Infinity });
-    let timeout = setTimeout(timeoutFunction, 60000);
-    collector.on('collect', async (buttonInteraction: ButtonInteraction | StringSelectMenuInteraction) => {
-        try {
+    const collector = owo.createMessageComponentCollector({ idle: 60_000 });
+    collector.on('collect', (buttonInteraction: ButtonInteraction | StringSelectMenuInteraction) => {
+        void (async () => {
             switch (buttonInteraction.customId) {
                 case 'toggle_dx_std':
                     if (buttonInteraction.user.id !== interaction.user.id) return;
@@ -320,11 +317,15 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         buttonInteraction.user.id,
                     );
 
-                    if (!result)
-                        return await buttonInteraction.reply({
-                            content: 'Failed to get player data',
-                            flags: [MessageFlags.Ephemeral],
-                        });
+                    if (!result) {
+                        if (!buttonInteraction.replied && !buttonInteraction.deferred) {
+                            await buttonInteraction.reply({
+                                content: 'Failed to get player data',
+                                flags: [MessageFlags.Ephemeral],
+                            });
+                        }
+                        return;
+                    }
 
                     const { playerData, scoreData } = result;
 
@@ -353,7 +354,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                             flags: [MessageFlags.Ephemeral],
                         });
 
-                    buttonInteraction.deferUpdate();
+                    await buttonInteraction.deferUpdate();
                     let title = [
                         `${isUTAGE ? song.title.slice(3) : song.title} - ${!isUTAGE ? Emojis[selectedSheet.type === ChartType.DX ? 'DX' : 'STD'] + ' ' : ''}`,
                         getDifficultyEmoji(isUTAGE ? selectedSheet.utageType! : selectedSheet.difficulty),
@@ -404,7 +405,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
                     const totalDXScore = noteCounts.total ? noteCounts.total * 3 : null;
 
-                    interaction.editReply({
+                    await interaction.editReply({
                         embeds: [
                             {
                                 title:
@@ -481,18 +482,19 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     });
                     break;
             }
-
-            clearTimeout(timeout);
-            timeout = setTimeout(timeoutFunction, 60000);
-        } catch (error) {
-            console.error(error);
-        }
+        })()
+            .catch(async (error) => await handleComponentError(buttonInteraction, error))
+            .catch(async (error) => {
+                console.error('Error handling component interaction:', error);
+            });
     });
 
     collector.on('end', async () => {
         try {
             await interaction.editReply({ components: [] });
-        } catch (error) {}
+        } catch (error) {
+            console.error('Error cleaning components:', error);
+        }
     });
 }
 

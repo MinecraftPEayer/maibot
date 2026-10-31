@@ -7,23 +7,15 @@ import {
     EmbedBuilder,
     SlashCommandBuilder,
 } from 'discord.js';
-import JSONdb from 'simple-json-db';
-import MaimaiDXNetFetcher from 'src/lib/maimaiDXNetFetcher';
-import { calculateB50, convertDXScoreToStar, getDifficultyEmoji } from 'src/lib/Utils';
-import { ChartType, ComboType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
+import { calculateB50, getDifficultyEmoji } from 'src/lib/Utils';
+import { ChartType } from 'src/lib/CommonEnums';
 import { Emojis } from 'src/lib/constant/emojis';
 import { ScoreData } from 'types/SongDatabase';
 import { PlayerInfo } from 'types/main';
-import fs from 'fs';
-import { DifficultyDisplayName } from 'src/lib/constant/CommonConstant';
 import PlayerDataService from 'src/lib/PlayerDataService';
-import { send } from 'process';
-
-let diffs = [Difficulty.Basic, Difficulty.Advanced, Difficulty.Expert, Difficulty.Master, Difficulty.ReMaster];
+import { handleComponentError } from 'src/lib/handleInteractionError';
 
 const TypeText = ['B15', 'B35'];
-
-const scoreType = ScoreType.Achievement;
 
 async function sendB50(
     interaction: ChatInputCommandInteraction,
@@ -82,7 +74,7 @@ async function sendB50(
                     url: `https://chart.minecraftpeayer.com/api/proxy/img?url=${playerInfo?.avatar}`,
                 },
                 footer: {
-                    text: `${TypeText[currentType]} Page ${page + 1} / ${Math.ceil(B50Data[currentType].length / 10)}`,
+                    text: `${TypeText[currentType]} Page ${page + 1} / ${Math.max(1, Math.ceil(B50Data[currentType].length / 10))}`,
                 },
             },
         ],
@@ -92,73 +84,73 @@ async function sendB50(
     let filter = (i: any) => i.user.id === interaction.user.id;
     let collector = owo.createMessageComponentCollector({
         filter,
-        max: Infinity,
+        idle: 60_000,
     });
 
-    const timeoutFunction = () => {
-        collector.emit('end');
-    };
+    collector.on('collect', (actionInteraction: ButtonInteraction) => {
+        void (async () => {
+            const lastPage = Math.max(0, Math.ceil(B50Data[currentType].length / 10) - 1);
 
-    let timeout = setTimeout(timeoutFunction, 60000);
+            switch (actionInteraction.customId) {
+                case 'toggle_b15b35':
+                    currentType = currentType === 0 ? 1 : 0;
+                    page = 0;
+                    break;
 
-    collector.on('collect', async (actionInteraction: ButtonInteraction) => {
-        clearTimeout(timeout);
-        timeout = setTimeout(timeoutFunction, 60000);
+                case 'previous_page':
+                    if (page > 0) {
+                        page--;
+                    }
+                    break;
 
-        switch (actionInteraction.customId) {
-            case 'toggle_b15b35':
-                currentType = currentType === 0 ? 1 : 0;
-                page = 0;
-                break;
+                case 'next_page':
+                    if (page < lastPage) {
+                        page++;
+                    }
+                    break;
 
-            case 'previous_page':
-                if (page > 0) {
-                    page--;
-                }
-                break;
+                default:
+                    return;
+            }
 
-            case 'next_page':
-                if (page < Math.floor(B50Data[currentType].length / 10)) {
-                    page++;
-                }
-                break;
+            if (page == 0) pageActionRow.components[0].setDisabled(true);
+            else pageActionRow.components[0].setDisabled(false);
 
-            default:
-                return;
-        }
+            if (page == lastPage) pageActionRow.components[1].setDisabled(true);
+            else pageActionRow.components[1].setDisabled(false);
 
-        if (page == 0) pageActionRow.components[0].setDisabled(true);
-        else pageActionRow.components[0].setDisabled(false);
-
-        if (page == Math.floor(B50Data[currentType].length / 10)) pageActionRow.components[1].setDisabled(true);
-        else pageActionRow.components[1].setDisabled(false);
-
-        await actionInteraction.update({
-            embeds: [
-                new EmbedBuilder({
-                    title: playerInfo?.name,
-                    description: `Rating: ${rating}\n\n${B50Data[currentType]
-                        .slice(page * 10, page * 10 + 10)
-                        .map((data) => {
-                            return [
-                                `**#${B50Data[currentType].indexOf(data) + 1} ${data.title}**`,
-                                `> ${data.type === ChartType.STD ? Emojis.STD : Emojis.DX} ${getDifficultyEmoji(data.difficulty)} ${data.level} (${data.constant})`,
-                                `> ${Emojis[data.ranking]}- ${data.achievement}% - **${data.rating}**`,
-                            ].join('\n');
-                        })
-                        .join('\n')}`,
-                    thumbnail: {
-                        url: `https://chart.minecraftpeayer.com/api/proxy/img?url=${playerInfo?.avatar}`,
-                    },
-                    footer: {
-                        text: `${TypeText[currentType]} Page ${page + 1} / ${Math.ceil(
-                            B50Data[currentType].length / 10,
-                        )}`,
-                    },
-                }),
-            ],
-            components: [B15B35ActionRow, pageActionRow],
-        });
+            await actionInteraction.update({
+                embeds: [
+                    new EmbedBuilder({
+                        title: playerInfo?.name,
+                        description: `Rating: ${rating}\n\n${B50Data[currentType]
+                            .slice(page * 10, page * 10 + 10)
+                            .map((data) => {
+                                return [
+                                    `**#${B50Data[currentType].indexOf(data) + 1} ${data.title}**`,
+                                    `> ${data.type === ChartType.STD ? Emojis.STD : Emojis.DX} ${getDifficultyEmoji(data.difficulty)} ${data.level} (${data.constant})`,
+                                    `> ${Emojis[data.ranking]}- ${data.achievement}% - **${data.rating}**`,
+                                ].join('\n');
+                            })
+                            .join('\n')}`,
+                        thumbnail: {
+                            url: `https://chart.minecraftpeayer.com/api/proxy/img?url=${playerInfo?.avatar}`,
+                        },
+                        footer: {
+                            text: `${TypeText[currentType]} Page ${page + 1} / ${Math.max(
+                                1,
+                                Math.ceil(B50Data[currentType].length / 10),
+                            )}`,
+                        },
+                    }),
+                ],
+                components: [B15B35ActionRow, pageActionRow],
+            });
+        })()
+            .catch(async (error) => await handleComponentError(actionInteraction, error))
+            .catch(async (error) => {
+                console.error('Error handling component interaction:', error);
+            });
     });
 
     collector.on('end', async () => {
@@ -166,7 +158,9 @@ async function sendB50(
             await interaction.editReply({
                 components: [],
             });
-        } catch (e) {}
+        } catch (e) {
+            console.error('Error clearing up components:', e);
+        }
     });
 }
 
@@ -184,7 +178,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
     if (!result) return await interaction.editReply('Failed to get player data');
 
     const { playerData, scoreData } = result;
-    sendB50(interaction, playerData, scoreData);
+    await sendB50(interaction, playerData, scoreData);
 }
 
 export { data, execute };

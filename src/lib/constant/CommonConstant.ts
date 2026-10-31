@@ -89,9 +89,9 @@ export const DifficultyColor = {
 export const VersionColor = {
     'CiRCLE PLUS': [
         ['#FF2A93', 0],
-        ['#48C3FF', 1]
+        ['#48C3FF', 1],
     ],
-    CiRCLE: [  
+    CiRCLE: [
         ['#F050A0', 0],
         ['#FFEE80', 1],
     ],
@@ -101,6 +101,8 @@ export const VersionColor = {
     ],
 };
 
-export const NewSongVersion = {
+export const CurrentVersion = 'CiRCLE PLUS';
+
+export const NewSongVersion: Record<string, string[]> = {
     'CiRCLE PLUS': ['CiRCLE PLUS', 'CiRCLE'],
 };

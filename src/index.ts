@@ -7,29 +7,43 @@ import Logger from 'src/lib/logger';
 import SongDataFetcher from './lib/SongDataFetcher';
 import { MessageFlags } from 'discord.js';
 import config from 'config/config.json';
-import { inspect } from 'util';
-import { sendMessageToWebhook, setupSongDataAutoUpdateCronJob } from './lib/Utils';
+import { sendMessageToWebhook, setupSongDataAutoUpdateCronJob, describeError } from './lib/Utils';
 import RatingChartUtils from './lib/RatingChartUtils';
 import MaiNoteService from './lib/MaiNoteService';
 import ImageHelper from './lib/ImageHelper';
+import { getErrorMessageFromError } from './lib/handleInteractionError';
 
 const mainLogger = new Logger('main');
 process.logger = mainLogger;
 
-init();
+process.on('unhandledRejection', (reason) => {
+    mainLogger.error('[UnhandledRejection]', reason);
+    sendMessageToWebhook({
+        embeds: [
+            {
+                title: 'UnhandledRejection',
+                description: `\`\`\`js\n${describeError(reason).slice(0, 4000)}\`\`\``,
+                color: 0xff0000,
+            },
+        ],
+    });
+});
 
 process.on('uncaughtException', (error) => {
-    if (config.error_log_webhook_url)
-        sendMessageToWebhook({
-            embeds: [
-                {
-                    title: 'UncaughtException',
-                    description: `\`\`\`js\n${inspect(error).slice(0, 4000)}\`\`\``,
-                    color: 0xff0000,
-                },
-            ],
-        });
+    sendMessageToWebhook({
+        embeds: [
+            {
+                title: 'UncaughtException',
+                description: `\`\`\`js\n${describeError(error).slice(0, 4000)}\`\`\``,
+                color: 0xff0000,
+            },
+        ],
+    });
     mainLogger.error(`[UncaughtException]`, error);
+});
+
+init().catch((error) => {
+    mainLogger.error('[Init] Failed to initialize', error);
 });
 
 const client = new Client({
@@ -53,12 +67,16 @@ client.on('clientReady', async () => {
     const files = fs.readdirSync('./src/commands').filter((file) => file.endsWith('.command.ts'));
 
     for (const file of files) {
-        const command = await import(`./commands/${file}`);
-        if (command.data && command.execute) {
-            client.commands.set(command.data.name, command);
-            commands.push(command.data.toJSON());
-        } else {
-            client.logger.error(`Command file ${file} is missing data or execute properties.`);
+        try {
+            const command = await import(`./commands/${file}`);
+            if (command.data && command.execute) {
+                client.commands.set(command.data.name, command);
+                commands.push(command.data.toJSON());
+            } else {
+                client.logger.error(`Command file ${file} is missing data or execute properties.`);
+            }
+        } catch (error) {
+            client.logger.error(`Failed to load command file ${file}:`, error);
         }
     }
 
@@ -82,7 +100,12 @@ client.on('clientReady', async () => {
             client.logger.error('[CommandRegister] Failed to register guild commands.', error);
         }
     }
-    await fetcher.login();
+
+    try {
+        await fetcher.login();
+    } catch (error) {
+        client.logger.warn('[maimaiDXNetFetcher] Initial login failed, will retry on demand');
+    }
 
     setupSongDataAutoUpdateCronJob();
 
@@ -129,34 +152,50 @@ client.on('interactionCreate', async (interaction) => {
             client.logger.log(`${interaction.user.username} - /${interaction.commandName}`);
             await command.execute(interaction);
         } catch (error) {
+            const RepliedOrDeferred = interaction.replied || interaction.deferred;
+
             try {
-                sendMessageToWebhook({
+                if (getErrorMessageFromError(error)) {
+                    if (RepliedOrDeferred) {
+                        await interaction.editReply({
+                            content: getErrorMessageFromError(error)!,
+                        });
+                    } else {
+                        await interaction.reply({
+                            content: getErrorMessageFromError(error)!,
+                        });
+                    }
+                    return;
+                }
+
+                client.logger.error(`Error executing command ${interaction.commandName}:`, error);
+                if (!interaction.isRepliable()) return;
+
+                if (RepliedOrDeferred) {
+                    await interaction.editReply({
+                        content: `Something went wrong while executing this command.`,
+                    });
+                } else {
+                    await interaction.reply({
+                        content: `Something went wrong while executing this command.`,
+                    });
+                }
+
+                await sendMessageToWebhook({
                     embeds: [
                         {
                             title: 'CommandExecutionError',
-                            description: `\`\`\`js\n${inspect(error).slice(0, 4000)}\`\`\``,
+                            description: `\`\`\`js\n${describeError(error).slice(0, 4000)}\`\`\``,
                             color: 0xff0000,
                         },
                     ],
                 });
-                client.logger.error(`Error executing command ${interaction.commandName}:`, error);
-                if (!interaction.isRepliable()) return;
-
-                if (interaction.replied) {
-                    await interaction.editReply({
-                        content: `Something went wrong while executing this commmand.`,
-                    });
-                } else {
-                    await interaction.reply({
-                        content: `Something went wrong while executing this commmand.`,
-                    });
-                }
             } catch (replyError) {
-                sendMessageToWebhook({
+                await sendMessageToWebhook({
                     embeds: [
                         {
                             title: 'CommandExecutionError',
-                            description: `\`\`\`js\n${inspect(replyError).slice(0, 4000)}\`\`\``,
+                            description: `\`\`\`js\n${describeError(replyError).slice(0, 4000)}\`\`\``,
                             color: 0xff0000,
                         },
                     ],

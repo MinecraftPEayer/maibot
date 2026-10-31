@@ -15,7 +15,7 @@ async function getImageBuffer(imageURL: string, cache?: boolean): Promise<Buffer
         let url = new URL(imageURL);
         if (fs.existsSync(cachePath) && cache) {
             const Buffer = fs.readFileSync(cachePath);
-            return sharp(Buffer).png().toBuffer();
+            return await sharp(Buffer).png().toBuffer();
         } else {
             const response = await axios.get(imageURL, {
                 responseType: 'arraybuffer',
@@ -23,15 +23,15 @@ async function getImageBuffer(imageURL: string, cache?: boolean): Promise<Buffer
                     'User-Agent':
                         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
                 },
-                validateStatus: (status) => status < 500,
             });
-            const buffer = Buffer.from(response.data);
+            const png = await sharp(Buffer.from(response.data)).png().toBuffer();
             if (cache) {
-                fs.writeFileSync(cachePath, buffer);
+                fs.writeFileSync(cachePath, png);
             }
-            return await sharp(buffer).png().toBuffer();
+            return png;
         }
     } catch (error) {
+        fs.rmSync(cachePath, { force: true });
         logger.error(`Error fetching image from ${imageURL}:`, error);
         return Buffer.alloc(0);
     }

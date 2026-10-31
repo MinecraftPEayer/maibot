@@ -19,6 +19,7 @@ import SongDataFetcher from 'src/lib/SongDataFetcher';
 import { getDifficultyEmoji } from 'src/lib/Utils';
 import { ChartType, ComboType, Difficulty, SyncType } from 'src/lib/CommonEnums';
 import { Emojis } from 'src/lib/constant/emojis';
+import { handleComponentError } from 'src/lib/handleInteractionError';
 
 const DifficultyColor = {
     [Difficulty.Basic]: 0x45c124,
@@ -50,10 +51,6 @@ const ChartTypeEmojiName: Record<ChartType, 'STD' | 'DX'> = {
     [ChartType.UTAGE]: 'DX',
 };
 
-const ActionRow = new ActionRowBuilder<ButtonBuilder>()
-    .addComponents(new ButtonBuilder().setCustomId('previous').setLabel('Previous').setStyle(ButtonStyle.Primary))
-    .addComponents(new ButtonBuilder().setCustomId('next').setLabel('Next').setStyle(ButtonStyle.Primary));
-
 const data = new SlashCommandBuilder()
     .setName('recent')
     .setDescription('Show the information of recent play (only available for bookmark script user)')
@@ -64,7 +61,7 @@ const data = new SlashCommandBuilder()
 const execute = async (interaction: ChatInputCommandInteraction) => {
     let optionId = interaction.options.getUser('user')?.id;
     let userId = optionId ? optionId : interaction.user.id;
-    if (!fs.existsSync(`data/user/${userId}/detailed.json`)) {
+    if (!fs.existsSync(`data/user/${userId}/detailed.json`) || !fs.existsSync(`data/user/${userId}/latest.json`)) {
         return await interaction.reply('Sorry, but this feature is only available for bookmark script users.');
     }
 
@@ -74,13 +71,22 @@ const execute = async (interaction: ChatInputCommandInteraction) => {
         (a: any, b: any) => new Date(b.time).getTime() - new Date(a.time).getTime(),
     );
     let splitedByCredit: any[] = [];
-    for (let i = 0; i < detailedData.length; i++) {
-        let track = detailedData[i].track;
+    for (let i = 0; i < detailedData.length;) {
+        let track = Math.max(1, Math.floor(Number(detailedData[i].track)) || 1);
         let thisCredit = detailedData.slice(i, i + track);
         splitedByCredit.push(thisCredit);
-        i += track - 1;
+        i += track;
     }
+
+    if (splitedByCredit.length === 0) {
+        return await interaction.reply('No recent play data found for this user.');
+    }
+
     splitedByCredit.sort((a, b) => new Date(b[0].time).getTime() - new Date(a[0].time).getTime());
+
+    const ActionRow = new ActionRowBuilder<ButtonBuilder>()
+        .addComponents(new ButtonBuilder().setCustomId('previous').setLabel('Previous').setStyle(ButtonStyle.Primary))
+        .addComponents(new ButtonBuilder().setCustomId('next').setLabel('Next').setStyle(ButtonStyle.Primary));
 
     let buttonState = [true, true]; // [previous, next]
 
@@ -146,37 +152,40 @@ const execute = async (interaction: ChatInputCommandInteraction) => {
     getTracks(index);
 
     let reply = await interaction.reply({ components: [container], flags: [MessageFlags.IsComponentsV2] });
-    let collector = reply.createMessageComponentCollector({ filter: (i) => i.user.id === interaction.user.id });
-    let timeout = setTimeout(() => {
-        collector.emit('end');
-    }, 60000);
+    let collector = reply.createMessageComponentCollector({
+        filter: (i) => i.user.id === interaction.user.id,
+        idle: 60_000,
+    });
 
-    collector.on('collect', async (buttonInteraction: ButtonInteraction) => {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => {
-            collector.emit('end');
-        }, 60000);
+    collector.on('collect', (buttonInteraction: ButtonInteraction) => {
+        void (async () => {
+            switch (buttonInteraction.customId) {
+                case 'previous':
+                    if (index === 0) return;
+                    getTracks(--index);
+                    break;
+                case 'next':
+                    if (index === splitedByCredit.length - 1) return;
+                    getTracks(++index);
+                    break;
+            }
 
-        switch (buttonInteraction.customId) {
-            case 'previous':
-                if (index === 0) return;
-                getTracks(--index);
-                break;
-            case 'next':
-                if (index === splitedByCredit.length - 1) return;
-                getTracks(++index);
-                break;
-        }
-
-        await buttonInteraction.deferUpdate();
-        interaction.editReply({ components: [container], flags: [MessageFlags.IsComponentsV2] });
+            await buttonInteraction.deferUpdate();
+            await interaction.editReply({ components: [container], flags: [MessageFlags.IsComponentsV2] });
+        })()
+            .catch(async (error) => await handleComponentError(buttonInteraction, error))
+            .catch(async (error) => {
+                console.error('Error handling component interaction:', error);
+            });
     });
 
     collector.on('end', async () => {
-        container.spliceComponents(container.components.length - 2, 2);
         try {
+            container.spliceComponents(container.components.length - 2, 2);
             await interaction.editReply({ components: [container], flags: [MessageFlags.IsComponentsV2] });
-        } catch (e) {}
+        } catch (e) {
+            console.error('Error cleaning components:', e);
+        }
     });
 };
 

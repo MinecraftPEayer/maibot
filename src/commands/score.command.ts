@@ -14,6 +14,7 @@ import SongDataFetcher from 'src/lib/SongDataFetcher';
 import { sendScore } from 'src/lib/Utils';
 import { ScoreData } from 'types/SongDatabase';
 import exception from 'config/exception.json';
+import { handleComponentError } from 'src/lib/handleInteractionError';
 
 const toggle_dx_std = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
@@ -36,13 +37,13 @@ function autocomplete(interaction: AutocompleteInteraction) {
 }
 
 async function execute(interaction: ChatInputCommandInteraction) {
-    const songId = interaction.options.getString('song');
+    const songId = interaction.options.getString('song', true);
 
     let song;
     try {
-        song =
-            SongDataFetcher.getInstance().getSong(parseInt(songId || '0')) ??
-            SongDataFetcher.getInstance().getSongByName(songId || '');
+        song = /^\d+$/.test(songId)
+            ? SongDataFetcher.getInstance().getSong(parseInt(songId))
+            : SongDataFetcher.getInstance().getSongByName(songId);
     } catch (error) {
         return await interaction.reply({
             embeds: [
@@ -89,11 +90,15 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
     const result = await PlayerDataService.getInstance().getPlayerData(interaction, interaction.user.id);
 
-    if (!result)
-        return await interaction.reply({
-            content: 'Failed to get player data',
-            flags: [MessageFlags.Ephemeral],
-        });
+    if (!result) {
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({
+                content: 'Failed to get player data',
+                flags: [MessageFlags.Ephemeral],
+            });
+        }
+        return;
+    }
 
     const { playerData, scoreData } = result;
 
@@ -101,27 +106,28 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
     if (containDXAndSTD) {
         const filter = (i: any) => i.user.id === interaction.user.id;
-        const collector = repliedMessage.createMessageComponentCollector({ filter });
+        const collector = repliedMessage.createMessageComponentCollector({ filter, idle: 60000 });
 
-        let timeout = setTimeout(() => {
-            collector.stop();
-        }, 60000);
-
-        collector.on('collect', async (i) => {
-            if (i.customId === 'toggle_dx_std') {
-                await i.deferUpdate();
-                type = type === ChartType.DX ? ChartType.STD : ChartType.DX;
-                await sendScore(interaction, song, playerData, scoreData, isUTAGE, scoreFilter, components);
-
-                clearTimeout(timeout);
-                timeout = setTimeout(() => {
-                    collector.stop();
-                }, 60000);
-            }
+        collector.on('collect', (i) => {
+            void (async () => {
+                if (i.customId === 'toggle_dx_std') {
+                    await i.deferUpdate();
+                    type = type === ChartType.DX ? ChartType.STD : ChartType.DX;
+                    await sendScore(interaction, song, playerData, scoreData, isUTAGE, scoreFilter, components);
+                }
+            })()
+                .catch(async (error) => await handleComponentError(i, error))
+                .catch(async (error) => {
+                    console.error('Error handling component interaction:', error);
+                });
         });
 
-        collector.on('end', () => {
-            repliedMessage.edit({ components: [] });
+        collector.on('end', async () => {
+            try {
+                await repliedMessage.edit({ components: [] });
+            } catch (error) {
+                console.error('Error cleaning components:', error);
+            }
         });
     }
 }

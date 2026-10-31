@@ -8,23 +8,32 @@ const data = new SlashCommandBuilder()
     .addStringOption((option) => option.setName('code').setDescription('好友代碼').setRequired(true));
 
 async function execute(interaction: ChatInputCommandInteraction) {
-    let fetcher = MaimaiDXNetFetcher.getInstance();
-    let friendList = await fetcher.getFriendList();
-    let code = interaction.options.getString('code');
     await interaction.reply('Processing...');
+    let code = interaction.options.getString('code');
+
+    if (!/^\d+$/.test(code ?? '')) {
+        await interaction.editReply('好友代碼格式錯誤');
+        return;
+    }
+
     let db = new JSONdb('data/linking.json');
     if (Object.values(db.JSON()).includes(code)) {
         await interaction.editReply('此好友代碼已被綁定');
         return;
     }
 
+    let fetcher = MaimaiDXNetFetcher.getInstance();
+    let friendList = await fetcher.getFriendList();
+
+    if (db.has(interaction.user.id)) {
+        const linkedCode = db.get(interaction.user.id);
+        await interaction.editReply(
+            `你已經綁定到玩家 ${friendList.find((friend: any) => friend.idx === linkedCode)?.name ?? linkedCode}，請使用 /unlink 取消綁定`,
+        );
+        return;
+    }
+
     if (friendList.some((friend: any) => friend.idx === code)) {
-        if (db.has(interaction.user.id)) {
-            await interaction.editReply(
-                `你已經綁定到玩家 ${friendList.find((friend: any) => friend.idx === code)?.name}，請使用 /unlink 取消綁定`,
-            );
-            return;
-        }
         db.set(interaction.user.id, code);
         await interaction.editReply(`已綁定到玩家 ${friendList.find((friend: any) => friend.idx === code)?.name}`);
     } else {

@@ -1,18 +1,18 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 import { Canvas, CanvasRenderingContext2D } from 'skia-canvas';
 import JSONdb from 'simple-json-db';
-import { calculateB50, getRatingBaseImage, initializeFonts, FontStack } from 'src/lib/Utils';
+import { calculateB50, getRatingBaseImage, initializeFonts, summarizeRatings, FontStack } from 'src/lib/Utils';
 import fs from 'fs';
 import { ChartType, ComboType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
 import { B50Data, Rank, ScoreData } from 'types/SongDatabase';
-import { DifficultyColor, VersionColor } from 'src/lib/constant/CommonConstant';
+import { CurrentVersion, DifficultyColor, VersionColor } from 'src/lib/constant/CommonConstant';
 import Logger from 'src/lib/logger';
 import { PlayerInfo } from 'types/main';
 import { drawRoundRect, drawCustomRoundRect, createBlurredBackground } from 'src/lib/DrawImageUtils';
 import PlayerDataService from 'src/lib/PlayerDataService';
 import RatingChartUtils from 'src/lib/RatingChartUtils';
 import ImageHelper from 'src/lib/ImageHelper';
-import ImageConfig from 'src/lib/ImageConfig'
+import ImageConfig from 'src/lib/ImageConfig';
 
 const TitleTypeName = {
     [TitleType.Normal]: 'Normal',
@@ -191,6 +191,8 @@ async function drawRankCountBox(
     return TotalWidth;
 }
 
+const coverUrl = (score: B50Data) => `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${score.backgroundImg}`;
+
 async function drawSongBox(
     ctx: CanvasRenderingContext2D,
     x: number,
@@ -209,9 +211,7 @@ async function drawSongBox(
 
     if (!score) return;
 
-    let songBackgroundImg = await loadImage(
-        `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${score.backgroundImg}`,
-    );
+    let songBackgroundImg = await loadImage(coverUrl(score));
 
     const scaleWidth = songBoxDim.width / songBackgroundImg.width;
     const scaleHeight = songBoxDim.height / songBackgroundImg.height;
@@ -373,12 +373,14 @@ async function drawSongBox(
         }
     }
 
-    ctx.font = `28px ${FontStack}`;
     ctx.save();
+    ctx.font = `28px ${FontStack}`;
     ctx.lineWidth = 0.5;
+    ctx.fillStyle = 'white';
     ctx.strokeStyle = 'white';
     ctx.fillText(score.rating.toString(), X + songBoxDim.width - 55 - 4 - 2, Y + songBoxDim.height - 2 - 4 - 2);
     ctx.strokeText(score.rating.toString(), X + songBoxDim.width - 55 - 4 - 2, Y + songBoxDim.height - 2 - 4 - 2);
+    ctx.restore();
 }
 
 const WIDTH = 1920,
@@ -452,17 +454,17 @@ async function drawAndSendChart(
     const bgBlur = await loadImage('tmp/bg_blurred.png');
     ctx.save();
     ctx.beginPath();
-    ctx.roundRect(Margin, Margin, WIDTH - (Margin * 2), HEIGHT - (Margin * 2), CornerRadius);
+    ctx.roundRect(Margin, Margin, WIDTH - Margin * 2, HEIGHT - Margin * 2, CornerRadius);
     ctx.clip();
-    ctx.drawImage(bgBlur, Margin, Margin, WIDTH - (Margin * 2), HEIGHT - (Margin * 2));
+    ctx.drawImage(bgBlur, Margin, Margin, WIDTH - Margin * 2, HEIGHT - Margin * 2);
     ctx.restore();
 
     drawRoundRect({
         ctx,
         x: Margin,
         y: Margin,
-        width: WIDTH - (Margin * 2),
-        height: HEIGHT - (Margin * 2),
+        width: WIDTH - Margin * 2,
+        height: HEIGHT - Margin * 2,
         radius: CornerRadius,
         fillStyle: 'rgba(0, 0, 0, 0.5)',
     });
@@ -564,24 +566,26 @@ async function drawAndSendChart(
         fillStyle: 'rgba(183, 183, 183, 0.45)',
     });
 
-    let B35Total = 0;
-    B35Data.forEach((b35) => (B35Total += b35.rating));
-    let B15Total = 0;
-    B15Data.forEach((b15) => (B15Total += b15.rating));
+    const b35Summary = summarizeRatings(B35Data);
+    const b15Summary = summarizeRatings(B15Data);
+
+    const B35Total = b35Summary.total;
+    const B15Total = b15Summary.total;
 
     ctx.font = `12px ${FontStack}`;
     ctx.fillStyle = 'white';
     ctx.fillText('REAL', 471, 119 + 12);
     ctx.fillText('CALC', 470, 152 + 12);
 
+    const calcTotal = B35Total + B15Total;
     ctx.font = `32px ${FontStack}`;
     ctx.fillText(playerData.rating.toString(), 507, 101 + 32);
-    ctx.fillText(String(B35Total + B15Total), 507, 134 + 32);
+    ctx.fillText(String(calcTotal), 507, 134 + 32);
 
     if (playerData.rating !== B35Total + B15Total) {
         ctx.font = `16px ${FontStack}`;
         ctx.fillText(
-            `(${playerData.rating > B35Total + B15Total ? '-' : '+'}${playerData.rating - (B35Total + B15Total)})`,
+            `(${calcTotal > playerData.rating ? '+' : '-'}${Math.abs(calcTotal - playerData.rating)})`,
             612,
             149 + 16,
         );
@@ -738,33 +742,35 @@ async function drawAndSendChart(
         height: 152,
     };
 
-    const b35Tasks = B35Data.map((score, index) => {
+    await Promise.all([...B35Data, ...B15Data].map((score) => loadImage(coverUrl(score))));
+
+    for (const [index, score] of B35Data.entries()) {
         const i = Math.floor(index / 7);
         const j = index % 7;
 
         const X = B35BaseX + j * (songBoxDim.width + Gap);
         const Y = B35BaseY + i * (songBoxDim.height + Gap);
 
-        return drawSongBox(ctx, X, Y, score, songBoxDim, index, {
+        await drawSongBox(ctx, X, Y, score, songBoxDim, index, {
             drawSyncAndCombo: drawIcons,
         });
-    });
+    }
 
     ctx.fillStyle = 'white';
     ctx.font = `8px ${FontStack}`;
     ctx.fillText('B35', B35BaseX + 116, B35BaseY - 8 - 2);
     ctx.font = `20px ${FontStack}`;
-    ctx.fillText(B35Total.toString(), B35BaseX + 134, B35BaseY - 8 - 2);
+    ctx.fillText(String(b35Summary.total), B35BaseX + 134, B35BaseY - 8 - 2);
 
     ctx.font = `8px ${FontStack}`;
     ctx.fillText('AVG', B35BaseX + 215, B35BaseY - 8 - 2);
     ctx.font = `20px ${FontStack}`;
-    ctx.fillText(Math.floor(B35Total / B35Data.length).toString(), B35BaseX + 236, B35BaseY - 8 - 2);
+    ctx.fillText(String(b35Summary.avg), B35BaseX + 236, B35BaseY - 8 - 2);
 
     ctx.font = `8px ${FontStack}`;
     ctx.fillText('RANGE', B35BaseX + 300, B35BaseY - 8 - 2);
     ctx.font = `20px ${FontStack}`;
-    ctx.fillText(`${B35Data[0].rating} / ${B35Data[B35Data.length - 1].rating}`, B35BaseX + 334, B35BaseY - 8 - 2);
+    ctx.fillText(b35Summary.range, B35BaseX + 334, B35BaseY - 8 - 2);
 
     ctx.save();
     ctx.beginPath();
@@ -775,6 +781,7 @@ async function drawAndSendChart(
     ctx.strokeStyle = 'white';
     ctx.lineWidth = 2;
     ctx.stroke();
+    ctx.restore();
 
     const B15BaseX = 1332,
         B15BaseY = 216;
@@ -795,37 +802,34 @@ async function drawAndSendChart(
         ctx.fillText(chartText[i / 10], B15BaseX + 42 + i, B15BaseY - 8 - 20 + 15);
     }
 
-    const b15Tasks = B15Data.map((score, index) => {
+    for (const [index, score] of B15Data.entries()) {
         const i = Math.floor(index / 3);
         const j = index % 3;
 
         const X = B15BaseX + j * (songBoxDim.width + Gap);
         const Y = B15BaseY + i * (songBoxDim.height + Gap);
 
-        return drawSongBox(ctx, X, Y, score, songBoxDim, index, {
+        await drawSongBox(ctx, X, Y, score, songBoxDim, index, {
             drawSyncAndCombo: drawIcons,
             drawVersion: true,
         });
-    });
-
-    await Promise.all(b35Tasks);
-    await Promise.all(b15Tasks);
+    }
 
     ctx.fillStyle = 'white';
     ctx.font = `8px ${FontStack}`;
     ctx.fillText('B15', B15BaseX + 116, B15BaseY - 8 - 2);
     ctx.font = `20px ${FontStack}`;
-    ctx.fillText(B15Total.toString(), B15BaseX + 134, B15BaseY - 8 - 2);
+    ctx.fillText(String(b15Summary.total), B15BaseX + 134, B15BaseY - 8 - 2);
 
     ctx.font = `8px ${FontStack}`;
     ctx.fillText('AVG', B15BaseX + 215, B15BaseY - 8 - 2);
     ctx.font = `20px ${FontStack}`;
-    ctx.fillText(Math.floor(B15Total / B15Data.length).toString(), B15BaseX + 236, B15BaseY - 8 - 2);
+    ctx.fillText(String(b15Summary.avg), B15BaseX + 236, B15BaseY - 8 - 2);
 
     ctx.font = `8px ${FontStack}`;
     ctx.fillText('RANGE', B15BaseX + 300, B15BaseY - 8 - 2);
     ctx.font = `20px ${FontStack}`;
-    ctx.fillText(`${B15Data[0].rating} / ${B15Data[B15Data.length - 1].rating}`, B15BaseX + 334, B15BaseY - 8 - 2);
+    ctx.fillText(b15Summary.range, B15BaseX + 334, B15BaseY - 8 - 2);
 
     ctx.font = `12px ${FontStack}`;
     ctx.fillText(`Generated by maibot#3684 (${process.BuildVersion})`, 80, HEIGHT - 42);
@@ -863,18 +867,18 @@ const data = new SlashCommandBuilder()
     .addUserOption((option) => option.setName('user').setDescription('要查詢的玩家').setRequired(false))
     .addBooleanOption((option) =>
         option.setName('draw_icons').setDescription('是否繪製SYNC/FC/AP圖標 (預設為否)').setRequired(false),
-    )
-    // .addStringOption((option) =>
-    //     option
-    //         .setName('version')
-    //         .setDescription('版本')
-    //         .addChoices(
-    //             Object.keys(NewSongVersion).map((item) => {
-    //                 return { name: item, value: item };
-    //             }),
-    //         )
-    //         .setRequired(false),
-    // );
+    );
+// .addStringOption((option) =>
+//     option
+//         .setName('version')
+//         .setDescription('版本')
+//         .addChoices(
+//             Object.keys(NewSongVersion).map((item) => {
+//                 return { name: item, value: item };
+//             }),
+//         )
+//         .setRequired(false),
+// );
 
 const scoreType = ScoreType.Achievement;
 
@@ -895,7 +899,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
     let optionUser = interaction.options.getUser('user');
     let optionDrawIcons = interaction.options.getBoolean('draw_icons') ?? false;
     // let optionVersion = interaction.options.getString('version') ?? 'CiRCLE';
-    let optionVersion = 'CiRCLE PLUS';
+    let optionVersion = CurrentVersion;
 
     if (optionUser && !db.has(optionUser.id)) {
         return await interaction.reply(`${optionUser.username} 還沒綁定帳號`);
@@ -907,10 +911,10 @@ async function execute(interaction: ChatInputCommandInteraction) {
     const result = await PlayerDataService.getInstance().getPlayerData(interaction, id);
     if (!result) return await interaction.editReply('Failed to get player data');
 
-    const { playerData, scoreData } = result;
+    const { playerData, scoreData, fetchedAt } = result;
 
     await interaction.editReply({ content: 'All done!\nDrawing...', embeds: [], components: [] });
-    await drawAndSendChart(interaction, new Date(), playerData, scoreData, optionDrawIcons, optionVersion);
+    await drawAndSendChart(interaction, fetchedAt, playerData, scoreData, optionDrawIcons, optionVersion);
 }
 
 export { data, execute };

@@ -4,11 +4,12 @@ import axios, { AxiosInstance } from 'axios';
 import { ChartType, ComboType, Difficulty, Genres, ScoreType, SyncType, TitleType } from './CommonEnums';
 import { DifficultyDisplayName, DifficultyName } from './constant/CommonConstant';
 import Logger from './logger';
-import { writeErrorToFile } from './Utils';
+import { writeErrorToFile, writeFileAtomic } from './Utils';
 import { ScoreData } from 'types/SongDatabase';
 import JSONdb from 'simple-json-db';
 import { CookieJar } from 'tough-cookie';
 import { wrapper } from 'axios-cookiejar-support';
+import { MaimaiDXNetMaintenanceError } from './errors';
 
 const UserAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36';
@@ -20,6 +21,8 @@ class MaimaiDXNetFetcher {
     http: AxiosInstance;
     cookieJar: CookieJar;
 
+    private loginPromise: Promise<void> | null = null;
+
     static getInstance() {
         if (!MaimaiDXNetFetcher.instance) {
             MaimaiDXNetFetcher.instance = new MaimaiDXNetFetcher();
@@ -30,6 +33,30 @@ class MaimaiDXNetFetcher {
     private constructor() {
         this.cookieJar = new CookieJar();
         this.http = wrapper(axios.create({ jar: this.cookieJar, headers: { 'User-Agent': UserAgent } }));
+
+        this.http.interceptors.response.use(
+            (response) => {
+                if (typeof response.data === 'string' && this.isMaintenancePage(response.data)) {
+                    throw new MaimaiDXNetMaintenanceError();
+                }
+                return response;
+            },
+            (error: unknown) => {
+                if (
+                    axios.isAxiosError(error) &&
+                    typeof error.response?.data === 'string' &&
+                    this.isMaintenancePage(error.response.data)
+                ) {
+                    throw new MaimaiDXNetMaintenanceError();
+                }
+                return Promise.reject(error);
+            },
+        );
+    }
+
+    private isMaintenancePage(data: string): boolean {
+        const $ = cheerio.load(data);
+        return $('.main_info_title').text().trim() === 'Sorry, servers are under maintenance.';
     }
 
     private async update() {
@@ -42,15 +69,22 @@ class MaimaiDXNetFetcher {
         }
     }
 
-    public async login(): Promise<void> {
+    public login(): Promise<void> {
+        this.loginPromise ??= this.doLogin().finally(() => {
+            this.loginPromise = null;
+        });
+        return this.loginPromise;
+    }
+
+    private async doLogin(): Promise<void> {
         this.cookieJar.removeAllCookiesSync();
         this.loginFinished = false;
 
-        await this.http.get(
-            'https://lng-tgk-aime-gw.am-all.net/common_auth/login?site_id=maimaidxex&redirect_url=https://maimaidx-eng.com/maimai-mobile/&back_url=https://maimai.sega.com/',
-        );
-
         try {
+            await this.http.get(
+                'https://lng-tgk-aime-gw.am-all.net/common_auth/login?site_id=maimaidxex&redirect_url=https://maimaidx-eng.com/maimai-mobile/&back_url=https://maimai.sega.com/',
+            );
+
             const loginResponse = await this.http.post(
                 'https://lng-tgk-aime-gw.am-all.net/common_auth/login/sid',
                 new URLSearchParams({
@@ -75,6 +109,8 @@ class MaimaiDXNetFetcher {
             this.loginFinished = true;
             this.logger.log('Logged in successfully');
         } catch (error) {
+            if (error instanceof MaimaiDXNetMaintenanceError) throw error;
+
             writeErrorToFile(error);
             this.logger.error('Error during login:', error);
             throw new Error('Error during login');
@@ -96,13 +132,13 @@ class MaimaiDXNetFetcher {
 
             let $ = cheerio.load(resp.data);
 
-            if ($('title').text() !== 'maimai DX NET－All Friend\'s－') {
+            if ($('title').text() !== "maimai DX NET－All Friend's－") {
                 await this.login();
                 resp = await this.http.get('https://maimaidx-eng.com/maimai-mobile/friend');
 
                 $ = cheerio.load(resp.data);
 
-                if ($('title').text() !== 'maimai DX NET－All Friend\'s－') {
+                if ($('title').text() !== "maimai DX NET－All Friend's－") {
                     this.logger.error('Failed to fetch friend list after re-login');
                     throw new Error('Failed to fetch friend list after re-login');
                 }
@@ -124,6 +160,8 @@ class MaimaiDXNetFetcher {
             this.logger.log('Fetched friend list successfully');
             return output;
         } catch (error) {
+            if (error instanceof MaimaiDXNetMaintenanceError) throw error;
+
             this.logger.error('Error fetching friend list:', error);
             writeErrorToFile(error);
             throw new Error('Error fetching friend list');
@@ -164,6 +202,8 @@ class MaimaiDXNetFetcher {
                 },
             );
         } catch (error) {
+            if (error instanceof MaimaiDXNetMaintenanceError) throw error;
+
             this.logger.error('Error adding friend:', error);
             writeErrorToFile(error);
             throw new Error('Error adding friend');
@@ -197,7 +237,7 @@ class MaimaiDXNetFetcher {
 
             let $ = cheerio.load(data);
 
-            if ($('title').text() !== 'maimai DX NET－Friend\'s Details－') {
+            if ($('title').text() !== "maimai DX NET－Friend's Details－") {
                 await this.update();
                 resp = await this.http.get(
                     `https://maimaidx-eng.com/maimai-mobile/friend/friendDetail/?idx=${friendCode}`,
@@ -210,7 +250,7 @@ class MaimaiDXNetFetcher {
 
                 $ = cheerio.load(resp.data);
 
-                if ($('title').text() !== 'maimai DX NET－Friend\'s Details－') {
+                if ($('title').text() !== "maimai DX NET－Friend's Details－") {
                     this.logger.error('Failed to fetch player info after re-login');
                     throw new Error('Failed to fetch player info after re-login');
                 }
@@ -245,9 +285,11 @@ class MaimaiDXNetFetcher {
                 classRank,
             };
         } catch (error) {
+            if (error instanceof MaimaiDXNetMaintenanceError) throw error;
+
             this.logger.error('Error getting player:', error);
             writeErrorToFile(error);
-            return null;
+            throw new Error('Error getting player');
         }
     }
 
@@ -397,7 +439,7 @@ class MaimaiDXNetFetcher {
         const dataPath = `data/playerData/${friendCode}/latest.json`;
         if (fs.existsSync(dataPath)) {
             const latestData = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
-            return new Date(parseInt(latestData.date.replace(/,/g, '')));
+            return new Date(latestData.date);
         }
         return null;
     }
@@ -435,18 +477,17 @@ class MaimaiDXNetFetcher {
         },
     ): void {
         if (!fs.existsSync(`data/playerData/${friendCode}`)) fs.mkdirSync(`data/playerData/${friendCode}`);
-        fs.writeFileSync(
+        writeFileAtomic(
             `data/playerData/${friendCode}/latest.json`,
             JSON.stringify(
                 {
-                    date: Date.now().toLocaleString(),
+                    date: Date.now(),
                     data: data,
                 },
                 null,
                 2,
             ),
         );
-        new Date().toDateString();
     }
 
     getPlayerCacheData(friendCode: string): {
@@ -479,7 +520,7 @@ class MaimaiDXNetFetcher {
         return {
             playerData: data.data.playerData,
             scoreData: data.data.scoreData,
-            date: new Date(parseInt(data.date.replace(/[,]/g, ''))),
+            date: new Date(data.date),
         };
     }
 
