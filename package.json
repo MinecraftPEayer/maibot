@@ -19,7 +19,7 @@
         "typescript": "^5.8.3"
     },
     "engines": {
-        "node": "26.X"
+        "node": ">=24"
     },
     "scripts": {
         "start": "tsx .",
