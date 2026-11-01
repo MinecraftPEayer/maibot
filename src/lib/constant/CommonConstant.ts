@@ -23,6 +23,7 @@ export const RatingBaseImageName = {
     gold: 'gold',
     platinum: 'platinum',
     rainbow: 'rainbow',
+    rainbow_kiwami: 'rainbow_kiwami',
 };
 
 export const DifficultyDisplayName = {

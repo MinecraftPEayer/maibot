@@ -202,6 +202,7 @@ function calculateScore(
 }
 
 function getRatingBaseImage(rating: number) {
+    if (rating >= 16000) return RatingBaseImageName.rainbow_kiwami;
     if (rating >= 15000) return RatingBaseImageName.rainbow;
     if (rating >= 14500) return RatingBaseImageName.platinum;
     if (rating >= 14000) return RatingBaseImageName.gold;
