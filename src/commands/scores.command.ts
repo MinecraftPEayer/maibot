@@ -16,7 +16,7 @@ import { handleComponentError } from 'src/lib/handleInteractionError';
 import PlayerDataService from 'src/lib/PlayerDataService';
 import SongDataFetcher from 'src/lib/SongDataFetcher';
 import { getDifficultyEmoji } from 'src/lib/Utils';
-import { Difficulty, ScoreData } from 'types/SongDatabase';
+import { ScoreData } from 'types/SongDatabase';
 
 const data = new SlashCommandBuilder()
     .setName('scores')

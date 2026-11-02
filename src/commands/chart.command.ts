@@ -3,7 +3,7 @@ import { Canvas, CanvasRenderingContext2D } from 'skia-canvas';
 import JSONdb from 'simple-json-db';
 import { calculateB50, getRatingBaseImage, initializeFonts, summarizeRatings, FontStack } from 'src/lib/Utils';
 import fs from 'fs';
-import { ChartType, ComboType, Difficulty, ScoreType, SyncType, TitleType } from 'src/lib/CommonEnums';
+import { ChartType, ComboType, Difficulty, SyncType, TitleType } from 'src/lib/CommonEnums';
 import { B50Data, Rank, ScoreData } from 'types/SongDatabase';
 import { CurrentVersion, DifficultyColor, VersionColor } from 'src/lib/constant/CommonConstant';
 import Logger from 'src/lib/logger';
@@ -879,8 +879,6 @@ const data = new SlashCommandBuilder()
 //         )
 //         .setRequired(false),
 // );
-
-const scoreType = ScoreType.Achievement;
 
 function drawBoldText(ctx: CanvasRenderingContext2D, text: string, posX: number, posY: number, lineWidth?: number) {
     let originalStrokeStyle = ctx.strokeStyle,

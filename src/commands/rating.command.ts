@@ -1,6 +1,5 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
-import { calculateRating, convertAchievementToRank, getRankFactor } from 'src/lib/Utils';
-import { RankFactor } from 'src/lib/constant/CommonConstant';
+import { calculateRating, convertAchievementToRank } from 'src/lib/Utils';
 
 const data = new SlashCommandBuilder()
     .setName('rating')

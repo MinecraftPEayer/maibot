@@ -17,18 +17,9 @@ import {
 import fs from 'fs';
 import SongDataFetcher from 'src/lib/SongDataFetcher';
 import { getDifficultyEmoji } from 'src/lib/Utils';
-import { ChartType, ComboType, Difficulty, SyncType } from 'src/lib/CommonEnums';
+import { ChartType, ComboType, SyncType } from 'src/lib/CommonEnums';
 import { Emojis } from 'src/lib/constant/emojis';
 import { handleComponentError } from 'src/lib/handleInteractionError';
-
-const DifficultyColor = {
-    [Difficulty.Basic]: 0x45c124,
-    [Difficulty.Advanced]: 0xffba01,
-    [Difficulty.Expert]: 0xff7b7b,
-    [Difficulty.Master]: 0x9f51dc,
-    [Difficulty.ReMaster]: 0xdbaaff,
-    [Difficulty.UTAGE]: 0xff6ffd,
-};
 
 const SyncEmojiName = {
     [SyncType.FS]: 'FS',

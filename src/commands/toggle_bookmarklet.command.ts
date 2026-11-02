@@ -1,6 +1,5 @@
 import { ChatInputCommandInteraction, MessageFlags, SlashCommandBuilder } from 'discord.js';
 import PlayerDataService from 'src/lib/PlayerDataService';
-import { replyOrEdit } from 'src/lib/Utils';
 
 const data = new SlashCommandBuilder()
     .setName('toggle_bookmarklet')

@@ -5,15 +5,12 @@ import {
     ButtonStyle,
     ChatInputCommandInteraction,
     EmbedBuilder,
-    Emoji,
     SlashCommandBuilder,
 } from 'discord.js';
-import fs from 'fs';
 import { Emojis } from 'src/lib/constant/emojis';
 import { handleComponentError } from 'src/lib/handleInteractionError';
 import SongDataFetcher from 'src/lib/SongDataFetcher';
-import { getChartTypeFromName, getDifficultyIdFromName, randomSong } from 'src/lib/Utils';
-import { Sheet, Song } from 'types/SongDatabase';
+import { randomSong } from 'src/lib/Utils';
 
 const Difficulties = SongDataFetcher.difficulties;
 const Genres = SongDataFetcher.genres;

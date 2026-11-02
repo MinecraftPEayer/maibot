@@ -10,8 +10,6 @@ import Chart from 'chart.js/auto';
 import PlayerDataService from 'src/lib/PlayerDataService';
 import ImageConfig from 'src/lib/ImageConfig';
 
-let logger;
-
 const WIDTH = 1920,
     HEIGHT = 1080;
 
@@ -358,7 +356,6 @@ const data = new SlashCommandBuilder()
     .addUserOption((option) => option.setName('user').setDescription('The user to draw').setRequired(false));
 
 async function execute(interaction: ChatInputCommandInteraction) {
-    logger = interaction.client.logger;
     const user = interaction.options.getUser('user') || interaction.user;
     const type = interaction.options.getString('type') as keyof typeof DrawGraph;
 

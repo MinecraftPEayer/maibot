@@ -1,6 +1,6 @@
 import fs from 'fs';
 import util from 'util';
-import { B50Data, ScoreData, Sheet, Song, SongDatabase } from 'types/SongDatabase';
+import { B50Data, ScoreData, Sheet, Song } from 'types/SongDatabase';
 import exception from 'config/exception.json';
 import { timezone } from 'config/config.json';
 import { ChartType, ComboType, Difficulty, SyncType } from './CommonEnums';

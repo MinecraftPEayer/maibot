@@ -84,7 +84,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     maxConstant: RandomCourseLevelRange[selectedSection.title as RandomCourseType][1],
                 };
 
-                const { filtered, randomized } = randomSong(selectedSection.sheets.length, filter, true);
+                const { randomized } = randomSong(selectedSection.sheets.length, filter, true);
 
                 await selectInteraction.update({
                     content: [`**${course.title} - ${selectedSection.title}**`, selectedSection.description].join('\n'),
