@@ -14,6 +14,7 @@ import { convertDXScoreToStar, replyOrEdit } from './Utils';
 import { PlayerInfo } from 'types/main';
 import { ScoreData } from 'types/SongDatabase';
 import Logger from './logger';
+import JSONdb from 'simple-json-db';
 
 const logger = new Logger('PlayerDataService');
 
@@ -57,6 +58,20 @@ class PlayerDataService {
         return PlayerDataService.instance;
     }
 
+    public checkBookmarkletDataExists(userId: string): boolean {
+        return fs.existsSync(`./data/user/${userId}/latest.json`);
+    }
+
+    public getBookmarkletEnabled(userId: string): boolean {
+        const db = new JSONdb('./data/bookmarklet_toggle.json');
+        return this.checkBookmarkletDataExists(userId) && db.get(userId) !== false;
+    }
+
+    public setBookmarkletEnabled(userId: string, enabled: boolean): void {
+        const db = new JSONdb('./data/bookmarklet_toggle.json');
+        db.set(userId, enabled);
+    }
+
     public async getPlayerData(
         interaction: ChatInputCommandInteraction | ButtonInteraction,
         userId: string,
@@ -70,8 +85,7 @@ class PlayerDataService {
             return null;
         }
 
-        if (fs.existsSync(`./data/user/${userId}/latest.json`)) {
-            // Bookmarklet data exists
+        if (this.getBookmarkletEnabled(userId)) {
             await replyOrEdit(interaction, 'Processing...');
 
             const latestData = JSON.parse(fs.readFileSync(`./data/user/${userId}/latest.json`, 'utf-8'));
