@@ -1,9 +1,11 @@
 import fs from 'fs';
 import axios from 'axios';
-import { logger } from 'process';
+import Logger from 'src/lib/logger';
 import sharp from 'sharp';
-import { CanvasRenderingContext2D, CanvasGradient, Image, Canvas, CanvasDrawable } from 'skia-canvas';
+import { CanvasRenderingContext2D, CanvasGradient, Canvas, CanvasDrawable } from 'skia-canvas';
 import crypto from 'crypto';
+
+const logger = new Logger('DrawImageUtils');
 
 async function getImageBuffer(imageURL: string, cache?: boolean): Promise<Buffer> {
     if (cache === undefined) cache = false;
@@ -12,7 +14,6 @@ async function getImageBuffer(imageURL: string, cache?: boolean): Promise<Buffer
     const cachePath = `tmp/cache/image/${hashName}.png`;
 
     try {
-        let url = new URL(imageURL);
         if (fs.existsSync(cachePath) && cache) {
             const Buffer = fs.readFileSync(cachePath);
             return await sharp(Buffer).png().toBuffer();
