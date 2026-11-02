@@ -70,9 +70,9 @@ async function sendB50(
                         ].join('\n');
                     })
                     .join('\n')}`,
-                thumbnail: {
-                    url: `https://chart.minecraftpeayer.com/api/proxy/img?url=${playerInfo?.avatar}`,
-                },
+                thumbnail: playerInfo?.avatar ? {
+                    url: playerInfo?.avatar,
+                } : undefined,
                 footer: {
                     text: `${TypeText[currentType]} Page ${page + 1} / ${Math.max(1, Math.ceil(B50Data[currentType].length / 10))}`,
                 },
@@ -134,7 +134,7 @@ async function sendB50(
                             })
                             .join('\n')}`,
                         thumbnail: {
-                            url: `https://chart.minecraftpeayer.com/api/proxy/img?url=${playerInfo?.avatar}`,
+                            url: playerInfo?.avatar,
                         },
                         footer: {
                             text: `${TypeText[currentType]} Page ${page + 1} / ${Math.max(

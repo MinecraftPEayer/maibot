@@ -488,11 +488,11 @@ async function drawAndSendChart(
         fillStyle: 'rgba(183, 183, 183, 0.45)',
     });
 
-    const avatarImg = await loadImage(`https://chart.minecraftpeayer.com/api/proxy/img?url=${playerData.avatar}`);
+    const avatarImg = await loadImage(playerData.avatar);
     ctx.drawImage(avatarImg, 72, 72, 92, 92);
 
     const ratingImg = await loadImage(
-        `https://chart.minecraftpeayer.com/api/proxy/img?url=https://maimaidx-eng.com/maimai-mobile/img/rating_base_${getRatingBaseImage(playerData.rating)}.png`,
+        `https://maimaidx-eng.com/maimai-mobile/img/rating_base_${getRatingBaseImage(playerData.rating)}.png`,
     );
     ctx.drawImage(ratingImg, 172, 70, 104, 30);
     ctx.font = `14px ${FontStack}`;
@@ -510,7 +510,7 @@ async function drawAndSendChart(
     ctx.fillText(ratingArray[3], baseX + 32.5, 90);
     ctx.fillText(ratingArray[4], baseX + 43.5, 90);
 
-    const classImg = await loadImage(`https://chart.minecraftpeayer.com/api/proxy/img?url=${playerData.classRank}`);
+    const classImg = await loadImage(playerData.classRank);
     ctx.drawImage(classImg, 276, 68, 58, 32);
 
     drawRoundRect({
@@ -526,11 +526,11 @@ async function drawAndSendChart(
     ctx.fillStyle = 'black';
     ctx.fillText(playerData.name, 180, 106 + 20);
 
-    const courseImg = await loadImage(`https://chart.minecraftpeayer.com/api/proxy/img?url=${playerData.course}`);
+    const courseImg = await loadImage(playerData.course);
     ctx.drawImage(courseImg, 341, 104, 71, 28);
 
     const titleBackImg = await loadImage(
-        `https://chart.minecraftpeayer.com/api/proxy/img?url=https://maimaidx-eng.com/maimai-mobile/img/trophy_${TitleTypeName[playerData.titleType].toLowerCase()}.png`,
+        `https://maimaidx-eng.com/maimai-mobile/img/trophy_${TitleTypeName[playerData.titleType].toLowerCase()}.png`,
     );
 
     ctx.drawImage(titleBackImg, 172, 138, 270, 25);
