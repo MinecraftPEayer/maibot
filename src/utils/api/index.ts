@@ -3,6 +3,7 @@ import fs from 'fs';
 import { createServer } from 'https';
 import config from 'config/config.json';
 import Logger from 'src/lib/logger';
+import SessionService from 'src/lib/SessionService';
 
 export default async () => {
     const logger = new Logger('API');
@@ -15,6 +16,8 @@ export default async () => {
 
     app.use(express.json());
     app.use('/api/user/data-upload', express.json({ limit: '10mb' }));
+
+    SessionService.getInstance();
 
     const noAuthPaths = ['/img/dynamic/noteTable', '/api/status'];
 

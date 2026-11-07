@@ -1,5 +1,6 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 import JSONdb from 'simple-json-db';
+import SessionService from 'src/lib/SessionService';
 
 const data = new SlashCommandBuilder().setName('unlink').setDescription('取消連結好友代碼');
 
@@ -9,6 +10,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
         await interaction.reply(`你還不是機器人的好友`);
     } else {
         db.delete(interaction.user.id);
+        SessionService.getInstance().revokeAll(interaction.user.id);
         await interaction.reply(`已取消連結，你可以使用 /link 重新連結好友代碼`);
     }
 }
