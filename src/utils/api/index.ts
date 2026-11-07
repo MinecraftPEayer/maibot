@@ -14,8 +14,8 @@ export default async () => {
 
     const app = express();
 
+    app.use('/api/v1/user/data-upload', express.json({ limit: '10mb' }));
     app.use(express.json());
-    app.use('/api/user/data-upload', express.json({ limit: '10mb' }));
 
     SessionService.getInstance();
 
