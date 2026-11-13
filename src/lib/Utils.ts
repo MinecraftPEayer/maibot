@@ -5,13 +5,7 @@ import exception from 'config/exception.json';
 import { timezone } from 'config/config.json';
 import { ChartType, ComboType, Difficulty, SyncType } from './CommonEnums';
 import longSongs from 'config/longSong.json';
-import {
-    RatingBaseImageName,
-    RankFactor,
-    ChartTypeName,
-    NewSongVersion,
-    CurrentVersion,
-} from './constant/CommonConstant';
+import { RatingBaseImageName, RankFactor, NewSongVersion, CurrentVersion } from './constant/CommonConstant';
 import { Emojis } from './constant/emojis';
 import { FontLibrary } from 'skia-canvas';
 import SongDataFetcher from './SongDataFetcher';
@@ -24,7 +18,6 @@ import {
     InteractionReplyOptions,
     RepliableInteraction,
 } from 'discord.js';
-import overrideConstant from 'config/constant_override.json';
 import { PlayerInfo } from 'types/main';
 import cron from 'node-cron';
 import Logger, { summarizeAxiosError } from './logger';
@@ -91,52 +84,42 @@ function convertDXScoreToStar(dxScore: number, fullDXScore: number): number {
     return 0;
 }
 
+const aliasTitle = (title: string) => (exception as Record<string, string>)[title] ?? title;
+
 function calculateB50(
-    scoreData: {
-        title: string;
-        type: ChartType;
-        difficulty: Difficulty;
-        achievement: number;
-        comboType: ComboType;
-        syncType: SyncType;
-    }[],
+    scoreData: ScoreData[],
     calculateVersion: string = CurrentVersion,
 ): {
     B15Data: B50Data[];
     B35Data: B50Data[];
 } {
-    const database = SongDataFetcher.getInstance().getRawData();
+    const fetcher = SongDataFetcher.getInstance();
 
     let B15Data: B50Data[] = [],
         B35Data: B50Data[] = [];
     for (const item of scoreData) {
-        const song = database.songs.find((song) => song.songId === ((exception as any)[item.title] ?? item.title));
-        if (song) {
-            let sheet = song.sheets.find((sht) => sht.type === item.type && sht.difficulty === item.difficulty);
-            if (sheet) {
-                const constant =
-                        (overrideConstant as any)[calculateVersion]?.[
-                            `${song.title}:${ChartTypeName[sheet.type]}:${DifficultyName[sheet.difficulty]}`
-                        ] ?? sheet.internalLevelValue,
-                    rating = calculateRating(item.achievement, constant, item.comboType >= ComboType.AP),
-                    imageURL = song.imageName;
-                const version = sheet.regionOverrides.intl.version ?? sheet.version ?? song.version;
-                ((NewSongVersion[calculateVersion] ?? []).includes(version) ? B15Data : B35Data).push({
-                    type: item.type,
-                    title: (exception as any)[item.title] ?? item.title,
-                    achievement: item.achievement,
-                    ranking: convertAchievementToRank(item.achievement),
-                    backgroundImg: imageURL,
-                    rating: rating,
-                    constant: constant,
-                    level: sheet.level,
-                    difficulty: item.difficulty,
-                    comboType: item.comboType,
-                    syncType: item.syncType,
-                    version: version,
-                });
-            }
-        }
+        const found = fetcher.findSheet(item);
+        if (!found) continue;
+        const { song, sheet } = found;
+
+        const constant = sheet.multiverInternalLevelValue?.[calculateVersion] ?? sheet.internalLevelValue,
+            rating = calculateRating(item.achievement, constant, item.comboType >= ComboType.AP),
+            imageURL = song.imageName;
+        const version = sheet.intlVersion;
+        ((NewSongVersion[calculateVersion] ?? []).includes(version) ? B15Data : B35Data).push({
+            type: item.type,
+            title: (exception as any)[item.title] ?? item.title,
+            achievement: item.achievement,
+            ranking: convertAchievementToRank(item.achievement),
+            backgroundImg: imageURL,
+            rating: rating,
+            constant: constant,
+            level: sheet.level,
+            difficulty: item.difficulty,
+            comboType: item.comboType,
+            syncType: item.syncType,
+            version: version,
+        });
     }
 
     B15Data = B15Data.sort((a, b) =>
@@ -152,48 +135,34 @@ function calculateB50(
     };
 }
 
-function calculateScore(
-    scoreData: {
-        title: string;
-        type: ChartType;
-        difficulty: Difficulty;
-        achievement: number;
-        comboType: ComboType;
-        syncType: SyncType;
-    }[],
-): {
+function calculateScore(scoreData: ScoreData[]): {
     data: B50Data[];
 } {
-    const database = SongDataFetcher.getInstance().getRawData();
+    const fetcher = SongDataFetcher.getInstance();
 
     let data: B50Data[] = [];
     for (const item of scoreData) {
-        const song = database.songs.find((song: any) => song.songId === ((exception as any)[item.title] ?? item.title));
+        const found = fetcher.findSheet(item);
+        if (!found) continue;
+        const { song, sheet } = found;
 
-        if (song) {
-            let sheet = song.sheets.find(
-                (sht) => sht.type === item.type && (sht.type === ChartType.UTAGE || sht.difficulty === item.difficulty),
-            );
-            if (sheet) {
-                const constant = sheet.internalLevelValue,
-                    rating = calculateRating(item.achievement, constant, item.comboType >= ComboType.AP),
-                    imageURL = song.imageName;
-                data.push({
-                    type: item.type,
-                    title: (exception as any)[item.title] ?? item.title,
-                    achievement: item.achievement,
-                    ranking: convertAchievementToRank(item.achievement),
-                    backgroundImg: imageURL,
-                    rating: rating,
-                    constant: constant,
-                    level: sheet.level,
-                    difficulty: item.difficulty,
-                    comboType: item.comboType,
-                    syncType: item.syncType,
-                    version: sheet.regionOverrides.intl.version ?? sheet.version ?? song.version,
-                });
-            }
-        }
+        const constant = sheet.internalLevelValue,
+            rating = calculateRating(item.achievement, constant, item.comboType >= ComboType.AP),
+            imageURL = song.imageName;
+        data.push({
+            type: item.type,
+            title: (exception as any)[item.title] ?? item.title,
+            achievement: item.achievement,
+            ranking: convertAchievementToRank(item.achievement),
+            backgroundImg: imageURL,
+            rating: rating,
+            constant: constant,
+            level: sheet.level,
+            difficulty: item.difficulty,
+            comboType: item.comboType,
+            syncType: item.syncType,
+            version: sheet.intlVersion,
+        });
     }
 
     return {
@@ -419,7 +388,7 @@ async function sendScore(
                 title: song.title,
                 description: `${playerInfo?.name}`,
                 thumbnail: {
-                    url: `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`,
+                    url: SongDataFetcher.coverUrl(song.imageName),
                 },
                 fields: scoreData.map((score) => {
                     return {
@@ -503,6 +472,7 @@ export {
     convertAchievementToRank,
     getRankFactor,
     convertDXScoreToStar,
+    aliasTitle,
     getRatingBaseImage,
     getDifficultyIdFromName,
     getChartTypeFromName,

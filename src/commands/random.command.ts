@@ -12,7 +12,7 @@ import { handleComponentError } from 'src/lib/handleInteractionError';
 import SongDataFetcher from 'src/lib/SongDataFetcher';
 import { randomSong } from 'src/lib/Utils';
 
-const Difficulties = SongDataFetcher.difficulties;
+const Difficulties = SongDataFetcher.difficulties.filter((d) => d.color);
 const Genres = SongDataFetcher.genres;
 const Versions = SongDataFetcher.versions;
 const Regions = SongDataFetcher.regions;
@@ -174,7 +174,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                 .setDescription(
                     `${Emojis[['STD', 'DX', 'Utage'][sheet.type] as keyof typeof Emojis]} ${Emojis[['Basic', 'Advanced', 'Expert', 'Master', 'ReMaster', , , , , , 'Utage'][sheet.difficulty] as keyof typeof Emojis]} ${sheet.level}`,
                 )
-                .setThumbnail(`https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`),
+                .setThumbnail(SongDataFetcher.coverUrl(song.imageName)),
         );
 
     const paginationActionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(

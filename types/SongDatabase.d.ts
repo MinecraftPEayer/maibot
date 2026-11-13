@@ -1,5 +1,51 @@
 import { Difficulty, ComboType, SyncType, ChartType } from 'src/lib/CommonEnums';
 
+type DxrServerId = 'jp' | 'intl' | 'usa' | 'cn';
+
+type DxrSheet = {
+    id: string; // dsht_…
+    type: 'dx' | 'std' | 'utage' | 'utage2p';
+    difficulty: string;
+    level: string;
+    internalLevelValue: number; // JP version
+    noteDesigner?: string;
+    noteCounts: Partial<Record<'tap' | 'hold' | 'slide' | 'touch' | 'break' | 'total', number>>;
+    serverIds: DxrServerId[];
+    serverOverrides?: Partial<Record<DxrServerId, { level?: string; levelValue?: number; version?: string }>>;
+    isSpecial: boolean;
+    version: string;
+    internalId?: number;
+    releaseDate?: string;
+    multiverInternalLevelValue?: Record<string, number>;
+    comment?: string;
+};
+
+type DxrSong = {
+    id: string; // dsng_…
+    category: string;
+    title: string;
+    artist: string;
+    bpm?: number;
+    imageName: string;
+    version: string;
+    isNew: boolean;
+    isLocked: boolean;
+    searchAcronyms: string[];
+    sheets: DxrSheet[];
+};
+
+type DxrCatalog = {
+    schemaVersion: number;
+    updatedAt: string;
+    songs: DxrSong[];
+    categories: SongDatabaseCategories[];
+    versions: SongDatabaseVersions[];
+    types: SongDatabaseTypes[];
+    difficulties: SongDatabaseDifficulties[];
+    servers: { id: DxrServerId; name: string }[];
+    aliases: { song_id: string; name: string }[];
+};
+
 interface SongDatabase {
     songs: Song[];
     categories: SongDatabaseCategories[];
@@ -7,37 +53,71 @@ interface SongDatabase {
     types: SongDatabaseTypes[];
     difficulties: SongDatabaseDifficulties[];
     regions: SongDatabaseRegions[];
-    updateTime: string;
+    aliases: { songId: string; name: string }[]; // songId = dsng_…
+    updatedAt: string;
 }
 
-type SongDatabaseCategories = {
-    category: string;
-};
-
-type SongDatabaseVersions = {
-    version: string;
-    abbr: string;
-    iconUrl?: string;
-};
-
+type SongDatabaseCategories = { category: string };
+type SongDatabaseVersions = { version: string; abbr: string; releaseDate?: string; iconUrl?: string };
 type SongDatabaseTypes = {
-    type: 'dx' | 'std' | 'utage';
+    type: 'dx' | 'std' | 'utage' | 'utage2p';
     name: string;
     abbr: string;
     iconUrl?: string;
     iconHeight?: number;
 };
+type SongDatabaseDifficulties = { difficulty: string; name: string; color?: string };
+type SongDatabaseRegions = { region: 'jp' | 'intl' | 'usa' | 'cn'; name: string };
 
-type SongDatabaseDifficulties = {
-    difficulty: string;
-    name: string;
-    color: string;
+type Song = {
+    id: string; // dsng_…
+    songId: string; // specfic usage for display, never duplicate
+    title: string; // original title
+    artist: string;
+    category: string;
+    bpm: number | null;
+    imageName: string; // hash without extension name
+    version: string; // JP song version
+    isNew: boolean;
+    isLocked: boolean;
+    comment: string | null; // utage comment
+    searchAcronyms: string[];
+    sheets: Sheet[];
 };
 
-type SongDatabaseRegions = {
-    region: 'jp' | 'intl' | 'usa' | 'cn';
-    name: string;
+type ConstantSource = 'multiver' | 'otoge-intl' | 'intl-level' | 'jp';
+
+type Sheet = {
+    id: string; // dsht_…
+    type: ChartType; // utage and utage2p both use ChartType.UTAGE
+    difficulty: Difficulty; // UTAGE use Difficulty.UTAGE
+    utageType?: string; // '【協】'
+    isBuddy: boolean; // utage2p
+    level: string; // serverOverrides.intl.level ?? level
+    internalLevelValue: number; // the only constant value
+    constantSource: ConstantSource; // for debugging
+    jpInternalLevelValue: number; // JP version, only used for reference
+    multiverInternalLevelValue?: Record<string, number>; // keep for calculateB50(calculateVersion)
+    noteDesigner: string | null;
+    noteCounts: NoteCount;
+    regions: Region;
+    intlVersion: string; // version used in B15/B35 calculation
+    version: string; // JP sheet version
+    isSpecial: boolean;
+    internalId: number | null;
+    releaseDate: string | null;
 };
+
+type NoteCount = {
+    tap: number | null;
+    hold: number | null;
+    slide: number | null;
+    touch: number | null;
+    break: number | null;
+    total: number | null;
+};
+
+type Region = { jp: boolean; intl: boolean; usa: boolean; cn: boolean };
 
 type ConstantDatabase = {
     sort: string;
@@ -131,59 +211,6 @@ type ConstantDatabase = {
     date_intl_added: string;
 };
 
-type Song = {
-    category: string;
-    songId: string;
-    title: string;
-    artist: string;
-    bpm: number;
-    imageName: string;
-    version: string;
-    releaseDate: string;
-    isNew: boolean;
-    isLocked: boolean;
-    comment: string | null;
-    sheets: Sheet[];
-};
-
-type Sheet = {
-    type: ChartType;
-    difficulty: Difficulty;
-    level: string;
-    levelValue: number;
-    internalLevel: string | null;
-    internalLevelValue: number;
-    noteDesigner: string;
-    noteCounts: NoteCount;
-    regions: Region;
-    regionOverrides: RegionOverrides;
-    isSpecial: boolean;
-    version: string;
-    utageType?: string;
-};
-
-type NoteCount = {
-    tap: number | null;
-    hold: number | null;
-    slide: number | null;
-    touch: number | null;
-    break: number | null;
-    total: number | null;
-};
-
-type Region = {
-    jp: boolean;
-    intl: boolean;
-    usa: boolean;
-    cn: boolean;
-};
-
-type RegionOverrides = {
-    intl: {
-        version?: string;
-    };
-};
-
 type Version =
     | '10000'
     | '11000'
@@ -254,6 +281,11 @@ type CourseSection = {
 };
 
 export {
+    DxrCatalog,
+    DxrSong,
+    DxrSheet,
+    DxrServerId,
+    ConstantSource,
     SongDatabase,
     SongDatabaseCategories,
     SongDatabaseVersions,
@@ -266,7 +298,6 @@ export {
     Difficulty,
     NoteCount,
     Region,
-    RegionOverrides,
     Version,
     Rank,
     B50Data,

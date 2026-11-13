@@ -89,14 +89,12 @@ async function execute(interaction: ChatInputCommandInteraction) {
                 await selectInteraction.update({
                     content: [`**${course.title} - ${selectedSection.title}**`, selectedSection.description].join('\n'),
                     embeds: randomized.map((sheet, index: number) => {
-                        const version = sheet.sheet.version ? sheet.sheet.version : sheet.song.version;
+                        const version = sheet.sheet.intlVersion ? sheet.sheet.intlVersion : sheet.song.version;
                         return new EmbedBuilder()
                             .setTitle(sheet.song.title)
                             .setAuthor({ name: `${sheet.song.artist}` })
                             .setColor(parseInt(DifficultyColor[sheet.sheet.difficulty][0].slice(1) || '000000', 16))
-                            .setThumbnail(
-                                `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${sheet.song.imageName}`,
-                            )
+                            .setThumbnail(SongDataFetcher.coverUrl(sheet.song.imageName))
                             .setDescription(
                                 [
                                     `${Emojis[sheet.sheet.type === ChartType.DX ? 'DX' : 'STD']} ${getDifficultyEmoji(sheet.sheet.difficulty)} ${sheet.sheet.level || 'N/A'} ${sheet.sheet.internalLevelValue ? `(${sheet.sheet.internalLevelValue.toFixed(1)})` : ''}`,
@@ -120,7 +118,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                             const sheetData = song.sheets.find(
                                 (s) => s.type === chartType && s.difficulty === difficulty,
                             );
-                            const version = sheetData?.version ? sheetData.version : song.version;
+                            const version = sheetData?.intlVersion ? sheetData.intlVersion : song.version;
 
                             return new EmbedBuilder()
                                 .setTitle(song.title)
@@ -129,13 +127,11 @@ async function execute(interaction: ChatInputCommandInteraction) {
                                     parseInt(
                                         SongDataFetcher.difficulties
                                             .find((d) => d.difficulty === sheet[2])
-                                            ?.color.slice(1) || '000000',
+                                            ?.color?.slice(1) || '000000',
                                         16,
                                     ),
                                 )
-                                .setThumbnail(
-                                    `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`,
-                                )
+                                .setThumbnail(SongDataFetcher.coverUrl(song.imageName))
                                 .setDescription(
                                     [
                                         `${Emojis[sheetData?.type === ChartType.DX ? 'DX' : 'STD']} ${getDifficultyEmoji(sheetData?.difficulty ?? difficulty)} ${sheetData?.level || 'N/A'} ${sheetData?.internalLevelValue ? `(${sheetData.internalLevelValue.toFixed(1)})` : ''}`,

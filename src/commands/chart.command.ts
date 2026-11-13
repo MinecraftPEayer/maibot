@@ -13,6 +13,7 @@ import PlayerDataService from 'src/lib/PlayerDataService';
 import RatingChartUtils from 'src/lib/RatingChartUtils';
 import ImageHelper from 'src/lib/ImageHelper';
 import ImageConfig from 'src/lib/ImageConfig';
+import SongDataFetcher from 'src/lib/SongDataFetcher';
 
 const TitleTypeName = {
     [TitleType.Normal]: 'Normal',
@@ -191,7 +192,7 @@ async function drawRankCountBox(
     return TotalWidth;
 }
 
-const coverUrl = (score: B50Data) => `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${score.backgroundImg}`;
+const coverUrl = (score: B50Data) => SongDataFetcher.coverUrl(score.backgroundImg);
 
 async function drawSongBox(
     ctx: CanvasRenderingContext2D,

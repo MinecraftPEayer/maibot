@@ -113,7 +113,7 @@ const execute = async (interaction: ChatInputCommandInteraction) => {
                     ].join('\n'),
                 );
                 let trackInfoThumbnail = new ThumbnailBuilder().setURL(
-                    `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${SongDataFetcher.getInstance().getSongByName(track.songName).imageName}`,
+                    SongDataFetcher.coverUrl(SongDataFetcher.getInstance().getSongByName(track.songName).imageName),
                 );
                 let trackInfoNoteTable = new MediaGalleryBuilder().addItems({
                     media: {

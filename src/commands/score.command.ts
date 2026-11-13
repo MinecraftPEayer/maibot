@@ -41,9 +41,8 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
     let song;
     try {
-        song = /^\d+$/.test(songId)
-            ? SongDataFetcher.getInstance().getSong(parseInt(songId))
-            : SongDataFetcher.getInstance().getSongByName(songId);
+        const fetcher = SongDataFetcher.getInstance();
+        song = songId.startsWith('dsng_') ? fetcher.getSongById(songId) : fetcher.getSongByName(songId);
     } catch (error) {
         return await interaction.reply({
             embeds: [

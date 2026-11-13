@@ -11,6 +11,7 @@
         "express": "^5.1.0",
         "js-yaml": "^4.1.1",
         "node-cron": "^4.2.1",
+        "opencc-js": "^1.4.2",
         "set-cookie-parser": "^2.7.1",
         "sharp": "^0.34.2",
         "simple-json-db": "^2.0.0",

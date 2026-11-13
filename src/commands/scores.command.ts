@@ -16,7 +16,13 @@ import { handleComponentError } from 'src/lib/handleInteractionError';
 import PlayerDataService from 'src/lib/PlayerDataService';
 import SongDataFetcher from 'src/lib/SongDataFetcher';
 import { getDifficultyEmoji } from 'src/lib/Utils';
-import { ScoreData } from 'types/SongDatabase';
+import { ScoreData, Sheet, Song } from 'types/SongDatabase';
+
+type ScoreEntry = {
+    score: ScoreData;
+    song: Song;
+    sheet: Sheet;
+};
 
 const data = new SlashCommandBuilder()
     .setName('scores')
@@ -61,41 +67,15 @@ const data = new SlashCommandBuilder()
             .setAutocomplete(true),
     );
 
-const sortFunction: { [key: string]: (a: ScoreData, b: ScoreData) => number } = {
-    title: (a, b) => a.title.localeCompare(b.title),
-    title_reverse: (a, b) => b.title.localeCompare(a.title),
-    achievement: (a, b) => b.achievement - a.achievement,
-    achievement_reverse: (a, b) => a.achievement - b.achievement,
-    dxScore: (a, b) => (a.dxScore !== undefined && b.dxScore !== undefined ? b.dxScore - a.dxScore : 0),
-    dxScore_reverse: (a, b) => (a.dxScore !== undefined && b.dxScore !== undefined ? a.dxScore - b.dxScore : 0),
-    level: (a, b) => {
-        const dataFetcher = SongDataFetcher.getInstance();
-        const songA = dataFetcher.getSongByName(a.title);
-        const songB = dataFetcher.getSongByName(b.title);
-
-        const sheetA = songA.sheets.find((sheet) => sheet.type === a.type && sheet.difficulty === a.difficulty);
-        const sheetB = songB.sheets.find((sheet) => sheet.type === b.type && sheet.difficulty === b.difficulty);
-
-        if (sheetA && sheetB) {
-            return sheetB.internalLevelValue - sheetA.internalLevelValue;
-        } else {
-            return 0;
-        }
-    },
-    level_reverse: (a, b) => {
-        const dataFetcher = SongDataFetcher.getInstance();
-        const songA = dataFetcher.getSongByName(a.title);
-        const songB = dataFetcher.getSongByName(b.title);
-
-        const sheetA = songA.sheets.find((sheet) => sheet.type === a.type && sheet.difficulty === a.difficulty);
-        const sheetB = songB.sheets.find((sheet) => sheet.type === b.type && sheet.difficulty === b.difficulty);
-
-        if (sheetA && sheetB) {
-            return sheetA.internalLevelValue - sheetB.internalLevelValue;
-        } else {
-            return 0;
-        }
-    },
+const sortFunction: { [key: string]: (a: ScoreEntry, b: ScoreEntry) => number } = {
+    title: (a, b) => a.song.title.localeCompare(b.song.title),
+    title_reverse: (a, b) => b.song.title.localeCompare(a.song.title),
+    achievement: (a, b) => b.score.achievement - a.score.achievement,
+    achievement_reverse: (a, b) => a.score.achievement - b.score.achievement,
+    dxScore: (a, b) => (b.score.dxScore ?? 0) - (a.score.dxScore ?? 0),
+    dxScore_reverse: (a, b) => (a.score.dxScore ?? 0) - (b.score.dxScore ?? 0),
+    level: (a, b) => b.sheet.internalLevelValue - a.sheet.internalLevelValue,
+    level_reverse: (a, b) => a.sheet.internalLevelValue - b.sheet.internalLevelValue,
 };
 
 const comboTypeReflection = {
@@ -193,31 +173,34 @@ async function execute(interaction: ChatInputCommandInteraction) {
     if (!playerData) return; // playerData is null if account is not linked, pending changes
 
     const scores = playerData?.scoreData || {};
-    const allFilteredScores: ScoreData[] = [];
 
+    const entries: ScoreEntry[] = [];
     for (const diff of difficulty ?? Object.keys(scores)) {
-        const filteredScores = (scores[diff] ?? []).filter((score) => {
-            const song = dataFetcher.getSongByName(score.title);
+        for (const score of scores[diff] ?? []) {
+            const found = dataFetcher.findSheet(score);
+            if (!found) continue;
+            const { song, sheet } = found;
 
-            const scoreSheet = song.sheets.find(
-                (sheet) => sheet.type === score.type && sheet.difficulty === score.difficulty,
-            );
+            if (genre && !genre.includes(song.category)) continue;
+            if (version && !version.includes(song.version)) continue;
+            if (chartType && chartType !== score.type) continue;
+            if (minLevel && sheet.internalLevelValue < minLevel) continue;
+            if (maxLevel && sheet.internalLevelValue > maxLevel) continue;
 
-            if (!scoreSheet) return false;
-
-            if (genre && !genre.includes(song.category)) return false;
-            if (version && !version.includes(song.version)) return false;
-            if (chartType && chartType !== score.type) return false;
-            if (minLevel && scoreSheet.internalLevelValue < minLevel) return false;
-            if (maxLevel && scoreSheet.internalLevelValue > maxLevel) return false;
-
-            return true;
-        });
-
-        allFilteredScores.push(...filteredScores);
+            entries.push({ score, song, sheet });
+        }
     }
 
     let currentSortMethod = 'achievement';
+
+    const renderFields = () =>
+        entries
+            .sort(sortFunction[currentSortMethod])
+            .slice(5 * page, 5 * (page + 1))
+            .map(({ sheet, score, song }) => ({
+                name: song.songId.length > 100 ? song.songId.substring(0, 97) + '...' : song.songId,
+                value: `${score.type !== ChartType.UTAGE ? Emojis[score.type === ChartType.STD ? 'STD' : 'DX'] + ' ' : ''}${getDifficultyEmoji(score.difficulty)} ${sheet.level} (${sheet.internalLevelValue.toFixed(1)})\n${score.achievement.toFixed(4)}%\n${comboTypeReflection[score.comboType]}${score.comboType === ComboType.None ? '' : ' '}${syncTypeReflection[score.syncType]}`,
+            }));
 
     const sortMethodSelector = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
         new StringSelectMenuBuilder()
@@ -234,7 +217,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
     );
 
     let page = 0;
-    const maxPage = Math.ceil(allFilteredScores.length / 5) - 1;
+    const maxPage = Math.ceil(entries.length / 5) - 1;
 
     const pageActionRow = new ActionRowBuilder<ButtonBuilder>()
         .addComponents(
@@ -257,23 +240,10 @@ async function execute(interaction: ChatInputCommandInteraction) {
         .setDescription(
             `Sort by: ${SortMethodDisplayName[currentSortMethod as keyof typeof SortMethodDisplayName] || 'Unknown'}\n\n${FilterDisplayText}`,
         )
-        .addFields(
-            allFilteredScores
-                .sort(sortFunction[currentSortMethod])
-                .slice(5 * page, 5 * (page + 1))
-                .map((score) => {
-                    const sheet = dataFetcher
-                        .getSongByName(score.title)
-                        .sheets.find((s) => s.type === score.type && s.difficulty === score.difficulty);
-                    return {
-                        name: score.title.length > 100 ? score.title.substring(0, 97) + '...' : score.title,
-                        value: `${score.type !== ChartType.UTAGE ? Emojis[score.type === ChartType.STD ? 'STD' : 'DX'] + ' ' : ''}${getDifficultyEmoji(score.difficulty)} ${sheet?.level ?? ''} (${sheet?.internalLevelValue.toFixed(1) ?? 'N/A'})\n${score.achievement.toFixed(4)}%\n${comboTypeReflection[score.comboType]}${score.comboType === ComboType.None ? '' : ' '}${syncTypeReflection[score.syncType]}`,
-                    };
-                }),
-        )
-        .setFooter({ text: `Page ${page + 1} of ${Math.ceil(allFilteredScores.length / 5)}` });
+        .addFields(renderFields())
+        .setFooter({ text: `Page ${page + 1} of ${Math.ceil(entries.length / 5)}` });
 
-    if (allFilteredScores.length === 0) {
+    if (entries.length === 0) {
         await interaction.editReply({
             content: `No scores found for the specified filters.\n\n${FilterDisplayText}`,
             embeds: [],
@@ -307,24 +277,8 @@ async function execute(interaction: ChatInputCommandInteraction) {
                         .setDescription(
                             `Sort by: ${SortMethodDisplayName[currentSortMethod as keyof typeof SortMethodDisplayName] || 'Unknown'}\n\n${FilterDisplayText}`,
                         )
-                        .setFields(
-                            allFilteredScores
-                                .sort(sortFunction[currentSortMethod])
-                                .slice(5 * page, 5 * (page + 1))
-                                .map((score) => {
-                                    const sheet = dataFetcher
-                                        .getSongByName(score.title)
-                                        .sheets.find((s) => s.type === score.type && s.difficulty === score.difficulty);
-                                    return {
-                                        name:
-                                            score.title.length > 100
-                                                ? score.title.substring(0, 97) + '...'
-                                                : score.title,
-                                        value: `${score.type !== ChartType.UTAGE ? Emojis[score.type === ChartType.STD ? 'STD' : 'DX'] + ' ' : ''}${getDifficultyEmoji(score.difficulty)} ${sheet?.level ?? ''} (${sheet?.internalLevelValue.toFixed(1) ?? 'N/A'})\n${score.achievement.toFixed(4)}%\n${comboTypeReflection[score.comboType]}${score.comboType === ComboType.None ? '' : ' '}${syncTypeReflection[score.syncType]}`,
-                                    };
-                                }),
-                        )
-                        .setFooter({ text: `Page ${page + 1} of ${Math.ceil(allFilteredScores.length / 5)}` });
+                        .setFields(renderFields())
+                        .setFooter({ text: `Page ${page + 1} of ${Math.ceil(entries.length / 5)}` });
                     await i.update({ embeds: [embed], components: [sortMethodSelector, pageActionRow] });
                 }
             }
@@ -343,21 +297,8 @@ async function execute(interaction: ChatInputCommandInteraction) {
                     .setDescription(
                         `Sort by: ${SortMethodDisplayName[currentSortMethod as keyof typeof SortMethodDisplayName] || 'Unknown'}\n\n${FilterDisplayText}`,
                     )
-                    .setFields(
-                        allFilteredScores
-                            .sort(sortFunction[currentSortMethod])
-                            .slice(5 * page, 5 * (page + 1))
-                            .map((score) => {
-                                const sheet = dataFetcher
-                                    .getSongByName(score.title)
-                                    .sheets.find((s) => s.type === score.type && s.difficulty === score.difficulty);
-                                return {
-                                    name: score.title.length > 100 ? score.title.substring(0, 97) + '...' : score.title,
-                                    value: `${score.type !== ChartType.UTAGE ? Emojis[score.type === ChartType.STD ? 'STD' : 'DX'] + ' ' : ''}${getDifficultyEmoji(score.difficulty)} ${sheet?.level ?? ''} (${sheet?.internalLevelValue.toFixed(1) ?? 'N/A'})\n${score.achievement.toFixed(4)}%\n${comboTypeReflection[score.comboType]}${score.comboType === ComboType.None ? '' : ' '}${syncTypeReflection[score.syncType]}`,
-                                };
-                            }),
-                    )
-                    .setFooter({ text: `Page ${page + 1} of ${Math.ceil(allFilteredScores.length / 5)}` });
+                    .setFields(renderFields())
+                    .setFooter({ text: `Page ${page + 1} of ${Math.ceil(entries.length / 5)}` });
                 await i.update({ embeds: [embed], components: [sortMethodSelector, pageActionRow] });
             }
         })()

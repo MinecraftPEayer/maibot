@@ -140,6 +140,11 @@ async function drawScoreTable(notes: {
     return canvas;
 }
 
+function formatLevel(sheet: Sheet): string {
+    if (sheet.level.endsWith('?')) return sheet.level;
+    return `${sheet.level} (${sheet.internalLevelValue.toFixed(1)})`;
+}
+
 const data = new SlashCommandBuilder()
     .setName('song')
     .setDescription('song')
@@ -170,9 +175,8 @@ async function execute(interaction: ChatInputCommandInteraction) {
 
     let song;
     try {
-        song = /^\d+$/.test(songId)
-            ? SongDataFetcher.getInstance().getSong(parseInt(songId))
-            : SongDataFetcher.getInstance().getSongByName(songId);
+        const fetcher = SongDataFetcher.getInstance();
+        song = songId.startsWith('dsng_') ? fetcher.getSongById(songId) : fetcher.getSongByName(songId);
     } catch (error) {
         return await interaction.reply({
             embeds: [
@@ -250,14 +254,14 @@ async function execute(interaction: ChatInputCommandInteraction) {
                                       : Emojis.STD + ' '
                             }${isUTAGE ? sheet.utageType : getDifficultyEmoji(sheet.difficulty)}`,
                             value: [
-                                `${isUTAGE ? `-# ${song.comment}\n` : ''}Lv: ${sheet.level}(${sheet.internalLevel ?? sheet.internalLevelValue.toFixed(1) ?? sheet.level + '.?'})`,
+                                `${isUTAGE ? `-# ${song.comment}\n` : ''}Lv: ${formatLevel(sheet)}`,
                                 `Note Designer: ${sheet.noteDesigner ?? 'N/A'}`,
                                 `[YouTube](<https://www.youtube.com/results?search_query=${encodeURIComponent('maimai ' + song.title + ' ' + DifficultyDisplayName[sheet.difficulty])}>)${maiNoteChartIDMap?.get(sheet.difficulty) ? ` - [mai-notes](<https://mai-notes.com/player?chart=${maiNoteChartIDMap.get(sheet.difficulty)}>)` : ''}`,
                             ].join('\n'),
                         };
                     }),
                 thumbnail: {
-                    url: `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`,
+                    url: SongDataFetcher.coverUrl(song.imageName),
                 },
             },
         ],
@@ -294,13 +298,13 @@ async function execute(interaction: ChatInputCommandInteraction) {
                                                       : Emojis.STD + ' '
                                             }${getDifficultyEmoji(sheet.difficulty)}`,
                                             value: [
-                                                `Lv: ${sheet.level} (${sheet.internalLevel ?? sheet.internalLevelValue.toFixed(1) ?? sheet.level + '.?'})`,
+                                                `Lv: ${formatLevel(sheet)}`,
                                                 `Note Designer: ${sheet.noteDesigner ?? 'N/A'}`,
                                             ].join('\n'),
                                         };
                                     }),
                                 thumbnail: {
-                                    url: `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`,
+                                    url: SongDataFetcher.coverUrl(song.imageName),
                                 },
                             },
                         ],
@@ -417,7 +421,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                                     `Category: ${song.category}`,
                                     `BPM: ${song.bpm ?? 'N/A'}`,
                                     `Version: ${song.version}`,
-                                    `Level: ${selectedSheet.level} (${selectedSheet.internalLevelValue.toFixed(1)})`,
+                                    `Level: ${formatLevel(selectedSheet)}`,
                                     `Note Designer: ${selectedSheet.noteDesigner ?? 'N/A'}`,
                                 ].join('\n'),
                                 color: parseInt(DifficultyColor[selectedSheet.difficulty][0].slice(1), 16),
@@ -473,7 +477,7 @@ async function execute(interaction: ChatInputCommandInteraction) {
                                     url: `attachment://score_table.png`,
                                 },
                                 thumbnail: {
-                                    url: `https://dp4p6x0xfi5o9.cloudfront.net/maimai/img/cover-m/${song.imageName}`,
+                                    url: SongDataFetcher.coverUrl(song.imageName),
                                 },
                             },
                         ],
