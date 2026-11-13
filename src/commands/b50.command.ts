@@ -70,9 +70,11 @@ async function sendB50(
                         ].join('\n');
                     })
                     .join('\n')}`,
-                thumbnail: playerInfo?.avatar ? {
-                    url: playerInfo?.avatar,
-                } : undefined,
+                thumbnail: playerInfo?.avatar
+                    ? {
+                          url: playerInfo?.avatar,
+                      }
+                    : undefined,
                 footer: {
                     text: `${TypeText[currentType]} Page ${page + 1} / ${Math.max(1, Math.ceil(B50Data[currentType].length / 10))}`,
                 },

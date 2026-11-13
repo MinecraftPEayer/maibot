@@ -254,9 +254,7 @@ async function drawAndSendGraph(
         fillStyle: 'rgba(183, 183, 183, 0.45)',
     });
 
-    const avatarImg = await loadImage(
-        await getImageBuffer(playerData.avatar),
-    );
+    const avatarImg = await loadImage(await getImageBuffer(playerData.avatar));
     ctx.drawImage(avatarImg, 72, 72, 92, 92);
 
     const ratingImg = await loadImage(
@@ -280,9 +278,7 @@ async function drawAndSendGraph(
     ctx.fillText(ratingArray[3], baseX + 32.5, 90);
     ctx.fillText(ratingArray[4], baseX + 43.5, 90);
 
-    const classImg = await loadImage(
-        await getImageBuffer(playerData.classRank),
-    );
+    const classImg = await loadImage(await getImageBuffer(playerData.classRank));
     ctx.drawImage(classImg, 276, 68, 58, 32);
 
     drawRoundRect({
@@ -298,9 +294,7 @@ async function drawAndSendGraph(
     ctx.fillStyle = 'black';
     ctx.fillText(playerData.name, 180, 106 + 20);
 
-    const courseImg = await loadImage(
-        await getImageBuffer(playerData.course),
-    );
+    const courseImg = await loadImage(await getImageBuffer(playerData.course));
     ctx.drawImage(courseImg, 341, 104, 71, 28);
 
     const titleBackImg = await loadImage(

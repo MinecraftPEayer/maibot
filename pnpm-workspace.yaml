@@ -1,4 +1,4 @@
 allowBuilds:
-  esbuild: true
-  sharp: false
-  skia-canvas: true
+    esbuild: true
+    sharp: false
+    skia-canvas: true

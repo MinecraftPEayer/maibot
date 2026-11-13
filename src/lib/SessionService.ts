@@ -1,11 +1,11 @@
 import crypto from 'crypto';
-import fs from 'fs'
+import fs from 'fs';
 import { writeFileAtomic } from './Utils';
 import Logger from './logger';
 
-type StoredSession = { id: string, createdAt: number, expiresAt: number };
-export type SessionCreated = { token: string, expiresAt: number };
-export type SessionInfo = { id: string, expiresAt: number };
+type StoredSession = { id: string; createdAt: number; expiresAt: number };
+export type SessionCreated = { token: string; expiresAt: number };
+export type SessionInfo = { id: string; expiresAt: number };
 
 const FILE = 'data/api/sessions.json';
 const TTL = 1000 * 60 * 60 * 24 * 30; // 30 Days
@@ -15,7 +15,7 @@ class SessionService {
     private sessions: Map<string, StoredSession>;
 
     private logger: Logger = new Logger('SessionService');
-    
+
     private constructor() {
         this.sessions = new Map<string, StoredSession>(Object.entries(this.load()));
         this.purgeExpired();
@@ -68,8 +68,7 @@ class SessionService {
     }
 
     public revoke(token: string): void {
-        if (this.sessions.delete(this.hash(token))) 
-            this.save();
+        if (this.sessions.delete(this.hash(token))) this.save();
     }
 
     public revokeAll(id: string): void {
