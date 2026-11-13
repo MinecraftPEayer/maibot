@@ -107,3 +107,12 @@ export const CurrentVersion = 'CiRCLE PLUS';
 export const NewSongVersion: Record<string, string[]> = {
     'CiRCLE PLUS': ['CiRCLE PLUS', 'CiRCLE'],
 };
+
+export const IntlVersionStartDate: [version: string, start: string][] = [
+    ['BUDDiES', '20240118'],
+    ['BUDDiES PLUS', '20240725'],
+    ['PRiSM', '20250116'],
+    ['PRiSM PLUS', '20250724'],
+    ['CiRCLE', '20260122'],
+    ['CiRCLE PLUS', '20260723'],
+];

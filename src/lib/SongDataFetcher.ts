@@ -17,7 +17,7 @@ import {
 } from 'types/SongDatabase';
 import { writeFileAtomic, aliasTitle } from './Utils';
 import yaml from 'js-yaml';
-import { CurrentVersion } from './constant/CommonConstant';
+import { CurrentVersion, IntlVersionStartDate } from './constant/CommonConstant';
 import Logger from './logger';
 import { ChartType, Difficulty } from './CommonEnums';
 
@@ -103,14 +103,25 @@ function groupBy<T>(items: T[], key: (item: T) => string): Map<string, T[]> {
     return map;
 }
 
-function lookupOtoge(idx: Map<string, ConstantDatabase[]>, song: DxrSong, sheet: DxrSheet): number | undefined {
-    if (sheet.type !== 'dx' && sheet.type !== 'std') return undefined;
+function findOtogeRow(idx: Map<string, ConstantDatabase[]>, song: DxrSong): ConstantDatabase | undefined {
     const rows = idx.get(song.title) ?? [];
-    const row = rows.find((r) => r.catcode === song.category) ?? (rows.length === 1 ? rows[0] : undefined);
+    return rows.find((r) => r.catcode === song.category) ?? (rows.length === 1 ? rows[0] : undefined);
+}
+
+function lookupOtoge(row: ConstantDatabase | undefined, sheet: DxrSheet): number | undefined {
+    if (sheet.type !== 'dx' && sheet.type !== 'std') return undefined;
     const key =
         `${sheet.type === 'dx' ? 'dx_' : ''}lev_${OTOGE_DIFF_KEY[sheet.difficulty]}_i` as keyof ConstantDatabase;
     const value = parseFloat((row?.[key] as string | undefined) ?? '');
     return Number.isFinite(value) ? value : undefined;
+}
+
+function intlVersionAt(date: string): string | undefined {
+    let found: string | undefined = undefined;
+    for (const [version, start] of IntlVersionStartDate) {
+        if (date >= start) found = version;
+    }
+    return found;
 }
 
 function resolveIntlConstant(sheet: DxrSheet, otoge: number | undefined): { value: number; source: ConstantSource } {
@@ -122,9 +133,20 @@ function resolveIntlConstant(sheet: DxrSheet, otoge: number | undefined): { valu
     return { value: sheet.internalLevelValue, source: 'jp' };
 }
 
-function resolveIntlVersion(sheet: DxrSheet, versionOrder: string[]): string {
+function resolveIntlVersion(
+    song: DxrSong,
+    sheet: DxrSheet,
+    row: ConstantDatabase | undefined,
+    versionOrder: string[],
+): string {
     const override = sheet.serverOverrides?.intl?.version;
     if (override) return override;
+
+    if (row?.date_intl_added && sheet.version === song.version) {
+        const byDate = intlVersionAt(row.date_intl_added);
+        if (byDate) return byDate;
+    }
+
     const current = versionOrder.indexOf(CurrentVersion);
     if (current >= 0 && versionOrder.indexOf(sheet.version) > current) return CurrentVersion;
     return sheet.version;
@@ -142,7 +164,8 @@ function buildSheet(
     const difficulty = isUtage ? Difficulty.UTAGE : DIFF_ID[sheet.difficulty];
     if (type === undefined || difficulty === undefined) return null;
 
-    const { value, source } = resolveIntlConstant(sheet, lookupOtoge(otoge, song, sheet));
+    const row = findOtogeRow(otoge, song);
+    const { value, source } = resolveIntlConstant(sheet, lookupOtoge(row, sheet));
     const n = sheet.noteCounts;
     return {
         id: sheet.id,
@@ -170,7 +193,7 @@ function buildSheet(
             usa: sheet.serverIds.includes('usa'),
             cn: sheet.serverIds.includes('cn'),
         },
-        intlVersion: resolveIntlVersion(sheet, versionOrder),
+        intlVersion: resolveIntlVersion(song, sheet, row, versionOrder),
         version: sheet.version,
         isSpecial: sheet.isSpecial,
         internalId: sheet.internalId ?? null,
