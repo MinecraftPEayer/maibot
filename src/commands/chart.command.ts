@@ -42,12 +42,14 @@ const RCUtils = RatingChartUtils.getInstance();
 
 const { loadImage } = ImageHelper.getInstance();
 
-let logger: Logger;
+let logger: Logger = new Logger('ChartCommand');
 
 function drawChartType(ctx: CanvasRenderingContext2D, x: number, y: number, chartType: ChartType) {
     let originalFillStyle = ctx.fillStyle,
         originalFont = ctx.font;
-    ctx.drawCanvas(RatingChartUtils.ChartTypeCanvas[chartType as ChartType.DX | ChartType.STD], x - 10, y);
+    const chartTypeCanva = RatingChartUtils.ChartTypeCanvas[chartType as ChartType.DX | ChartType.STD];
+    if (!chartTypeCanva) return logger.warn(`ChartTypeCanvas not found for chartType: ${chartType}`);
+    ctx.drawCanvas(chartTypeCanva, x - 10, y);
     ctx.font = originalFont;
     ctx.fillStyle = originalFillStyle;
 }
@@ -893,7 +895,6 @@ function drawBoldText(ctx: CanvasRenderingContext2D, text: string, posX: number,
 }
 
 async function execute(interaction: ChatInputCommandInteraction) {
-    logger = new Logger('ChartCommand');
     let db = new JSONdb('data/linking.json');
     let optionUser = interaction.options.getUser('user');
     let optionDrawIcons = interaction.options.getBoolean('draw_icons') ?? false;

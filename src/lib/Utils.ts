@@ -98,6 +98,7 @@ function calculateB50(
     let B15Data: B50Data[] = [],
         B35Data: B50Data[] = [];
     for (const item of scoreData) {
+        if (item.difficulty === Difficulty.UTAGE || item.type === ChartType.UTAGE) continue;
         const found = fetcher.findSheet(item);
         if (!found) continue;
         const { song, sheet } = found;
