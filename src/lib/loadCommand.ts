@@ -28,8 +28,15 @@ function diffCommand(
     const changed = remote
         .filter((r) => {
             const l = localByName.get(r.name);
+            if (!l) return false;
 
-            return l !== undefined && !r.equals(l as unknown as ApplicationCommandData, true);
+            const normalized = {
+                ...l,
+                integration_types: l.integration_types ?? r.integrationTypes ?? undefined,
+                contexts: l.contexts ?? r.contexts ?? undefined,
+            }
+
+            return l !== undefined && !r.equals(normalized as unknown as ApplicationCommandData, true);
         })
         .map((r) => r.name);
 
