@@ -34,7 +34,7 @@ function diffCommand(
                 ...l,
                 integration_types: l.integration_types ?? r.integrationTypes ?? undefined,
                 contexts: l.contexts ?? r.contexts ?? undefined,
-            }
+            };
 
             return l !== undefined && !r.equals(normalized as unknown as ApplicationCommandData, true);
         })
