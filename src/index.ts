@@ -1,5 +1,4 @@
-import { Client, REST, Routes } from 'discord.js';
-import fs from 'fs';
+import { Client } from 'discord.js';
 import 'dotenv/config';
 import init from './lib/init';
 import MaimaiDXNetFetcher from './lib/maimaiDXNetFetcher';
@@ -12,6 +11,7 @@ import RatingChartUtils from './lib/RatingChartUtils';
 import MaiNoteService from './lib/MaiNoteService';
 import ImageHelper from './lib/ImageHelper';
 import { getErrorMessageFromError } from './lib/handleInteractionError';
+import { loadCommand } from './lib/loadCommand';
 
 const mainLogger = new Logger('main');
 process.logger = mainLogger;
@@ -53,7 +53,6 @@ const client = new Client({
 client.logger = new Logger('Client');
 
 client.commands = new Map<string, any>();
-let commands = [];
 
 const fetcher = MaimaiDXNetFetcher.getInstance();
 
@@ -64,42 +63,7 @@ client.on('clientReady', async () => {
     await dataFetcher.fetchData();
     await dataFetcher.fetchCourseData();
 
-    const files = fs.readdirSync('./src/commands').filter((file) => file.endsWith('.command.ts'));
-
-    for (const file of files) {
-        try {
-            const command = await import(`./commands/${file}`);
-            if (command.data && command.execute) {
-                client.commands.set(command.data.name, command);
-                commands.push(command.data.toJSON());
-            } else {
-                client.logger.error(`Command file ${file} is missing data or execute properties.`);
-            }
-        } catch (error) {
-            client.logger.error(`Failed to load command file ${file}:`, error);
-        }
-    }
-
-    const rest = new REST({ version: '9' }).setToken(process.env.TOKEN!);
-
-    try {
-        await rest.put(Routes.applicationCommands(client.user!.id), {
-            body: commands,
-        });
-        client.logger.log('[CommandRegister] Successfully registered application commands.');
-    } catch (error) {
-        client.logger.error('[CommandRegister] Failed to register application commands.', error);
-    }
-
-    if (config.dev.devServerID) {
-        try {
-            await rest.put(Routes.applicationGuildCommands(client.user!.id, config.dev.devServerID), {
-                body: commands,
-            });
-        } catch (error) {
-            client.logger.error('[CommandRegister] Failed to register guild commands.', error);
-        }
-    }
+    await loadCommand(client, config.dev.devServerID, process.env.FORCE_REGISTER_COMMAND === '1');
 
     try {
         await fetcher.login();

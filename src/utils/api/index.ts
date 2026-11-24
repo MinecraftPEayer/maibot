@@ -25,7 +25,7 @@ export default async () => {
 
     app.use(async (req, res, next) => {
         const dynamicRoute =
-            (process.env.DEVELOPMENT || config.api.debug_route.enabled) && dynamicLoadingList.includes(req.path);
+            (process.env.DEVELOPMENT === '1' || config.api.debug_route.enabled) && dynamicLoadingList.includes(req.path);
 
         res.on('finish', () => {
             logger.log(`${req.method} ${req.path} ${res.statusCode}${dynamicRoute ? ' (dynamic)' : ''}`);

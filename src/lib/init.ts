@@ -26,7 +26,7 @@ export default async () => {
     const hash = git('rev-parse --short HEAD');
     const branch = git('rev-parse --abbrev-ref HEAD');
     const dirty = git('status --porcelain -uno') ? '-dirty' : '';
-    const prefix = process.env.DEVELOPMENT ? 'dev' : 'git';
+    const prefix = process.env.DEVELOPMENT === '1' ? 'dev' : 'git';
 
     process.BuildVersion = hash ? `${prefix}-${branch}-${hash}${dirty}` : prefix === 'dev' ? 'dev' : 'unknown';
 
